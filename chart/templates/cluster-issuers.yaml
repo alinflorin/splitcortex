@@ -1,0 +1,64 @@
+{{- /*
+ClusterIssuers are Helm post-install/post-upgrade hooks: their CRDs and the cert-manager webhook
+come from the same release, so they must be applied after those are up (use `helm --wait`).
+Hooks are not removed on `helm uninstall`.
+*/ -}}
+{{- $hook := dict "helm.sh/hook" "post-install,post-upgrade" "helm.sh/hook-delete-policy" "before-hook-creation" }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+  labels: {{- include "splitcortex.labels" . | nindent 4 }}
+  annotations: {{- merge (dict "helm.sh/hook-weight" "0") $hook | toYaml | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: root-ca-issuer
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "splitcortex.labels" . | nindent 4 }}
+  annotations: {{- merge (dict "helm.sh/hook-weight" "1") $hook | toYaml | nindent 4 }}
+spec:
+  isCA: true
+  commonName: splitcortex-root-ca
+  secretName: root-ca-issuer
+  duration: 87600h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: root-ca-issuer
+  labels: {{- include "splitcortex.labels" . | nindent 4 }}
+  annotations: {{- merge (dict "helm.sh/hook-weight" "2") $hook | toYaml | nindent 4 }}
+spec:
+  ca:
+    secretName: root-ca-issuer
+---
+{{- /* Let's Encrypt only when letsencryptEmail is set (stg/prd). */}}
+{{- with .Values.letsencryptEmail }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+  labels: {{- include "splitcortex.labels" $ | nindent 4 }}
+  annotations: {{- merge (dict "helm.sh/hook-weight" "0") $hook | toYaml | nindent 4 }}
+spec:
+  acme:
+    email: {{ . | quote }}
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik
+{{- end }}

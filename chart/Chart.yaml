@@ -4,3 +4,13 @@ description: SplitCortex - inference serving on reused mobile compute devices (c
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
+
+dependencies:
+  - name: traefik
+    version: 42.4.0
+    repository: https://traefik.github.io/charts
+    condition: traefik.enabled
+  - name: cert-manager
+    version: v1.21.3
+    repository: https://charts.jetstack.io
+    condition: cert-manager.enabled

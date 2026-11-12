@@ -124,3 +124,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 .terraform-plugin-cache/
+# Subchart tarballs (restored by `helm dependency build`)
+chart/charts/
+chart/values-local.yaml

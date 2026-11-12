@@ -1,0 +1,2 @@
+# Enables the `letsencrypt` ClusterIssuer (Let's Encrypt production).
+letsencryptEmail: ops@example.com   # TODO: real contact address for expiry notices

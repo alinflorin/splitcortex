@@ -1,0 +1,4 @@
+cert-manager:
+  # Install and keep the CRDs with the release (cert-manager is unusable without them).
+  crds:
+    enabled: true

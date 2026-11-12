@@ -96,7 +96,7 @@ The repository is currently empty apart from docs. Update the "Commands" and "La
 
 ## Commands
 
-- Helm chart: `helm lint chart --strict [-f chart/values-stg.yaml]` and `helm template` with the same flags. Local dev: `helm upgrade -i sc chart` (defaults).
+- Helm chart: `helm lint chart --strict [-f chart/values-stg.yaml]` and `helm template` with the same flags. Local dev install (`--wait` is required so the ClusterIssuer hooks run after the cert-manager webhook is ready): `helm upgrade -i --wait --timeout 5m --create-namespace -n splitcortex -f chart/values-local.yaml splitcortex chart`.
 
 - CI/CD: `.github/workflows/chart.yaml` lints (`--strict`), renders and kubeconform-validates the chart for each of dev/stg/prd on PRs and pushes to `main`. Pushing a tag `vX.Y.Z` packages the chart and pushes it to `oci://ghcr.io/<owner>/charts`. Chart dependencies (`~/.cache/helm`, `chart/charts`) and the kubeconform binary are cached with `actions/cache`, keyed on `Chart.yaml`/`Chart.lock`. Keep action versions on the latest major.
 
@@ -104,7 +104,7 @@ Other commands TBD as code lands.
 
 ## Layout
 
-- `chart/`: Helm chart, currently a **skeleton**: `Chart.yaml`, `templates/_helpers.tpl` (naming/label helpers) and empty `values.yaml` (local dev), `values-stg.yaml`, `values-prd.yaml` (overrides layered with `-f`). Workloads, services, ingress and secrets will be re-added as the services land. Constraints for when they are:
+- `chart/`: Helm chart, currently a **skeleton**: `Chart.yaml`, `templates/_helpers.tpl` (naming/label helpers) and empty `values.yaml` (local dev), `values-stg.yaml`, `values-prd.yaml` (overrides layered with `-f`), plus an optional git-ignored `values-local.yaml` for personal local overrides. It depends on the official **Traefik** chart (`traefik/traefik` 42.4.0 from https://traefik.github.io/charts, toggle with `traefik.enabled`, default on) and **cert-manager** (`jetstack/cert-manager` v1.21.3 from https://charts.jetstack.io, toggle with `cert-manager.enabled`, default on, CRDs enabled in `values.yaml`). `templates/cluster-issuers.yaml` defines ClusterIssuers as Helm post-install/post-upgrade hooks (CRDs and webhook come from the same release; install with `--wait`; not removed on uninstall): `root-ca-issuer` (CA issuer backed by a self-signed root, via a `selfsigned-issuer` bootstrap) everywhere, and `letsencrypt` (Let's Encrypt **production** ACME, HTTP-01 through Traefik) only in stg/prd, enabled by setting `letsencryptEmail` (the only issuer-related value; names and settings are hardcoded in the template, do not add issuers to values); `Chart.lock` is committed and `chart/charts/` is git-ignored (run `helm dependency build chart`). Workloads, services, ingress and secrets will be re-added as the services land. Constraints for when they are:
   - Postgres is external; the gateway needs a direct connection (it uses `LISTEN`), not PgBouncer transaction mode.
   - Gateway default is 1 replica (registry is per process; more replicas need sticky routing by pool). The ingress controller is Traefik; SSE and wss must not be cut by Traefik's entryPoint `respondingTimeouts` (static Traefik config).
   - The gateway server private key comes from a Secret mounted as a file; only the public key and wss URL go to the control plane as plain config. Prefer `existingSecret` outside dev; no inline secrets in stg/prd.
