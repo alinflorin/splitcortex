@@ -75,12 +75,12 @@ jobs:
       run:
         working-directory: infra/${{ matrix.environment }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ env.TF_VERSION }}
       - name: Cache Terraform providers
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.TF_PLUGIN_CACHE_DIR }}
           key: tf-providers-${{ runner.os }}-${{ matrix.environment }}-${{ hashFiles(format('infra/{0}/.terraform.lock.hcl', matrix.environment)) }}
@@ -103,14 +103,14 @@ jobs:
       run:
         working-directory: infra/${{ matrix.environment }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
           cli_config_credentials_token: ${{ secrets.TF_TOKEN }}
       - name: Cache Terraform providers
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.TF_PLUGIN_CACHE_DIR }}
           key: tf-providers-${{ runner.os }}-${{ matrix.environment }}-${{ hashFiles(format('infra/{0}/.terraform.lock.hcl', matrix.environment)) }}
@@ -135,7 +135,7 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       # Only plans with changes are uploaded; apply skips an environment without one.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: steps.plan.outputs.changes == 'true'
         with:
           name: tfplan-${{ matrix.environment }}
@@ -158,14 +158,14 @@ jobs:
       run:
         working-directory: infra/${{ matrix.environment }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         id: plan
         continue-on-error: true # no artifact means no changes for this environment
         with:
           name: tfplan-${{ matrix.environment }}
           path: infra/${{ matrix.environment }}
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         if: steps.plan.outcome == 'success'
         with:
           terraform_version: ${{ env.TF_VERSION }}
@@ -173,7 +173,7 @@ jobs:
           cli_config_credentials_token: ${{ secrets.TF_TOKEN }}
       - name: Cache Terraform providers
         if: steps.plan.outcome == 'success'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.TF_PLUGIN_CACHE_DIR }}
           key: tf-providers-${{ runner.os }}-${{ matrix.environment }}-${{ hashFiles(format('infra/{0}/.terraform.lock.hcl', matrix.environment)) }}
