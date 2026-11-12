@@ -100,7 +100,18 @@ TBD (no stack chosen yet).
 
 ## Layout
 
-TBD.
+- `infra/`: Terraform. `dev/` (local provisioning only, never CI), `stg/` and `prd/` (CI-managed), `modules/` (shared). See [infra/README.md](infra/README.md).
+- `.github/workflows/terraform.yml`: fmt/validate, then plan and apply per environment.
+
+Everything else TBD.
+
+## Infrastructure (Terraform)
+
+- `dev` is provisioned locally only; it is not in CI and has no GitHub environments. Only `stg` and `prd` run in GitHub Actions.
+- CI triggers: PR to `main` (validate + plan, no apply), push to `main` (validate, plan stg and prd, then apply stg, then prd), manual dispatch (env `stg` or `prd`, apply only honoured on `main`). The apply job applies the saved plan from the plan job.
+- Two GitHub environment sets per stage: `tf-stg-plan`, `tf-prd-plan` (read-only credentials) and `tf-stg-apply`, `tf-prd-apply` (write credentials; `tf-prd-apply` should require reviewers).
+- State backend (decided): HCP Terraform (Terraform Cloud) via a `cloud` block in `stg` and `prd`; workspace names `stg` and `prd`. The organization comes from `TF_CLOUD_ORGANIZATION` (GitHub variable in CI), tokens from the `TF_TOKEN` secret in each GitHub environment. Provider credentials live in the HCP Terraform workspace variables. `dev` stays on local state.
+- Bootstrap only: no provider or resources yet. Hosting provider is still undecided.
 
 ## Working conventions
 
