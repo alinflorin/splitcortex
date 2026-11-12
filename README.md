@@ -26,7 +26,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 ```
 
 - Nodes connect outbound to the gateway, so NAT and mobile networks are not a problem.
-- **Node and server identity**: each node generates its own key pair and registers its public key when it enrolls. The server has its own key pair, which nodes trust from enrollment onwards. The two sides authenticate each other with these keys.
+- **Node and server identity**: each node generates its own key pair and registers its public key when it enrolls. Enrollment is started in the web app, which shows a short one-time code (and a QR); the device user types or scans it in the mobile app, optionally pointing it at a different gateway URL. The server has its own key pair, which nodes trust from enrollment onwards. The two sides authenticate each other with these keys.
 - **Models are currently replicated**: every device in a pool holds a full copy of the pool's models.
 - **Engine**: LiteRT-LM is the only supported inference engine for now.
 
@@ -39,7 +39,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 
 - **Frontend**: Vite, React, TypeScript, Fluent UI, react-hook-form, zod.
 - **Endpoint app**: React Native with Expo and TypeScript, run on physical devices via local dev builds (no EAS). A native module wraps LiteRT-LM, so Expo Go is not supported.
-- **Backend**: not decided. Leaning towards a cloud solution such as Supabase for auth and data. The gateway, which holds long-lived node connections, will likely need its own always-on service.
+- **Backend**: not decided. The gateway, which holds long-lived node connections, will likely need its own always-on service.
 
 ## Repository layout
 
