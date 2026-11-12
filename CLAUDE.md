@@ -41,13 +41,13 @@ The repository is currently empty apart from docs. Update the "Commands" and "La
 ## Architecture rules
 
 - The app is both the control plane (accounts, orgs, pools, keys, config, dashboards) and the **API gateway** (auth, limits, metering, load balancing, model management).
-- Nodes connect **outbound** to the gateway over a persistent MQ-style connection secured with **TLS**. Never design anything that requires inbound connectivity to a device.
+- Nodes connect **outbound** to the gateway over a persistent, multiplexed, bidirectional **gRPC** stream (HTTP/2) secured with **TLS**. There is **no message broker** for now: the gateway keeps an in-memory registry of connected nodes per pool and relays requests and streamed tokens over the node's stream. Keep the node connection behind a transport interface (e.g. `NodeChannel`) so multi-gateway scaling (shared registry, gateway-to-gateway forwarding, or NATS) can be added later. Never design anything that requires inbound connectivity to a device.
 - The gateway exposes the **OpenAI API format** (e.g. `/v1/chat/completions`, `/v1/models`, streaming via SSE) so existing OpenAI clients and SDKs work by changing only the base URL and API key. Keep this wire format at the gateway edge; translate to the internal node protocol behind it.
 - The web app includes a **performance measurement** feature (e.g. benchmarking nodes and pools: latency, throughput, tokens/sec). Measurements must be scoped by organisation like all other data, and must not log prompts or completions (benchmark prompts excepted if they are platform-supplied).
 - Every inference request must be authenticated by API key, checked against limits, routed to a healthy node in the target pool, and metered (tokens in/out).
 - Models are **replicated** per device for now. Keep model placement behind an abstraction so sharding a large model across devices (open research) can be added later without rewriting the gateway.
 - **LiteRT-LM** is the only supported engine. Keep the engine behind an interface; do not leak LiteRT-LM specifics into gateway or billing code.
-- Tenant isolation is critical: every query and queue/topic must be scoped by organisation.
+- Tenant isolation is critical: every query, node stream and registry entry must be scoped by organisation.
 
 ## Security
 

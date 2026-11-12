@@ -10,7 +10,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 - **Inference pools**: an organisation groups its devices into pools. Each pool serves a set of models.
 - **API keys**: per-organisation key management for clients calling the inference API.
 - **API gateway**: the platform is the single public entry point. It authenticates requests, load-balances them across the nodes in a pool, and manages model distribution.
-- **Device nodes**: endpoint devices keep a persistent, message-queue style connection to the gateway over TLS. The gateway pushes work down this connection, so devices do not need to be publicly reachable.
+- **Device nodes**: endpoint devices keep a persistent gRPC stream to the gateway over TLS (no message broker). The gateway pushes work down this stream, so devices do not need to be publicly reachable.
 - **Usage tracking and limits**: token usage is metered per key, pool and organisation, with configurable limits.
 - **Dashboards and config pages**: usage, node health, pool state, and settings in the web UI.
 
@@ -19,7 +19,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 ```
  clients ──HTTPS──▶  gateway (auth, limits, metering, load balancing, model mgmt)
                           │
-                          │  persistent MQ-style connection over TLS
+                          │  persistent gRPC stream over TLS
                           ▼
                     device nodes (phone / RPi / ...)
                           └─ inference engine: LiteRT-LM
