@@ -98,6 +98,8 @@ The repository is currently empty apart from docs. Update the "Commands" and "La
 
 - Helm chart: `helm lint chart --strict [-f chart/values-stg.yaml]` and `helm template` with the same flags. Local dev install (`--wait` is required so the ClusterIssuer hooks run after the cert-manager webhook is ready): `helm upgrade -i --wait --timeout 5m --create-namespace -n splitcortex -f chart/values-local.yaml splitcortex chart`.
 
+- Tilt: `tilt up` at the repo root uses the root `Tiltfile` (k3s context `default`, Docker registry `localhost:5000` mirrored in k3s `registries.yaml`). It currently installs the infra chart as a `chart` local_resource via `helm upgrade -i --wait` (not tilt's `helm()`, because of the ClusterIssuer hooks); service `docker_build`s are commented placeholders until code lands.
+
 - CI/CD: `.github/workflows/chart.yaml` lints (`--strict`), renders and kubeconform-validates the chart for each of dev/stg/prd on PRs and pushes to `main`. Pushing a tag `vX.Y.Z` packages the chart and pushes it to `oci://ghcr.io/<owner>/charts`. Chart dependencies (`~/.cache/helm`, `chart/charts`) and the kubeconform binary are cached with `actions/cache`, keyed on `Chart.yaml`/`Chart.lock`. Keep action versions on the latest major.
 
 Other commands TBD as code lands.
