@@ -42,6 +42,7 @@ The repository is currently empty apart from docs. Update the "Commands" and "La
 
 - The app is both the control plane (accounts, orgs, pools, keys, config, dashboards) and the **API gateway** (auth, limits, metering, load balancing, model management).
 - Nodes connect **outbound** to the gateway over a persistent MQ-style connection secured with **TLS**. Never design anything that requires inbound connectivity to a device.
+- The gateway exposes the **OpenAI API format** (e.g. `/v1/chat/completions`, `/v1/models`, streaming via SSE) so existing OpenAI clients and SDKs work by changing only the base URL and API key. Keep this wire format at the gateway edge; translate to the internal node protocol behind it.
 - Every inference request must be authenticated by API key, checked against limits, routed to a healthy node in the target pool, and metered (tokens in/out).
 - Models are **replicated** per device for now. Keep model placement behind an abstraction so sharding a large model across devices (open research) can be added later without rewriting the gateway.
 - **LiteRT-LM** is the only supported engine. Keep the engine behind an interface; do not leak LiteRT-LM specifics into gateway or billing code.
