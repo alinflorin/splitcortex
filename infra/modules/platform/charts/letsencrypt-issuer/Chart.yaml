@@ -1,5 +1,0 @@
-apiVersion: v2
-name: letsencrypt-issuer
-description: Let's Encrypt ACME ClusterIssuer (cert-manager, HTTP-01)
-type: application
-version: 0.1.0

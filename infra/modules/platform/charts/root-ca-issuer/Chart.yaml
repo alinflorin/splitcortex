@@ -1,5 +1,0 @@
-apiVersion: v2
-name: root-ca-issuer
-description: Self-signed root CA and the root-ca-issuer ClusterIssuer (cert-manager)
-type: application
-version: 0.1.0

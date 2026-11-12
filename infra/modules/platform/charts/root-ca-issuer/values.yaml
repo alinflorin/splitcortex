@@ -1,3 +1,0 @@
-issuerName: root-ca-issuer
-# Namespace holding the root CA Certificate/Secret (cert-manager's cluster resource namespace).
-namespace: cert-manager

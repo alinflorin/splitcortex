@@ -46,10 +46,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 
 ## Repository layout
 
-- `infra/`: Terraform for `dev` (local only), `stg` and `prd` (applied by GitHub Actions) plus shared `modules/`. Currently a bootstrap with no provider or resources yet. See [infra/README.md](infra/README.md).
-- `.github/workflows/`: Terraform CI/CD (validate, plan, apply for stg then prd).
-
-The rest will be filled in as the codebase takes shape.
+Not yet established. This section will be filled in as the codebase takes shape.
 
 ## Getting started
 

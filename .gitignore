@@ -124,6 +124,3 @@ override.tf.json
 .terraformrc
 terraform.rc
 .terraform-plugin-cache/
-
-# Local-only Terraform variables for dev (copy from infra/dev/local.auto.tfvars.example)
-infra/dev/local.auto.tfvars
