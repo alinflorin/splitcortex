@@ -46,7 +46,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 
 ## Repository layout
 
-- `chart/`: Helm chart skeleton (`Chart.yaml`, helpers, empty `values.yaml` for local dev and `values-stg.yaml` / `values-prd.yaml` overrides, and a git-ignored `values-local.yaml` for personal overrides). It bundles the Traefik ingress controller (`traefik.enabled`) and cert-manager (`cert-manager.enabled`) as optional dependencies. It defines a self-signed `root-ca-issuer` ClusterIssuer everywhere and a Let's Encrypt (production) `letsencrypt` ClusterIssuer in staging and production. Workload templates will be added as the services land.
+- `chart/`: Helm chart skeleton (`Chart.yaml`, helpers, empty `values.yaml` for local dev and `values-stg.yaml` / `values-prd.yaml` overrides, and a git-ignored `values-local.yaml` for personal overrides). It bundles the Traefik ingress controller (`traefik.enabled`) cert-manager (`cert-manager.enabled`) and PostgreSQL (`postgres.enabled`, with randomly generated credentials kept in a Secret) as optional dependencies. It defines a self-signed `root-ca-issuer` ClusterIssuer everywhere and a Let's Encrypt (production) `letsencrypt` ClusterIssuer in staging and production. Workload templates will be added as the services land.
 
 - `.github/workflows/`: CI/CD. The chart is linted and validated on every change and published as an OCI artifact to GHCR when a `vX.Y.Z` tag is pushed.
 

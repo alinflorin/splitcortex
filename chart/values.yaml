@@ -2,3 +2,25 @@ cert-manager:
   # Install and keep the CRDs with the release (cert-manager is unusable without them).
   crds:
     enabled: true
+
+postgres:
+  enabled: true
+  # Service is reachable as `postgres` (also used in the DATABASE_URL of the credentials Secret).
+  fullnameOverride: postgres
+  # Credentials come from the random `postgres-credentials` Secret (templates/postgres-credentials.yaml).
+  settings:
+    existingSecret: postgres-credentials
+    superuser:
+      secretKey: superuser
+    superuserPassword:
+      secretKey: superuser-password
+  userDatabase:
+    existingSecret: postgres-credentials
+    name:
+      secretKey: database
+    user:
+      secretKey: username
+    password:
+      secretKey: password
+  storage:
+    requestedSize: 1Gi

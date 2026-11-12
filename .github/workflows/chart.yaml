@@ -60,6 +60,14 @@ jobs:
           curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | tar -xz -C /tmp/kc
           install /tmp/kc/kubeconform ~/.local/bin/kubeconform
 
+      - name: Add chart repositories
+        run: |
+          # Repos are derived from Chart.yaml so they cannot drift from the declared dependencies.
+          grep -E '^\s+repository:' "$CHART_DIR/Chart.yaml" | awk '{print $2}' | sort -u | while read -r url; do
+            helm repo add "$(echo "$url" | sed -E 's#https?://##; s#[^A-Za-z0-9]+#-#g; s#-$##')" "$url"
+          done
+          helm repo update
+
       - name: Build dependencies
         run: helm dependency build "$CHART_DIR"
 
@@ -97,6 +105,14 @@ jobs:
           key: helm-deps-${{ runner.os }}-${{ hashFiles('chart/Chart.yaml', 'chart/Chart.lock') }}
           restore-keys: |
             helm-deps-${{ runner.os }}-
+
+      - name: Add chart repositories
+        run: |
+          # Repos are derived from Chart.yaml so they cannot drift from the declared dependencies.
+          grep -E '^\s+repository:' "$CHART_DIR/Chart.yaml" | awk '{print $2}' | sort -u | while read -r url; do
+            helm repo add "$(echo "$url" | sed -E 's#https?://##; s#[^A-Za-z0-9]+#-#g; s#-$##')" "$url"
+          done
+          helm repo update
 
       - name: Package
         run: |

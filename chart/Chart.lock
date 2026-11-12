@@ -5,5 +5,8 @@ dependencies:
 - name: cert-manager
   repository: https://charts.jetstack.io
   version: v1.21.3
-digest: sha256:1936ca39be348e9184288ac8d03e0eb268f95fb186515ae0d0538f0814cf09c5
-generated: "2026-11-13T00:35:17.045441704+02:00"
+- name: postgres
+  repository: https://groundhog2k.github.io/helm-charts/
+  version: 1.6.8
+digest: sha256:a6203beff1ad9412a36bb39554b290b8dde557a6729cb3bb5c64947fe8701193
+generated: "2026-11-13T00:45:32.619210773+02:00"
