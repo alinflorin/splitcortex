@@ -96,11 +96,21 @@ The repository is currently empty apart from docs. Update the "Commands" and "La
 
 ## Commands
 
-TBD (no stack chosen yet).
+- Helm chart: `helm lint chart --strict [-f chart/values-stg.yaml]` and `helm template` with the same flags. Local dev: `helm upgrade -i sc chart` (defaults).
+
+- CI/CD: `.github/workflows/chart.yaml` lints (`--strict`), renders and kubeconform-validates the chart for each of dev/stg/prd on PRs and pushes to `main`. Pushing a tag `vX.Y.Z` packages the chart and pushes it to `oci://ghcr.io/<owner>/charts`. Chart dependencies (`~/.cache/helm`, `chart/charts`) and the kubeconform binary are cached with `actions/cache`, keyed on `Chart.yaml`/`Chart.lock`. Keep action versions on the latest major.
+
+Other commands TBD as code lands.
 
 ## Layout
 
-TBD.
+- `chart/`: Helm chart, currently a **skeleton**: `Chart.yaml`, `templates/_helpers.tpl` (naming/label helpers) and empty `values.yaml` (local dev), `values-stg.yaml`, `values-prd.yaml` (overrides layered with `-f`). Workloads, services, ingress and secrets will be re-added as the services land. Constraints for when they are:
+  - Postgres is external; the gateway needs a direct connection (it uses `LISTEN`), not PgBouncer transaction mode.
+  - Gateway default is 1 replica (registry is per process; more replicas need sticky routing by pool). The ingress controller is Traefik; SSE and wss must not be cut by Traefik's entryPoint `respondingTimeouts` (static Traefik config).
+  - The gateway server private key comes from a Secret mounted as a file; only the public key and wss URL go to the control plane as plain config. Prefer `existingSecret` outside dev; no inline secrets in stg/prd.
+  - No Redis, no serverless. Enrollment goes through the control plane ingress, never the gateway.
+
+Other directories TBD.
 
 ## Working conventions
 

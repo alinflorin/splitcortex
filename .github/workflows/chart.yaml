@@ -1,0 +1,113 @@
+name: Helm chart
+
+on:
+  push:
+    branches: [main]
+    paths: ["chart/**", ".github/workflows/chart.yaml"]
+    tags: ["v*"]
+  pull_request:
+    paths: ["chart/**", ".github/workflows/chart.yaml"]
+
+concurrency:
+  group: chart-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+permissions:
+  contents: read
+
+env:
+  CHART_DIR: chart
+  KUBECONFORM_VERSION: v0.8.0
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # '' = default values.yaml (local dev)
+        env: [dev, stg, prd]
+    env:
+      VALUES_ARGS: ${{ matrix.env != 'dev' && format('-f chart/values-{0}.yaml', matrix.env) || '' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: azure/setup-helm@v5
+        with:
+          version: latest
+
+      - name: Cache chart dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/helm
+            ${{ env.CHART_DIR }}/charts
+          key: helm-deps-${{ runner.os }}-${{ hashFiles('chart/Chart.yaml', 'chart/Chart.lock') }}
+          restore-keys: |
+            helm-deps-${{ runner.os }}-
+
+      - name: Cache kubeconform
+        id: kubeconform-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/bin/kubeconform
+          key: kubeconform-${{ runner.os }}-${{ env.KUBECONFORM_VERSION }}
+
+      - name: Install kubeconform
+        if: steps.kubeconform-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin /tmp/kc
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | tar -xz -C /tmp/kc
+          install /tmp/kc/kubeconform ~/.local/bin/kubeconform
+
+      - name: Build dependencies
+        run: helm dependency build "$CHART_DIR"
+
+      - name: Lint
+        run: helm lint "$CHART_DIR" --strict $VALUES_ARGS
+
+      - name: Render and validate manifests
+        run: |
+          helm template ci "$CHART_DIR" $VALUES_ARGS \
+            | ~/.local/bin/kubeconform -strict -summary -ignore-missing-schemas
+
+      - name: Render with gateway replicas > 1 (warning path)
+        run: helm template ci "$CHART_DIR" $VALUES_ARGS --set gateway.replicaCount=2 > /dev/null
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: azure/setup-helm@v5
+        with:
+          version: latest
+
+      - name: Restore chart dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/helm
+            ${{ env.CHART_DIR }}/charts
+          key: helm-deps-${{ runner.os }}-${{ hashFiles('chart/Chart.yaml', 'chart/Chart.lock') }}
+          restore-keys: |
+            helm-deps-${{ runner.os }}-
+
+      - name: Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          helm dependency build "$CHART_DIR"
+          helm package "$CHART_DIR" --version "$VERSION" --app-version "$VERSION" --destination dist
+
+      - name: Push to GHCR (OCI)
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OWNER="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          echo "$REGISTRY_TOKEN" | helm registry login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          helm push dist/*.tgz "oci://ghcr.io/${OWNER}/charts"

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: splitcortex
+description: SplitCortex - inference serving on reused mobile compute devices (control plane, gateway, web app)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

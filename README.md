@@ -46,7 +46,11 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 
 ## Repository layout
 
-Not yet established. This section will be filled in as the codebase takes shape.
+- `chart/`: Helm chart skeleton (`Chart.yaml`, helpers, empty `values.yaml` for local dev and `values-stg.yaml` / `values-prd.yaml` overrides). Workload templates will be added as the services land.
+
+- `.github/workflows/`: CI/CD. The chart is linted and validated on every change and published as an OCI artifact to GHCR when a `vX.Y.Z` tag is pushed.
+
+Other directories will be added as the codebase takes shape.
 
 ## Getting started
 
