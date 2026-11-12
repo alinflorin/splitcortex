@@ -2,3 +2,10 @@
 locals {
   environment = var.environment
 }
+
+module "platform" {
+  source = "../modules/platform"
+
+  environment = local.environment
+
+}

@@ -9,7 +9,7 @@ Terraform, one root module per environment plus shared modules:
 | `prd/`     | Production. Planned and applied by GitHub Actions.                   |
 | `modules/` | Shared modules used by the environments.                             |
 
-Status: bootstrap only. No provider or resources yet.
+Status: bootstrap only. The `platform` module (Helm/Kubernetes) installs Traefik, cert-manager and ClusterIssuers (self-signed `root-ca-issuer`, optional `letsencrypt` that depends on Traefik; off in dev), and is only used by `dev` so far. Each environment declares its own `helm`/`kubernetes` provider configuration in `providers.tf` (dev: local kubeconfig; stg/prd: placeholder, cluster access undecided). Commit the generated `.terraform.lock.hcl` files.
 
 State: `stg` and `prd` use HCP Terraform (Terraform Cloud) via a `cloud` block, workspaces
 `stg` and `prd` (remote execution mode). The organization is not hardcoded; set

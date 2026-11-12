@@ -111,7 +111,8 @@ Everything else TBD.
 - CI triggers: PR to `main` (validate + plan, no apply), push to `main` (validate, plan stg and prd, then apply stg, then prd), manual dispatch (env `stg` or `prd`, apply only honoured on `main`). The apply job applies the saved plan from the plan job.
 - Two GitHub environment sets per stage: `tf-stg-plan`, `tf-prd-plan` (read-only credentials) and `tf-stg-apply`, `tf-prd-apply` (write credentials; `tf-prd-apply` should require reviewers).
 - State backend (decided): HCP Terraform (Terraform Cloud) via a `cloud` block in `stg` and `prd`; workspace names `stg` and `prd`. The organization comes from `TF_CLOUD_ORGANIZATION` (GitHub variable in CI), tokens from the `TF_TOKEN` secret in each GitHub environment. Provider credentials live in the HCP Terraform workspace variables. `dev` stays on local state.
-- Bootstrap only: no provider or resources yet. Hosting provider is still undecided.
+- `infra/modules/platform` installs cluster components via `helm_release` and `kubernetes_*` resources (Traefik, cert-manager, a self-signed `root-ca-issuer` ClusterIssuer, and an optional `letsencrypt` ClusterIssuer behind `enable_letsencrypt` that depends on Traefik and is never enabled in dev; ClusterIssuers use local charts under `platform/charts/` because `kubernetes_manifest` needs CRDs at plan time; only wired into `dev` so far). Modules only declare `required_providers`; each env root configures the `helm` and `kubernetes` providers itself in `providers.tf` because the target cluster differs (dev: local kubeconfig; stg/prd: TBD). Commit `.terraform.lock.hcl`.
+- Bootstrap only: no resources yet. Hosting provider is still undecided.
 
 ## Working conventions
 

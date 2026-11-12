@@ -1,0 +1,4 @@
+issuerName: letsencrypt
+email: ""
+server: https://acme-v02.api.letsencrypt.org/directory
+ingressClass: traefik
