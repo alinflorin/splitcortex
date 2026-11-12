@@ -85,6 +85,6 @@ TBD.
 
 ## Working conventions
 
-- Keep CLAUDE.md and README.md in sync with decisions; update them when the stack, commands or layout are established.
+- **Always keep CLAUDE.md and README.md up to date.** Any change to a decision, architecture, security design, stack, commands or layout must update both files in the same change (CLAUDE.md for rules and constraints, README.md for the product-level overview). Do not leave them stale or contradicting each other or the code.
 - Prefer small, focused commits. Do not commit unless asked.
 - Open research items (multi-device model sharding) belong in the README roadmap, not as speculative code.
