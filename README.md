@@ -17,7 +17,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 ## Architecture (high level)
 
 ```
- clients ──HTTPS──▶  gateway (auth, limits, metering, load balancing, model mgmt)
+ clients ──HTTPS──▶  gateway, Rust (auth, limits, metering, load balancing, model mgmt)
                           │
                           │  persistent WebSocket (protobuf) over TLS
                           ▼
@@ -26,7 +26,8 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 ```
 
 - Nodes connect outbound to the gateway, so NAT and mobile networks are not a problem.
-- **Node and server identity**: each node generates its own key pair and registers its public key when it enrolls. Enrollment is started in the web app, which shows a short one-time code (and a QR); the device user types or scans it in the mobile app, optionally pointing it at a different gateway URL. The server has its own key pair, which nodes trust from enrollment onwards. The two sides authenticate each other with these keys.
+- **Routing**: each API key is bound to one pool. The gateway authenticates the key, checks limits, then picks a healthy node in that pool that has the requested model, favouring less-loaded and faster devices. If a node fails before producing output the request is retried once on another node.
+- **Node and server identity**: each node generates its own key pair and registers its public key when it enrolls. Enrollment is started in the web app, which shows a short one-time code (and a QR); the device user types or scans it in the mobile app, optionally pointing it at a different enrollment URL. Enrollment happens between the device and the control plane over HTTPS; the control plane hands the device the gateway address and public key, and the device then connects to the gateway. The server has its own key pair, which nodes trust from enrollment onwards. The two sides authenticate each other with these keys.
 - **Models are currently replicated**: every device in a pool holds a full copy of the pool's models.
 - **Engine**: LiteRT-LM is the only supported inference engine for now.
 
@@ -39,7 +40,9 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 
 - **Frontend**: Vite, React, TypeScript, Fluent UI, react-hook-form, zod.
 - **Endpoint app**: React Native with Expo and TypeScript, run on physical devices via local dev builds (no EAS). A native module wraps LiteRT-LM, so Expo Go is not supported.
-- **Backend**: not decided. The gateway, which holds long-lived node connections, will likely need its own always-on service.
+- **Control plane**: TypeScript with Fastify, sharing zod schemas and types with the frontend through a common workspace package.
+- **Gateway**: Rust, for performance on the hot path (OpenAI-format HTTP/SSE edge, node WebSocket connections, auth, limits, metering, load balancing). Always-on service, no serverless. It shares the node protobuf schema and the data store with the control plane, not the zod schemas.
+- The gateway caches configuration in memory and follows a database change log written by the control plane (no Redis). Database choice (Postgres assumed) and web-app auth are still open.
 
 ## Repository layout
 
