@@ -19,7 +19,11 @@ import { useCurrentUser } from '../../auth/useCurrentUser';
 import { LanguageSubmenu, ThemeSubmenu } from './PreferencesMenu';
 
 const useStyles = makeStyles({
-  trigger: { minWidth: 'auto', padding: tokens.spacingHorizontalXS, borderRadius: tokens.borderRadiusCircular },
+  trigger: {
+    minWidth: 'auto',
+    padding: tokens.spacingHorizontalXS,
+    borderRadius: tokens.borderRadiusCircular,
+  },
   header: {
     display: 'flex',
     alignItems: 'center',
@@ -42,7 +46,11 @@ export function UserMenu() {
     <Menu positioning={{ align: 'end' }}>
       <MenuTrigger disableButtonEnhancement>
         <Button appearance="subtle" className={styles.trigger} aria-label={t('auth.account')}>
-          {user ? <Avatar name={user.name} color="colorful" size={32} /> : <Avatar icon={<Person24Regular />} size={32} />}
+          {user ? (
+            <Avatar name={user.name} color="colorful" size={32} />
+          ) : (
+            <Avatar icon={<Person24Regular />} size={32} />
+          )}
         </Button>
       </MenuTrigger>
       <MenuPopover>
@@ -55,7 +63,11 @@ export function UserMenu() {
                   {user.name}
                 </Text>
                 {user.email && (
-                  <Text size={200} className={styles.ellipsis} style={{ color: tokens.colorNeutralForeground3 }}>
+                  <Text
+                    size={200}
+                    className={styles.ellipsis}
+                    style={{ color: tokens.colorNeutralForeground3 }}
+                  >
                     {user.email}
                   </Text>
                 )}
@@ -75,14 +87,19 @@ export function UserMenu() {
           <MenuDivider />
           {user ? (
             // Dex has no end_session_endpoint: drop the local session only.
-            <MenuItem icon={<SignOut24Regular />} onClick={() => void auth.removeUser().then(() => navigate('/'))}>
+            <MenuItem
+              icon={<SignOut24Regular />}
+              onClick={() => void auth.removeUser().then(() => navigate('/'))}
+            >
               {t('auth.signOut')}
             </MenuItem>
           ) : (
             <MenuItem
               icon={<Person24Regular />}
               disabled={auth.isLoading}
-              onClick={() => void auth.signinRedirect({ state: { returnTo: window.location.pathname } })}
+              onClick={() =>
+                void auth.signinRedirect({ state: { returnTo: window.location.pathname } })
+              }
             >
               {t('auth.signIn')}
             </MenuItem>

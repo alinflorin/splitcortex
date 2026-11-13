@@ -67,11 +67,14 @@ export function Sidebar({ open, overlay, onOpenChange }: SidebarProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  const selected = ITEMS.find((i) => (i.to === '/' ? pathname === '/' : pathname.startsWith(i.to)))?.to;
+  const selected = ITEMS.find((i) =>
+    i.to === '/' ? pathname === '/' : pathname.startsWith(i.to),
+  )?.to;
 
   const go = (to: string) => (e: MouseEvent) => {
     // Let the browser handle modified clicks (new tab etc.), route everything else client-side.
-    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+      return;
     e.preventDefault();
     void navigate(to);
     if (overlay) onOpenChange(false);

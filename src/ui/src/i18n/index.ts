@@ -18,7 +18,11 @@ void i18n
     defaultNS: 'translation',
     // Translations are static JSON files in public/locales/<lng>/translation.json.
     backend: { loadPath: '/locales/{{lng}}/translation.json' },
-    detection: { order: ['localStorage', 'navigator'], caches: ['localStorage'], lookupLocalStorage: 'sc-lang' },
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage'],
+      lookupLocalStorage: 'sc-lang',
+    },
     interpolation: { escapeValue: false }, // React escapes
   });
 

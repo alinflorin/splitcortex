@@ -2,8 +2,17 @@ import { Text, Title1, makeStyles, tokens } from '@fluentui/react-components';
 import { useTranslation } from 'react-i18next';
 
 const useStyles = makeStyles({
-  root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL, maxWidth: '680px' },
-  text: { color: tokens.colorNeutralForeground2, lineHeight: tokens.lineHeightBase500, fontSize: tokens.fontSizeBase400 },
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalL,
+    maxWidth: '680px',
+  },
+  text: {
+    color: tokens.colorNeutralForeground2,
+    lineHeight: tokens.lineHeightBase500,
+    fontSize: tokens.fontSizeBase400,
+  },
 });
 
 export function About() {

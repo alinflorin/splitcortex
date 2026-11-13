@@ -21,7 +21,13 @@ const useStyles = makeStyles({
   spacer: { flexGrow: 1 },
 });
 
-export function TopBar({ showNavToggle, onToggleNav }: { showNavToggle: boolean; onToggleNav: () => void }) {
+export function TopBar({
+  showNavToggle,
+  onToggleNav,
+}: {
+  showNavToggle: boolean;
+  onToggleNav: () => void;
+}) {
   const styles = useStyles();
   const { t } = useTranslation();
 
@@ -29,7 +35,12 @@ export function TopBar({ showNavToggle, onToggleNav }: { showNavToggle: boolean;
     <header className={styles.bar}>
       {showNavToggle && (
         <Tooltip content={t('nav.toggle')} relationship="label">
-          <Button appearance="subtle" shape="circular" icon={<Navigation24Regular />} onClick={onToggleNav} />
+          <Button
+            appearance="subtle"
+            shape="circular"
+            icon={<Navigation24Regular />}
+            onClick={onToggleNav}
+          />
         </Tooltip>
       )}
       <div className={styles.spacer} />

@@ -15,7 +15,9 @@ const useStyles = makeStyles({
     margin: '0 auto',
     boxSizing: 'border-box',
     padding: `${tokens.spacingVerticalXXXL} ${tokens.spacingHorizontalXXXL}`,
-    '@media (max-width: 599px)': { padding: `${tokens.spacingVerticalXL} ${tokens.spacingHorizontalL}` },
+    '@media (max-width: 599px)': {
+      padding: `${tokens.spacingVerticalXL} ${tokens.spacingHorizontalL}`,
+    },
   },
 });
 

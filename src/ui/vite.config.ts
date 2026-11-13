@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
@@ -20,5 +21,10 @@ export default defineConfig({
     port: 5173,
     // Allow the nip.io dev hostnames (app.splitcortex.127.0.0.1.nip.io).
     allowedHosts: ['.nip.io', 'localhost'],
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    css: false,
   },
 });

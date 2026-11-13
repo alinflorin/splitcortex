@@ -3,7 +3,8 @@ import { FluentProvider, teamsDarkTheme, teamsLightTheme } from '@fluentui/react
 import { useMediaQuery } from '../lib/useMediaQuery';
 
 // Same typeface on every OS: Inter is self-hosted (src/fonts.css); the rest is a system fallback.
-const FONT_FAMILY = "'Inter Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif";
+const FONT_FAMILY =
+  "'Inter Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif";
 const lightTheme = { ...teamsLightTheme, fontFamilyBase: FONT_FAMILY };
 const darkTheme = { ...teamsDarkTheme, fontFamilyBase: FONT_FAMILY };
 
@@ -41,11 +42,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.colorScheme = mode;
   }, [mode]);
 
-  const value = useMemo<ThemeContextValue>(() => ({ preference, setPreference, mode }), [preference, mode]);
+  const value = useMemo<ThemeContextValue>(
+    () => ({ preference, setPreference, mode }),
+    [preference, mode],
+  );
 
   return (
     <ThemeContext value={value}>
-      <FluentProvider theme={mode === 'dark' ? darkTheme : lightTheme} style={{ minHeight: '100dvh' }}>
+      <FluentProvider
+        theme={mode === 'dark' ? darkTheme : lightTheme}
+        style={{ minHeight: '100dvh' }}
+      >
         {children}
       </FluentProvider>
     </ThemeContext>

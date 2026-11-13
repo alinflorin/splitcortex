@@ -1,4 +1,11 @@
-import { Menu, MenuItem, MenuItemRadio, MenuList, MenuPopover, MenuTrigger } from '@fluentui/react-components';
+import {
+  Menu,
+  MenuItem,
+  MenuItemRadio,
+  MenuList,
+  MenuPopover,
+  MenuTrigger,
+} from '@fluentui/react-components';
 import { LocalLanguage24Regular, PaintBrush24Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '../../i18n';

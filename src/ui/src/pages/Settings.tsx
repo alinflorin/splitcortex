@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { Button, Field, Input, MessageBar, MessageBarBody, Text, Title1, makeStyles, tokens } from '@fluentui/react-components';
+import {
+  Button,
+  Field,
+  Input,
+  MessageBar,
+  MessageBarBody,
+  Text,
+  Title1,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -14,14 +24,28 @@ const settingsSchema = z.object({
     .min(1, { error: 'validation.required' })
     .min(2, { error: 'validation.nameMin' })
     .max(50, { error: 'validation.nameMax' }),
-  contactEmail: z.string().trim().min(1, { error: 'validation.required' }).pipe(z.email({ error: 'validation.email' })),
+  contactEmail: z
+    .string()
+    .trim()
+    .min(1, { error: 'validation.required' })
+    .pipe(z.email({ error: 'validation.email' })),
 });
 type SettingsForm = z.infer<typeof settingsSchema>;
 
 const useStyles = makeStyles({
-  root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM, maxWidth: '480px' },
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalM,
+    maxWidth: '480px',
+  },
   muted: { color: tokens.colorNeutralForeground3 },
-  form: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXL, marginTop: tokens.spacingVerticalXL },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXL,
+    marginTop: tokens.spacingVerticalXL,
+  },
   actions: { display: 'flex' },
 });
 
@@ -53,7 +77,11 @@ export function Settings() {
     <div className={styles.root}>
       <Title1>{t('settings.title')}</Title1>
       <Text className={styles.muted}>{t('settings.subtitle')}</Text>
-      {user?.email && <Text className={styles.muted} size={200}>{t('settings.signedInAs', { email: user.email })}</Text>}
+      {user?.email && (
+        <Text className={styles.muted} size={200}>
+          {t('settings.signedInAs', { email: user.email })}
+        </Text>
+      )}
 
       <form className={styles.form} noValidate onSubmit={(e) => void handleSubmit(onSubmit)(e)}>
         <Controller
@@ -64,9 +92,17 @@ export function Settings() {
               label={t('settings.displayName')}
               required
               validationState={fieldState.error ? 'error' : 'none'}
-              validationMessage={fieldState.error?.message ? t(fieldState.error.message) : undefined}
+              validationMessage={
+                fieldState.error?.message ? t(fieldState.error.message) : undefined
+              }
             >
-              <Input {...field} onChange={(_, d) => { setSaved(false); field.onChange(d.value); }} />
+              <Input
+                {...field}
+                onChange={(_, d) => {
+                  setSaved(false);
+                  field.onChange(d.value);
+                }}
+              />
             </Field>
           )}
         />
@@ -78,9 +114,18 @@ export function Settings() {
               label={t('settings.contactEmail')}
               required
               validationState={fieldState.error ? 'error' : 'none'}
-              validationMessage={fieldState.error?.message ? t(fieldState.error.message) : undefined}
+              validationMessage={
+                fieldState.error?.message ? t(fieldState.error.message) : undefined
+              }
             >
-              <Input {...field} type="email" onChange={(_, d) => { setSaved(false); field.onChange(d.value); }} />
+              <Input
+                {...field}
+                type="email"
+                onChange={(_, d) => {
+                  setSaved(false);
+                  field.onChange(d.value);
+                }}
+              />
             </Field>
           )}
         />
