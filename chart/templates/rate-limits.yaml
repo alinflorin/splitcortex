@@ -1,4 +1,4 @@
-{{- if .Values.traefik.enabled }}
+{{- if .Values.rateLimit.enabled }}
 {{- /*
   Traefik rate-limit middlewares (CRDs come from the Traefik subchart). Attach per route, not on the
   entryPoint, so the gateway is not throttled by the general limit:

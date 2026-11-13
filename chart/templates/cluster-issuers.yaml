@@ -1,3 +1,4 @@
+{{- if .Values.clusterIssuers.enabled }}
 {{- /*
 ClusterIssuers are Helm post-install/post-upgrade hooks: their CRDs and the cert-manager webhook
 come from the same release, so they must be applied after those are up (use `helm --wait`).
@@ -61,5 +62,6 @@ spec:
     solvers:
       - http01:
           ingress:
-            ingressClassName: traefik
+            ingressClassName: {{ $.Values.ingress.className | quote }}
+{{- end }}
 {{- end }}

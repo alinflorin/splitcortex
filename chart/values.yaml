@@ -1,9 +1,25 @@
+# Ingress controller. Bundled Traefik by default; for an external controller set `traefik.enabled: false`,
+# `ingress.className` to its IngressClass, and `rateLimit.enabled: false` unless it is Traefik with its CRDs installed
+# (also replace the traefik.ingress.kubernetes.io/* annotations on the Ingresses, e.g. dex.ingress.annotations).
+ingress:
+  className: traefik
+
 traefik:
+  enabled: true
   ingressClass:
     # Fixed name so Ingresses and the ACME HTTP-01 solver do not depend on the release name.
+    # Keep equal to ingress.className.
     name: traefik
 
+# ClusterIssuers (templates/cluster-issuers.yaml). For an external cert-manager set `cert-manager.enabled: false`
+# (its CRDs/webhook must already exist; issuer names `root-ca-issuer`/`letsencrypt` must not clash). To use the
+# external cert-manager's own issuers instead, also set `clusterIssuers.enabled: false` and point
+# `dex.ingress.annotations."cert-manager.io/cluster-issuer"` (and its TLS) at them.
+clusterIssuers:
+  enabled: true
+
 cert-manager:
+  enabled: true
   # Install and keep the CRDs with the release (cert-manager is unusable without them).
   crds:
     enabled: true
@@ -70,6 +86,8 @@ dex:
 
 # Traefik rate limits (templates/rate-limits.yaml). Not attached to an entryPoint: reference them from each route.
 rateLimit:
+  # Requires Traefik's CRDs (bundled or external). Disable for a non-Traefik ingress controller.
+  enabled: true
   # Number of trusted proxy hops in X-Forwarded-For (0 = use the direct peer address).
   ipDepth: 0
   # Web app, control plane, Dex: per client IP.
