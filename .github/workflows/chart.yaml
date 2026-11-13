@@ -4,9 +4,10 @@ on:
   push:
     branches: [main]
     paths: ["chart/**", ".github/workflows/chart.yaml"]
-    tags: ["v*"]
   pull_request:
     paths: ["chart/**", ".github/workflows/chart.yaml"]
+  # Tags are handled by release.yaml, which calls this workflow.
+  workflow_call:
 
 concurrency:
   group: chart-${{ github.ref }}

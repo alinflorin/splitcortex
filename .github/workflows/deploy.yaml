@@ -1,0 +1,86 @@
+# Deploy a released chart version (chart and images tagged X.Y.Z) to an environment.
+# Called by release.yaml for stg, or run manually (also to redeploy or roll back).
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [stg, prd]
+        default: stg
+      version:
+        description: Release version, with or without the leading v (e.g. 1.2.3)
+        type: string
+        required: true
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    name: deploy (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    # Environment secrets: KUBECONFIG (base64 or plain), LETSENCRYPT_EMAIL.
+    # Add required reviewers on the environment for a manual approval gate.
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      ENVIRONMENT: ${{ inputs.environment }}
+      LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
+    steps:
+      - name: Normalise version
+        run: |
+          V="${{ inputs.version }}"
+          echo "VERSION=${V#v}" >> "$GITHUB_ENV"
+
+      # Check out the tag so values-<env>.yaml matches the released chart.
+      - uses: actions/checkout@v7
+        with:
+          ref: v${{ env.VERSION }}
+
+      - uses: azure/setup-helm@v5
+        with:
+          version: latest
+
+      - name: Configure cluster access
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
+        run: |
+          umask 077
+          if echo "$KUBECONFIG_DATA" | base64 -d > "$RUNNER_TEMP/kubeconfig" 2>/dev/null && grep -q apiVersion "$RUNNER_TEMP/kubeconfig"; then :; else
+            printf '%s' "$KUBECONFIG_DATA" > "$RUNNER_TEMP/kubeconfig"
+          fi
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+
+      - name: Log in to GHCR
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$REGISTRY_TOKEN" | helm registry login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      - name: Substitute deploy-time placeholders
+        run: |
+          f="chart/values-${ENVIRONMENT}.yaml"
+          envsubst '$LETSENCRYPT_EMAIL' < "$f" > "$RUNNER_TEMP/values.yaml"
+
+      - name: Helm upgrade
+        run: |
+          OWNER="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          # --wait is required: the ClusterIssuer hooks run after the cert-manager webhook is ready.
+          helm upgrade -i --wait --atomic --timeout 10m \
+            --create-namespace -n splitcortex \
+            -f "$RUNNER_TEMP/values.yaml" \
+            --version "$VERSION" \
+            splitcortex "oci://ghcr.io/${OWNER}/charts/splitcortex"

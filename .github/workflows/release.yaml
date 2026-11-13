@@ -1,0 +1,30 @@
+# Tag vX.Y.Z: validate and publish the chart, build all images, then deploy to stg.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  chart:
+    uses: ./.github/workflows/chart.yaml
+
+  # One job per service; add new services here and to deploy-stg's needs.
+  ui:
+    uses: ./.github/workflows/ui.yaml
+
+  deploy-stg:
+    needs: [chart, ui]
+    uses: ./.github/workflows/deploy.yaml
+    with:
+      environment: stg
+      version: ${{ github.ref_name }}
+    secrets: inherit
