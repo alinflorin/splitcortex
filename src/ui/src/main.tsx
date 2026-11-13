@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { OidcProvider } from './auth/OidcProvider';
 import './i18n';
+import './fonts.css';
+import './index.css';
 import { ThemeProvider } from './theme/ThemeContext';
 
 createRoot(document.getElementById('root')!).render(

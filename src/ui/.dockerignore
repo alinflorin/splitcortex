@@ -4,3 +4,4 @@ dist
 *.tsbuildinfo
 Dockerfile
 .dockerignore
+Dockerfile.dev

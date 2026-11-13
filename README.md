@@ -38,7 +38,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 
 ## Tech stack
 
-- **Frontend** (`src/ui`): Vite, React (with React Compiler), TypeScript, Fluent UI with light/dark Teams themes, react-hook-form, zod, React Router, react-i18next (English and Romanian), signing in through Dex (OIDC).
+- **Frontend** (`src/ui`): Vite, React (with React Compiler), TypeScript, Fluent UI with light/dark Teams themes, react-hook-form, zod, React Router, react-i18next (English and Romanian), self-hosted Inter font (no CDNs), signing in through Dex (OIDC).
 - **Endpoint app**: React Native with Expo and TypeScript, run on physical devices via local dev builds (no EAS). A native module wraps LiteRT-LM, so Expo Go is not supported.
 - **Control plane**: TypeScript with Fastify, sharing zod schemas and types with the frontend through a common workspace package.
 - **Gateway**: Rust, for performance on the hot path (OpenAI-format HTTP/SSE edge, node WebSocket connections, auth, limits, metering, load balancing). Always-on service, no serverless. It shares the node protobuf schema and the data store with the control plane, not the zod schemas.
@@ -50,7 +50,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 
 - `.github/workflows/`: CI/CD. The chart is linted and validated on every change and published as an OCI artifact to GHCR when a `vX.Y.Z` tag is pushed.
 
-- `src/ui/`: the web app (responsive layout with collapsible sidebar, top bar with theme and language switchers and a user menu; Home and About are public, Settings requires sign-in). Run with `pnpm dev` inside that folder, or via Tilt: it is built into a Caddy-based image (`src/ui/Dockerfile`) and deployed by the chart (`ui.*` values, ingress enabled by default).
+- `src/ui/`: the web app (responsive layout: sidebar always visible on large screens, hideable on mobile, top bar with a single avatar menu holding the theme (System by default, Light, Dark) and language (detected from the browser, English fallback) choices, profile and sign in/out; Home and About are public, Settings requires sign-in). Run with `pnpm dev` inside that folder, or via Tilt: it is built into a Caddy-based image (`src/ui/Dockerfile`) and deployed by the chart (`ui.*` values, ingress enabled by default).
 
 Other directories will be added as the codebase takes shape.
 

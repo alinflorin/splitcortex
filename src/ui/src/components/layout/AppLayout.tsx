@@ -22,18 +22,14 @@ const useStyles = makeStyles({
 export function AppLayout() {
   const styles = useStyles();
   const isDesktop = useMediaQuery('(min-width: 900px)');
-  // Separate state per mode: on desktop the sidebar is open by default, on mobile it starts hidden.
-  const [desktopOpen, setDesktopOpen] = useState(true);
+  // Desktop: the sidebar is always visible. Mobile: an overlay drawer that starts hidden.
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const open = isDesktop ? desktopOpen : mobileOpen;
-  const setOpen = isDesktop ? setDesktopOpen : setMobileOpen;
 
   return (
     <div className={styles.root}>
-      <Sidebar open={open} overlay={!isDesktop} onOpenChange={setOpen} />
+      <Sidebar open={isDesktop || mobileOpen} overlay={!isDesktop} onOpenChange={setMobileOpen} />
       <div className={styles.column}>
-        <TopBar onToggleNav={() => setOpen(!open)} />
+        <TopBar showNavToggle={!isDesktop} onToggleNav={() => setMobileOpen((o) => !o)} />
         <main className={styles.main}>
           <Outlet />
         </main>

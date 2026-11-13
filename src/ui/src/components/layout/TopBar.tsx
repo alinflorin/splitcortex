@@ -1,8 +1,6 @@
 import { Button, Tooltip, makeStyles, tokens } from '@fluentui/react-components';
 import { Navigation24Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
-import { LanguageSwitcher } from './LanguageSwitcher';
-import { ThemeSwitcher } from './ThemeSwitcher';
 import { UserMenu } from './UserMenu';
 
 const useStyles = makeStyles({
@@ -23,18 +21,18 @@ const useStyles = makeStyles({
   spacer: { flexGrow: 1 },
 });
 
-export function TopBar({ onToggleNav }: { onToggleNav: () => void }) {
+export function TopBar({ showNavToggle, onToggleNav }: { showNavToggle: boolean; onToggleNav: () => void }) {
   const styles = useStyles();
   const { t } = useTranslation();
 
   return (
     <header className={styles.bar}>
-      <Tooltip content={t('nav.toggle')} relationship="label">
-        <Button appearance="subtle" shape="circular" icon={<Navigation24Regular />} onClick={onToggleNav} />
-      </Tooltip>
+      {showNavToggle && (
+        <Tooltip content={t('nav.toggle')} relationship="label">
+          <Button appearance="subtle" shape="circular" icon={<Navigation24Regular />} onClick={onToggleNav} />
+        </Tooltip>
+      )}
       <div className={styles.spacer} />
-      <LanguageSwitcher />
-      <ThemeSwitcher />
       <UserMenu />
     </header>
   );

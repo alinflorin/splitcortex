@@ -26,10 +26,20 @@ local_resource(
 # --- Services (add as code lands) ------------------------------------------
 # Web UI (src/ui, Caddy serving the Vite build). The manifests come from the chart's ui-* templates rendered
 # with `helm template`, so Tilt substitutes the freshly built image for `splitcortex/ui`.
-docker_build('splitcortex/ui', 'src/ui', dockerfile='src/ui/Dockerfile')
+# Dev image (Dockerfile.dev) runs the Vite dev server with HMR; source edits are synced, no rebuild.
+docker_build(
+    'splitcortex/ui', 'src/ui', dockerfile='src/ui/Dockerfile.dev',
+    live_update=[
+        fall_back_on(['src/ui/package.json', 'src/ui/pnpm-lock.yaml', 'src/ui/vite.config.ts']),
+        sync('src/ui/src', '/app/src'),
+        sync('src/ui/public', '/app/public'),
+        sync('src/ui/index.html', '/app/index.html'),
+    ],
+)
 k8s_yaml(local(
     'helm template splitcortex chart -n %s %s ' % (NAMESPACE, values_args) +
     '--show-only templates/ui-deployment.yaml --show-only templates/ui-service.yaml ' +
+    '--set ui.readOnlyRootFilesystem=false --set ui.resources.limits.memory=3Gi --set ui.resources.requests.memory=512Mi ' +
     '--show-only templates/ui-ingress.yaml',
     quiet=True,
 ))

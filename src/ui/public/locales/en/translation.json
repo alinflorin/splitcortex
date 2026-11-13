@@ -1,5 +1,7 @@
 {
-  "app": { "name": "SplitCortex" },
+  "app": {
+    "name": "SplitCortex"
+  },
   "nav": {
     "home": "Home",
     "about": "About",
@@ -15,18 +17,33 @@
     "account": "Account"
   },
   "theme": {
-    "switchToDark": "Switch to dark theme",
-    "switchToLight": "Switch to light theme"
+    "label": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
   },
-  "language": { "label": "Language", "en": "English", "ro": "Română" },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "ro": "Română"
+  },
   "home": {
     "title": "Put idle devices to work",
     "subtitle": "Turn phones and small computers into inference nodes, group them into pools and serve models through one API.",
     "welcome": "Welcome back, {{name}}",
     "cards": {
-      "pools": { "title": "Pools", "body": "Group devices per organisation and serve a set of models from each pool." },
-      "nodes": { "title": "Nodes", "body": "Enroll a device with a short code. It connects out to the gateway, no inbound access needed." },
-      "api": { "title": "OpenAI-compatible API", "body": "Change only the base URL and API key in your existing client." }
+      "pools": {
+        "title": "Pools",
+        "body": "Group devices per organisation and serve a set of models from each pool."
+      },
+      "nodes": {
+        "title": "Nodes",
+        "body": "Enroll a device with a short code. It connects out to the gateway, no inbound access needed."
+      },
+      "api": {
+        "title": "OpenAI-compatible API",
+        "body": "Change only the base URL and API key in your existing client."
+      }
     }
   },
   "about": {
