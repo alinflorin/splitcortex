@@ -20,3 +20,7 @@ dex:
           - dex.prd.splitcortex.com
   config:
     issuer: https://dex.prd.splitcortex.com
+
+dev:
+  coredns:
+    enabled: false

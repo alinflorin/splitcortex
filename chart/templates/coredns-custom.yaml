@@ -1,0 +1,21 @@
+{{- if .Values.dev.coredns.enabled }}
+{{- /*
+  DEV ONLY (k3s). k3s CoreDNS imports /etc/coredns/custom/*.override into its main server block from the
+  `coredns-custom` ConfigMap in kube-system. Each rewrite makes a public dev hostname (e.g. the *.nip.io names,
+  which would otherwise resolve to 127.0.0.1 inside a pod) resolve to the Traefik Service, so pods reach Dex etc.
+  by the same URL as the browser. Disable in stg/prd and on clusters that are not k3s.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+data:
+  splitcortex.override: |
+    {{- $target := default (printf "%s-traefik.%s.svc.cluster.local" .Release.Name .Release.Namespace) .Values.dev.coredns.target }}
+    {{- range .Values.dev.coredns.hosts }}
+    rewrite name exact {{ . }} {{ $target }}
+    {{- end }}
+{{- end }}

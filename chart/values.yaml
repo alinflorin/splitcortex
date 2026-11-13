@@ -102,3 +102,15 @@ rateLimit:
     average: 2000
     period: 1s
     burst: 4000
+
+# Dev-only helpers. Keep disabled in stg/prd (set in values-stg.yaml / values-prd.yaml).
+dev:
+  coredns:
+    # k3s: add a `coredns-custom` ConfigMap in kube-system so these hostnames resolve to Traefik inside pods too.
+    # Replaces any existing `coredns-custom` ConfigMap; k3s CoreDNS may need a restart to pick it up
+    # (`kubectl -n kube-system rollout restart deploy coredns`).
+    enabled: true
+    # Service the hosts are rewritten to. Default: <release>-traefik.<namespace>.svc.cluster.local
+    target: ""
+    hosts:
+      - dex.splitcortex.127.0.0.1.nip.io
