@@ -102,6 +102,9 @@ dex:
           - https://app.splitcortex.127.0.0.1.nip.io/
           - http://app.splitcortex.127.0.0.1.nip.io:5173/
     enablePasswordDB: true
+    oauth2:
+      # No "Grant access" screen: our own first-party clients are trusted.
+      skipApprovalScreen: true
     expiry:
       # Access tokens are ID-token lifetime in Dex.
       idTokens: 15m
