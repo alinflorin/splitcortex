@@ -20,6 +20,32 @@ dex:
           - dex.stg.splitcortex.com
   config:
     issuer: https://dex.stg.splitcortex.com
+    web:
+      http: 0.0.0.0:5556
+      allowedOrigins:
+        - https://app.stg.splitcortex.com
+    staticClients:
+      - id: splitcortex-ui
+        name: SplitCortex Web
+        public: true
+        redirectURIs:
+          - https://app.stg.splitcortex.com/
+
+ui:
+  image:
+    repository: ghcr.io/alinflorin/splitcortex-ui
+  ingress:
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+    hosts:
+      - host: app.stg.splitcortex.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: ui-tls
+        hosts:
+          - app.stg.splitcortex.com
 
 dev:
   coredns:

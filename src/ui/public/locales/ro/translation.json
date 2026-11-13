@@ -1,0 +1,53 @@
+{
+  "app": { "name": "SplitCortex" },
+  "nav": {
+    "home": "Acasă",
+    "about": "Despre",
+    "settings": "Setări",
+    "toggle": "Comută navigarea"
+  },
+  "auth": {
+    "signIn": "Autentificare",
+    "signOut": "Deconectare",
+    "redirecting": "Redirecționare către autentificare…",
+    "error": "Autentificarea a eșuat",
+    "retry": "Încearcă din nou",
+    "account": "Cont"
+  },
+  "theme": {
+    "switchToDark": "Comută la tema întunecată",
+    "switchToLight": "Comută la tema luminoasă"
+  },
+  "language": { "label": "Limba", "en": "English", "ro": "Română" },
+  "home": {
+    "title": "Pune dispozitivele nefolosite la treabă",
+    "subtitle": "Transformă telefoanele și calculatoarele mici în noduri de inferență, grupează-le în pool-uri și servește modele printr-un singur API.",
+    "welcome": "Bine ai revenit, {{name}}",
+    "cards": {
+      "pools": { "title": "Pool-uri", "body": "Grupează dispozitivele pe organizație și servește un set de modele din fiecare pool." },
+      "nodes": { "title": "Noduri", "body": "Înrolează un dispozitiv cu un cod scurt. Se conectează către gateway, fără acces de intrare." },
+      "api": { "title": "API compatibil OpenAI", "body": "Schimbă doar URL-ul de bază și cheia API în clientul tău existent." }
+    }
+  },
+  "about": {
+    "title": "Despre SplitCortex",
+    "p1": "SplitCortex este o platformă pentru refolosirea dispozitivelor mobile ca noduri de inferență.",
+    "p2": "Dispozitivele păstrează o conexiune sigură către gateway, care autentifică cererile, aplică limitele, distribuie sarcina între nodurile sănătoase și măsoară consumul.",
+    "p3": "Modelele sunt replicate pe fiecare nod dintr-un pool, iar fiecare cheie API este legată de exact un pool."
+  },
+  "settings": {
+    "title": "Setări",
+    "subtitle": "Detaliile profilului tău.",
+    "displayName": "Nume afișat",
+    "contactEmail": "Email de contact",
+    "save": "Salvează modificările",
+    "saved": "Setările au fost salvate.",
+    "signedInAs": "Autentificat ca {{email}}"
+  },
+  "validation": {
+    "required": "Acest câmp este obligatoriu.",
+    "nameMin": "Folosește cel puțin 2 caractere.",
+    "nameMax": "Folosește cel mult 50 de caractere.",
+    "email": "Introdu o adresă de email validă."
+  }
+}

@@ -38,17 +38,19 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 
 ## Tech stack
 
-- **Frontend**: Vite, React, TypeScript, Fluent UI, react-hook-form, zod.
+- **Frontend** (`src/ui`): Vite, React (with React Compiler), TypeScript, Fluent UI with light/dark Teams themes, react-hook-form, zod, React Router, react-i18next (English and Romanian), signing in through Dex (OIDC).
 - **Endpoint app**: React Native with Expo and TypeScript, run on physical devices via local dev builds (no EAS). A native module wraps LiteRT-LM, so Expo Go is not supported.
 - **Control plane**: TypeScript with Fastify, sharing zod schemas and types with the frontend through a common workspace package.
 - **Gateway**: Rust, for performance on the hot path (OpenAI-format HTTP/SSE edge, node WebSocket connections, auth, limits, metering, load balancing). Always-on service, no serverless. It shares the node protobuf schema and the data store with the control plane, not the zod schemas.
-- The gateway caches configuration in memory and follows a database change log written by the control plane (no Redis). Database choice (Postgres assumed) and web-app auth are still open.
+- The gateway caches configuration in memory and follows a database change log written by the control plane (no Redis). Database choice (Postgres assumed) is still open; web-app sign-in uses Dex.
 
 ## Repository layout
 
 - `chart/`: Helm chart skeleton (`Chart.yaml`, helpers, empty `values.yaml` for local dev and `values-stg.yaml` / `values-prd.yaml` overrides, and a git-ignored `values-local.yaml` for personal overrides). It bundles the Traefik ingress controller (`traefik.enabled`) cert-manager (`cert-manager.enabled`) PostgreSQL (`postgres.enabled`, with randomly generated credentials kept in a Secret) and the Dex identity provider (`dex.enabled`, served at `dex.splitcortex.127.0.0.1.nip.io` locally and `dex.stg.splitcortex.com` / `dex.prd.splitcortex.com` in staging and production, password DB enabled, 15 minute access tokens, 3 month refresh tokens, initial local user in `values-local.yaml`) as optional dependencies. It defines a self-signed `root-ca-issuer` ClusterIssuer everywhere and a Let's Encrypt (production) `letsencrypt` ClusterIssuer in staging and production. It also defines Traefik rate-limit middlewares: a general per-IP limit for the web app, control plane and Dex, and a much higher per-API-key ceiling for the gateway so heavy inference traffic is not throttled. Traefik redirects all HTTP traffic to HTTPS. Traefik and cert-manager can each be turned off to use an external ingress controller or cert-manager (see CLAUDE.md for the values). For local k3s development an optional CoreDNS override makes the `nip.io` hostnames resolve to Traefik from inside pods too (`dev.coredns.enabled`, off in staging and production). Workload templates will be added as the services land.
 
 - `.github/workflows/`: CI/CD. The chart is linted and validated on every change and published as an OCI artifact to GHCR when a `vX.Y.Z` tag is pushed.
+
+- `src/ui/`: the web app (responsive layout with collapsible sidebar, top bar with theme and language switchers and a user menu; Home and About are public, Settings requires sign-in). Run with `pnpm dev` inside that folder, or via Tilt: it is built into a Caddy-based image (`src/ui/Dockerfile`) and deployed by the chart (`ui.*` values, ingress enabled by default).
 
 Other directories will be added as the codebase takes shape.
 
@@ -57,7 +59,7 @@ Other directories will be added as the codebase takes shape.
 | Service | local | stg | prd |
 | --- | --- | --- | --- |
 | Dex (IdP) | `dex.splitcortex.127.0.0.1.nip.io` | `dex.stg.splitcortex.com` | `dex.prd.splitcortex.com` |
-| Web app | `app.splitcortex.127.0.0.1.nip.io` (planned) | TBD | TBD |
+| Web app | `app.splitcortex.127.0.0.1.nip.io` (planned) | `app.stg.splitcortex.com` (assumed) | `app.prd.splitcortex.com` (assumed) |
 
 ## Getting started
 

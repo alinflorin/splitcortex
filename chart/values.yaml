@@ -88,6 +88,19 @@ dex:
         inCluster: true
     web:
       http: 0.0.0.0:5556
+      # The SPA calls Dex's discovery/token endpoints from the browser (CORS).
+      allowedOrigins:
+        - https://app.splitcortex.127.0.0.1.nip.io
+        - http://app.splitcortex.127.0.0.1.nip.io:5173   # Vite dev server
+    staticClients:
+      # Web app (SPA, authorization code + PKCE, no client secret). The UI derives the Dex URL from its own
+      # host (`app.` -> `dex.`), so keep hostnames in sync. Lists are replaced, not merged, per environment.
+      - id: splitcortex-ui
+        name: SplitCortex Web
+        public: true
+        redirectURIs:
+          - https://app.splitcortex.127.0.0.1.nip.io/
+          - http://app.splitcortex.127.0.0.1.nip.io:5173/
     enablePasswordDB: true
     expiry:
       # Access tokens are ID-token lifetime in Dex.
@@ -95,6 +108,38 @@ dex:
       refreshTokens:
         validIfNotUsedFor: 2160h   # ~3 months
         absoluteLifetime: 2160h    # ~3 months
+
+# Web app (src/ui): static SPA served by Caddy on port 8080. TLS and rate limiting are done by the ingress.
+ui:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: splitcortex/ui   # Tilt rebuilds and substitutes this image locally
+    tag: ""                      # default: chart appVersion
+    pullPolicy: IfNotPresent
+  service:
+    port: 80
+  resources:
+    requests: {cpu: 10m, memory: 16Mi}
+    limits: {memory: 64Mi}
+  ingress:
+    enabled: true
+    className: traefik   # keep equal to ingress.className
+    annotations:
+      cert-manager.io/cluster-issuer: root-ca-issuer
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
+    # The UI derives the Dex URL from this host (`app.` -> `dex.`) and must be listed in Dex's staticClients.
+    hosts:
+      - host: app.splitcortex.127.0.0.1.nip.io
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: ui-tls
+        hosts:
+          - app.splitcortex.127.0.0.1.nip.io
 
 # Traefik rate limits (templates/rate-limits.yaml). Not attached to an entryPoint: reference them from each route.
 rateLimit:
