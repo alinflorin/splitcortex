@@ -1,0 +1,29 @@
+name: Control plane image
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/control-plane/**", ".github/workflows/control-plane.yaml", ".github/workflows/docker-service.yaml"]
+  pull_request:
+    paths: ["src/control-plane/**", ".github/workflows/control-plane.yaml", ".github/workflows/docker-service.yaml"]
+  workflow_dispatch:
+  # Tags are handled by release.yaml, which calls this workflow.
+  workflow_call:
+
+concurrency:
+  group: control-plane-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-service.yaml
+    with:
+      service: control-plane
+      context: src/control-plane
+      dockerfile: src/control-plane/Dockerfile

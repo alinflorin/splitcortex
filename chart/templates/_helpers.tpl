@@ -57,3 +57,30 @@ app.kubernetes.io/component: {{ .component }}
       name: {{ include "splitcortex.dbSecretName" . }}
       key: {{ .Values.database.existingSecretKey }}
 {{- end }}
+
+{{- define "splitcortex.databaseEnv" -}}
+- name: DATABASE_URL
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.controlPlane.database.existingSecret }}
+      key: {{ .Values.controlPlane.database.key }}
+{{- end }}
+
+{{/* Control plane environment: issuer comes from Dex's own config, JWKS defaults to the in-cluster Dex service. */}}
+{{- define "splitcortex.controlPlaneEnv" -}}
+{{ include "splitcortex.databaseEnv" . }}
+- name: LOG_LEVEL
+  value: {{ .Values.controlPlane.logLevel | quote }}
+- name: OIDC_ISSUER
+  value: {{ .Values.dex.config.issuer | quote }}
+- name: OIDC_AUDIENCE
+  value: {{ .Values.controlPlane.oidc.audience | quote }}
+{{- $jwks := .Values.controlPlane.oidc.jwksUrl }}
+{{- if and (not $jwks) .Values.dex.enabled }}
+{{- $jwks = printf "http://%s-dex:5556/keys" .Release.Name }}
+{{- end }}
+{{- if $jwks }}
+- name: OIDC_JWKS_URL
+  value: {{ $jwks | quote }}
+{{- end }}
+{{- end }}

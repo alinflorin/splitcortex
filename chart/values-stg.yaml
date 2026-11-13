@@ -30,6 +30,7 @@ dex:
         public: true
         redirectURIs:
           - https://app.stg.splitcortex.com/
+          - https://app.stg.splitcortex.com/api/docs/static/oauth2-redirect.html
 
 ui:
   image:
@@ -41,6 +42,20 @@ ui:
       - host: app.stg.splitcortex.com
         paths:
           - path: /
+            pathType: Prefix
+    tls:
+      - secretName: ui-tls
+        hosts:
+          - app.stg.splitcortex.com
+
+controlPlane:
+  image:
+    repository: ghcr.io/alinflorin/splitcortex-control-plane
+  ingress:
+    hosts:
+      - host: app.stg.splitcortex.com
+        paths:
+          - path: /api
             pathType: Prefix
     tls:
       - secretName: ui-tls

@@ -16,8 +16,8 @@ values_args = ' '.join(['-f ' + v for v in helm_values])
 
 local_resource(
     'chart',
-    # ui.enabled=false: the UI workload is built and deployed by Tilt below (live image substitution).
-    cmd=('helm dependency build chart && helm upgrade -i --wait --timeout 5m --set ui.enabled=false ' +
+    # ui/controlPlane.enabled=false: those workloads are built and deployed by Tilt below (live image substitution).
+    cmd=('helm dependency build chart && helm upgrade -i --wait --timeout 5m --set ui.enabled=false --set controlPlane.enabled=false ' +
          '--create-namespace -n %s %s splitcortex chart' % (NAMESPACE, values_args)),
     deps=['chart/Chart.yaml', 'chart/Chart.lock', 'chart/values.yaml', 'chart/templates'] + helm_values,
     labels=['infra'],
@@ -45,9 +45,32 @@ k8s_yaml(local(
 ))
 k8s_resource('ui', resource_deps=['chart'], labels=['apps'], links=['https://app.splitcortex.127.0.0.1.nip.io'])
 
-# Control plane (Fastify):
-#   docker_build('splitcortex/control-plane', '.', dockerfile='apps/control-plane/Dockerfile',
-#                only=['apps/control-plane', 'packages/shared'])
+# Control plane (src/control-plane, Fastify + Drizzle). The dev image runs `tsx watch`; src edits are synced.
+# Changes under src/control-plane/drizzle (new migrations) are deliberately NOT synced, so they rebuild the image
+# and re-create the migration Job.
+docker_build(
+    'splitcortex/control-plane', 'src/control-plane', dockerfile='src/control-plane/Dockerfile.dev',
+    live_update=[
+        fall_back_on(['src/control-plane/package.json', 'src/control-plane/pnpm-lock.yaml', 'src/control-plane/pnpm-workspace.yaml',
+                      'src/control-plane/tsconfig.json']),
+        sync('src/control-plane/src', '/app/src'),
+    ],
+)
+k8s_yaml(local(
+    'helm template splitcortex chart -n %s %s ' % (NAMESPACE, values_args) +
+    '--show-only templates/control-plane-deployment.yaml --show-only templates/control-plane-service.yaml ' +
+    '--show-only templates/control-plane-ingress.yaml --show-only templates/control-plane-migrate-job.yaml ' +
+    '--set controlPlane.readOnlyRootFilesystem=false ' +
+    # The dev image has no build output: run the migrator through tsx (cwd is /app).
+    "--set 'controlPlane.migrate.command={./node_modules/.bin/tsx,src/db/migrate.ts}'",
+    quiet=True,
+))
+# The chart runs migrations as a Helm hook (post-install/pre-upgrade); under Tilt it is a plain Job that must
+# finish before the API starts.
+k8s_resource('control-plane-migrate', resource_deps=['chart'], labels=['apps'])
+k8s_resource('control-plane', resource_deps=['chart', 'control-plane-migrate'], labels=['apps'],
+             links=['https://app.splitcortex.127.0.0.1.nip.io/api/docs'])
+
 # Gateway (Rust; needs a direct Postgres connection for LISTEN):
 #   docker_build('splitcortex/gateway', '.', dockerfile='apps/gateway/Dockerfile',
 #                only=['apps/gateway', 'proto'])

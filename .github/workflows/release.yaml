@@ -21,8 +21,11 @@ jobs:
   ui:
     uses: ./.github/workflows/ui.yaml
 
+  control-plane:
+    uses: ./.github/workflows/control-plane.yaml
+
   deploy-stg:
-    needs: [chart, ui]
+    needs: [chart, ui, control-plane]
     uses: ./.github/workflows/deploy.yaml
     with:
       environment: stg

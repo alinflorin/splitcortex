@@ -1,0 +1,44 @@
+{{- if and .Values.controlPlane.enabled .Values.controlPlane.migrate.enabled }}
+{{- /*
+  Database migrations (drizzle) as a Helm hook: post-install (Postgres is part of this release and already ready
+  with --wait) and pre-upgrade (schema is updated before the new control plane rolls out). The script retries
+  while Postgres is unreachable. Deleted when it succeeds; a failed Job is kept for inspection until the next run.
+*/ -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: control-plane-migrate
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: control-plane-migrate
+  annotations:
+    helm.sh/hook: post-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "control-plane-migrate") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: {{ include "splitcortex.image" (dict "root" . "image" .Values.controlPlane.image) | quote }}
+          imagePullPolicy: {{ .Values.controlPlane.image.pullPolicy }}
+          command:
+            {{- toYaml .Values.controlPlane.migrate.command | nindent 12 }}
+          env:
+            {{- include "splitcortex.databaseEnv" . | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: {{ .Values.controlPlane.readOnlyRootFilesystem }}
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}
