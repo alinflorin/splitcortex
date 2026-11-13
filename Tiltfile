@@ -39,7 +39,7 @@ docker_build(
 k8s_yaml(local(
     'helm template splitcortex chart -n %s %s ' % (NAMESPACE, values_args) +
     '--show-only templates/ui-deployment.yaml --show-only templates/ui-service.yaml ' +
-    '--set ui.readOnlyRootFilesystem=false --set ui.resources.limits.memory=3Gi --set ui.resources.requests.memory=512Mi ' +
+    '--set ui.readOnlyRootFilesystem=false ' +
     '--show-only templates/ui-ingress.yaml',
     quiet=True,
 ))

@@ -40,8 +40,6 @@ spec:
             capabilities: {drop: [ALL]}
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
-          resources:
-            {{- toYaml .Values.ui.resources | nindent 12 }}
       volumes:
         - name: tmp
           emptyDir: {}

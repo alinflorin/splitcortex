@@ -123,9 +123,6 @@ ui:
   service:
     port: 80
   readOnlyRootFilesystem: true   # Tilt dev sets false (Vite writes caches, live_update syncs files)
-  resources:
-    requests: {cpu: 10m, memory: 16Mi}
-    limits: {memory: 64Mi}
   ingress:
     enabled: true
     className: traefik   # keep equal to ingress.className
