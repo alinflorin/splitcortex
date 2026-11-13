@@ -10,6 +10,16 @@ traefik:
     # Fixed name so Ingresses and the ACME HTTP-01 solver do not depend on the release name.
     # Keep equal to ingress.className.
     name: traefik
+  ports:
+    web:
+      http:
+        redirections:
+          # Redirect all HTTP (80) to HTTPS (443) for every Ingress. cert-manager HTTP-01 still works
+          # (Let's Encrypt follows redirects). Permanent (301) in all environments.
+          entryPoint:
+            to: websecure
+            scheme: https
+            permanent: true
 
 # ClusterIssuers (templates/cluster-issuers.yaml). For an external cert-manager set `cert-manager.enabled: false`
 # (its CRDs/webhook must already exist; issuer names `root-ca-issuer`/`letsencrypt` must not clash). To use the
