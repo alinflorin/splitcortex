@@ -1,0 +1,28 @@
+name: UI image
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/ui/**", ".github/workflows/ui.yaml", ".github/workflows/docker-service.yaml"]
+    tags: ["v*"]
+  pull_request:
+    paths: ["src/ui/**", ".github/workflows/ui.yaml", ".github/workflows/docker-service.yaml"]
+  workflow_dispatch:
+
+concurrency:
+  group: ui-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-service.yaml
+    with:
+      service: ui
+      context: src/ui
+      dockerfile: src/ui/Dockerfile
