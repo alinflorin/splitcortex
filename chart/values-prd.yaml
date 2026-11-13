@@ -22,8 +22,6 @@ dex:
     issuer: https://dex.prd.splitcortex.com
     web:
       http: 0.0.0.0:5556
-      allowedOrigins:
-        - https://app.prd.splitcortex.com
     staticClients:
       - id: splitcortex-ui
         name: SplitCortex Web

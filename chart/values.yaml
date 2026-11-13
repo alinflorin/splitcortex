@@ -88,10 +88,24 @@ dex:
         inCluster: true
     web:
       http: 0.0.0.0:5556
-      # The SPA calls Dex's discovery/token endpoints from the browser (CORS).
+      # CORS is wide open (Dex cannot turn it off; an empty list blocks browsers): the SPA and Swagger UI call
+      # Dex's discovery/token endpoints from the browser. Dex uses no cookies on these endpoints.
       allowedOrigins:
-        - https://app.splitcortex.127.0.0.1.nip.io
-        - http://app.splitcortex.127.0.0.1.nip.io:5173   # Vite dev server
+        - "*"
+      # Dex rejects (403) preflights asking for any header not listed here (no wildcard support).
+      allowedHeaders:
+        - Accept
+        - Accept-Language
+        - Authorization
+        - Cache-Control
+        - Content-Language
+        - Content-Type
+        - If-Match
+        - If-None-Match
+        - Origin
+        - Pragma
+        - X-Requested-With
+        - X-CSRF-Token
     staticClients:
       # Web app (SPA, authorization code + PKCE, no client secret). The UI derives the Dex URL from its own
       # host (`app.` -> `dex.`), so keep hostnames in sync. Lists are replaced, not merged, per environment.
