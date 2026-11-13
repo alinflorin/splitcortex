@@ -48,7 +48,9 @@ postgres:
 
 dex:
   enabled: true
-  # No image.tag override: the chart defaults to its appVersion (the latest Dex release at the pinned chart version).
+  image:
+    tag: latest
+    pullPolicy: IfNotPresent   # `latest` is a moving tag; re-pull on every pod start
   ingress:
     enabled: true
     className: traefik   # IngressClass created by the Traefik subchart (traefik.ingressClass.name)
