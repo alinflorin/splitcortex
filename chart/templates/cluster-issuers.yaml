@@ -45,6 +45,7 @@ spec:
 ---
 {{- /* Let's Encrypt only when letsencryptEmail is set (stg/prd). */}}
 {{- with .Values.letsencryptEmail }}
+{{- if contains "${" . }}{{ fail "letsencryptEmail still contains an unsubstituted placeholder; run envsubst on the values file first" }}{{ end }}
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:

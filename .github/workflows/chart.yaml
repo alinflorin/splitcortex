@@ -71,6 +71,14 @@ jobs:
       - name: Build dependencies
         run: helm dependency build "$CHART_DIR"
 
+      - name: Substitute deploy-time placeholders (dummy values for validation)
+        if: matrix.env != 'dev'
+        env:
+          LETSENCRYPT_EMAIL: ci@example.com
+        run: |
+          f="$CHART_DIR/values-${{ matrix.env }}.yaml"
+          envsubst '$LETSENCRYPT_EMAIL' < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+
       - name: Lint
         run: helm lint "$CHART_DIR" --strict $VALUES_ARGS
 

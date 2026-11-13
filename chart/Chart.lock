@@ -8,5 +8,8 @@ dependencies:
 - name: postgres
   repository: https://groundhog2k.github.io/helm-charts/
   version: 1.6.8
-digest: sha256:a6203beff1ad9412a36bb39554b290b8dde557a6729cb3bb5c64947fe8701193
-generated: "2026-11-13T00:45:32.619210773+02:00"
+- name: dex
+  repository: https://charts.dexidp.io
+  version: 0.26.0
+digest: sha256:b132cdbff6a3badd48fa30031aac4a19675c93fa10fd7b2a92865982054244f0
+generated: "2026-11-13T08:36:16.943860418+02:00"

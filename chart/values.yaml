@@ -1,3 +1,8 @@
+traefik:
+  ingressClass:
+    # Fixed name so Ingresses and the ACME HTTP-01 solver do not depend on the release name.
+    name: traefik
+
 cert-manager:
   # Install and keep the CRDs with the release (cert-manager is unusable without them).
   crds:
@@ -24,3 +29,56 @@ postgres:
       secretKey: password
   storage:
     requestedSize: 1Gi
+
+dex:
+  enabled: true
+  # No image.tag override: the chart defaults to its appVersion (the latest Dex release at the pinned chart version).
+  ingress:
+    enabled: true
+    className: traefik   # IngressClass created by the Traefik subchart (traefik.ingressClass.name)
+    annotations:
+      cert-manager.io/cluster-issuer: root-ca-issuer
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      # <release namespace>-rate-limit-general@kubernetescrd (namespace `splitcortex`)
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
+    hosts:
+      - host: dex.splitcortex.127.0.0.1.nip.io
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: dex-tls
+        hosts:
+          - dex.splitcortex.127.0.0.1.nip.io
+  config:
+    # Public URL of Dex (must match what clients/browsers reach); override per environment.
+    issuer: https://dex.splitcortex.127.0.0.1.nip.io
+    storage:
+      type: kubernetes
+      config:
+        inCluster: true
+    web:
+      http: 0.0.0.0:5556
+    enablePasswordDB: true
+    expiry:
+      # Access tokens are ID-token lifetime in Dex.
+      idTokens: 15m
+      refreshTokens:
+        validIfNotUsedFor: 2160h   # ~3 months
+        absoluteLifetime: 2160h    # ~3 months
+
+# Traefik rate limits (templates/rate-limits.yaml). Not attached to an entryPoint: reference them from each route.
+rateLimit:
+  # Number of trusted proxy hops in X-Forwarded-For (0 = use the direct peer address).
+  ipDepth: 0
+  # Web app, control plane, Dex: per client IP.
+  general:
+    average: 50     # requests per period, sustained
+    period: 1s
+    burst: 100
+  # Gateway: a coarse per-API-key flood ceiling only; keep it far above real traffic.
+  gateway:
+    average: 2000
+    period: 1s
+    burst: 4000

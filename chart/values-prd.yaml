@@ -1,2 +1,22 @@
 # Enables the `letsencrypt` ClusterIssuer (Let's Encrypt production).
-letsencryptEmail: ops@example.com   # TODO: real contact address for expiry notices
+# Placeholder substituted at deploy time (`envsubst '$LETSENCRYPT_EMAIL'`, from a CI variable); never commit the real value.
+letsencryptEmail: "${LETSENCRYPT_EMAIL}"
+
+dex:
+  ingress:
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
+    hosts:
+      - host: dex.prd.splitcortex.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: dex-tls
+        hosts:
+          - dex.prd.splitcortex.com
+  config:
+    issuer: https://dex.prd.splitcortex.com

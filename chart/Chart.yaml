@@ -18,3 +18,7 @@ dependencies:
     version: 1.6.8
     repository: https://groundhog2k.github.io/helm-charts/
     condition: postgres.enabled
+  - name: dex
+    version: 0.26.0
+    repository: https://charts.dexidp.io
+    condition: dex.enabled

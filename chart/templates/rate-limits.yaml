@@ -1,0 +1,38 @@
+{{- if .Values.traefik.enabled }}
+{{- /*
+  Traefik rate-limit middlewares (CRDs come from the Traefik subchart). Attach per route, not on the
+  entryPoint, so the gateway is not throttled by the general limit:
+    traefik.ingress.kubernetes.io/router.middlewares: <namespace>-rate-limit-general@kubernetescrd
+  (IngressRoute: middlewares: [{name: rate-limit-general}]). Use rate-limit-gateway on the gateway route.
+*/ -}}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: rate-limit-general
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+spec:
+  rateLimit:
+    average: {{ .Values.rateLimit.general.average }}
+    period: {{ .Values.rateLimit.general.period | quote }}
+    burst: {{ .Values.rateLimit.general.burst }}
+    sourceCriterion:
+      ipStrategy:
+        depth: {{ .Values.rateLimit.ipDepth }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: rate-limit-gateway
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+spec:
+  rateLimit:
+    average: {{ .Values.rateLimit.gateway.average }}
+    period: {{ .Values.rateLimit.gateway.period | quote }}
+    burst: {{ .Values.rateLimit.gateway.burst }}
+    sourceCriterion:
+      # Per API key (clients share NAT/egress IPs); the gateway enforces the real per-key limits itself.
+      requestHeaderName: Authorization
+{{- end }}
