@@ -43,6 +43,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 - **Control plane** (`src/control-plane`): TypeScript with Fastify, zod-validated routes with a generated OpenAPI spec and Swagger UI (`/api/docs`), PostgreSQL through Drizzle ORM with SQL migrations. DTOs are zod schemas in the project; the frontend copies what it needs.
 - **Gateway**: Rust, for performance on the hot path (OpenAI-format HTTP/SSE edge, node WebSocket connections, auth, limits, metering, load balancing). Always-on service, no serverless. It shares the node protobuf schema and the data store with the control plane, not the zod schemas.
 - The gateway caches configuration in memory and follows a database change log written by the control plane (no Redis). The database is PostgreSQL; web-app sign-in uses Dex.
+- The gateway counts usage itself and flushes it to the database in batches. If a flush fails, counters stay in memory and are retried with backoff in an idempotent, de-duplicated batch (no lost or double-counted usage), and they are flushed on shutdown. What happens when the buffer fills (drop old data or reject requests) is still an open decision.
 
 ## Repository layout
 
