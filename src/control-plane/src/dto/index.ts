@@ -8,3 +8,4 @@ export * from './pool';
 export * from './usage';
 export * from './node';
 export * from './model';
+export * from './api-key';

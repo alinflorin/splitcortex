@@ -70,7 +70,8 @@
     "tooLong": "Valoarea este prea lungă.",
     "slug": "Folosește litere mici, cifre și cratime simple.",
     "hfUrl": "Folosește un link https://huggingface.co/… către un fișier .litertlm.",
-    "modelFile": "Sunt acceptate doar fișiere .litertlm."
+    "modelFile": "Sunt acceptate doar fișiere .litertlm.",
+    "pickPool": "Alege cel puțin un pool."
   },
   "common": {
     "cancel": "Anulează",
@@ -195,7 +196,8 @@
     "members": "Membri",
     "usage": "Utilizare",
     "settings": "Setări",
-    "models": "Modele"
+    "models": "Modele",
+    "apiKeys": "Chei API"
   },
   "nodes": {
     "status": {
@@ -273,5 +275,47 @@
       "huggingface": "Hugging Face",
       "upload": "Încărcat"
     }
+  },
+  "apiKeys": {
+    "title": "Chei API",
+    "new": "Cheie API nouă",
+    "empty": "Nicio cheie API încă. Creează una pentru a apela gateway-ul.",
+    "name": "Nume",
+    "scope": "Acces",
+    "scopeOrg": "Întreaga organizație",
+    "scopeOrgHint": "Toate pool-urile, inclusiv cele create ulterior.",
+    "scopePools": "Pool-uri alese",
+    "scopePoolsHint": "Doar pool-urile bifate.",
+    "pools": "Pool-uri",
+    "noPools": "Creează mai întâi un pool.",
+    "allPools": "Toate pool-urile",
+    "poolCount_one": "{{count}} pool",
+    "poolCount_other": "{{count}} pool-uri",
+    "noPoolsLeft": "Niciun pool rămas",
+    "expiry": "Expiră",
+    "never": "Niciodată",
+    "days_30": "În 30 de zile",
+    "days_90": "În 90 de zile",
+    "days_365": "Într-un an",
+    "created": "Cheia API a fost creată.",
+    "secretTitle": "Copiază cheia API",
+    "secretMessage": "Cheia este afișată o singură dată. Păstreaz-o într-un loc sigur.",
+    "copy": "Copiază",
+    "copied": "Copiat în clipboard.",
+    "done": "Gata",
+    "revoke": "Revocă",
+    "revokeTitle": "Revoci {{name}}?",
+    "revokeMessage": "Clienții care folosesc această cheie nu mai funcționează imediat. Acțiunea nu poate fi anulată.",
+    "revoked": "Cheia API a fost revocată.",
+    "status": {
+      "active": "Activă",
+      "revoked": "Revocată",
+      "expired": "Expirată"
+    },
+    "createdBy": "Creată de",
+    "lastUsed": "Ultima utilizare",
+    "neverUsed": "Niciodată",
+    "expires": "Expiră",
+    "adminOnly": "Cheile API sunt gestionate de administratorii organizației."
   }
 }

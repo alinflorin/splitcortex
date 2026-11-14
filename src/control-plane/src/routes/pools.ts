@@ -12,7 +12,7 @@ import {
 import { requireOrgRole } from '../access';
 import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db } from '../db/client';
-import { nodes, pools } from '../db/schema';
+import { apiKeyPools, nodes, pools } from '../db/schema';
 import { isUniqueViolation } from '../errors';
 
 const toDto = (p: typeof pools.$inferSelect) => ({ ...p, createdAt: p.createdAt.toISOString() });
@@ -172,6 +172,13 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
           .where(and(eq(nodes.poolId, poolId), eq(nodes.orgId, orgId)));
         for (const { id } of nodeRows)
           await recordConfigChange(tx, { entityType: 'node', entityId: id, orgId });
+        // Keys scoped to this pool lose it (cascade); the gateway re-fetches them.
+        const keyRows = await tx
+          .select({ id: apiKeyPools.keyId })
+          .from(apiKeyPools)
+          .where(eq(apiKeyPools.poolId, poolId));
+        for (const { id } of keyRows)
+          await recordConfigChange(tx, { entityType: 'api_key', entityId: id, orgId });
         const deleted = await tx
           .delete(pools)
           .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)))

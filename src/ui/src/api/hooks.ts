@@ -5,6 +5,9 @@ import { z } from 'zod';
 import { putPart, request } from './client';
 import type { Method } from './client';
 import {
+  apiKeyRequest,
+  apiKeySchema,
+  createdApiKeySchema,
   memberSchema,
   modelSchema,
   modelUploadSchema,
@@ -13,6 +16,7 @@ import {
   poolSchema,
   usageSchema,
   type AddMemberForm,
+  type ApiKeyForm,
   type ModelFromUrlForm,
   type OrgRole,
   type OrganisationForm,
@@ -43,6 +47,7 @@ const keys = {
   members: (id: string) => ['organisations', id, 'members'] as const,
   nodes: (id: string, poolId: string) => ['organisations', id, 'pools', poolId, 'nodes'] as const,
   node: (id: string, nodeId: string) => ['organisations', id, 'nodes', nodeId] as const,
+  apiKeys: (id: string) => ['organisations', id, 'api-keys'] as const,
   models: (id: string) => ['organisations', id, 'models'] as const,
   poolModels: (id: string, poolId: string) =>
     ['organisations', id, 'pools', poolId, 'models'] as const,
@@ -375,5 +380,34 @@ export function useUnassignModel(orgId: string, poolId: string) {
     mutationFn: (modelId: string) =>
       req('DELETE', `/organisations/${orgId}/pools/${poolId}/models/${modelId}`, null),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.poolModels(orgId, poolId) }),
+  });
+}
+
+export function useApiKeys(orgId: string, enabled = true) {
+  const req = useRequest();
+  return useQuery({
+    enabled: req.ready && enabled,
+    queryKey: keys.apiKeys(orgId),
+    queryFn: () => req('GET', `/organisations/${orgId}/api-keys`, z.array(apiKeySchema)),
+  });
+}
+
+/** Resolves with the secret, which the server returns only once. */
+export function useCreateApiKey(orgId: string) {
+  const req = useRequest();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (form: ApiKeyForm) =>
+      req('POST', `/organisations/${orgId}/api-keys`, createdApiKeySchema, apiKeyRequest(form)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.apiKeys(orgId) }),
+  });
+}
+
+export function useRevokeApiKey(orgId: string) {
+  const req = useRequest();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (keyId: string) => req('DELETE', `/organisations/${orgId}/api-keys/${keyId}`, null),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.apiKeys(orgId) }),
   });
 }

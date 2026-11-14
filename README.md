@@ -8,7 +8,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 
 - **Accounts and organisations**: users register, create organisations, and manage memberships and roles.
 - **Inference pools**: an organisation groups its devices into pools. Each pool serves a set of models.
-- **API keys**: per-organisation key management for clients calling the inference API.
+- **API keys**: per-organisation key management for clients calling the inference API. A key covers the whole organisation or chosen pools; the secret is shown once and only its hash is stored.
 - **API gateway**: the platform is the single public entry point. It authenticates requests, load-balances them across the nodes in a pool, and manages model distribution.
 - **Device nodes**: endpoint devices keep a persistent WebSocket connection (protobuf messages) to the gateway over TLS, with no message broker. The gateway pushes work down this connection, so devices do not need to be publicly reachable.
 - **Usage tracking and limits**: token usage is metered per key, pool and organisation, with configurable limits.
@@ -26,7 +26,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 ```
 
 - Nodes connect outbound to the gateway, so NAT and mobile networks are not a problem.
-- **Routing**: each API key is bound to one pool. The gateway authenticates the key, checks limits, then picks a healthy node in that pool that has the requested model, favouring less-loaded and faster devices. If a node fails before producing output the request is retried once on another node.
+- **Routing**: an API key covers the whole organisation or a chosen set of pools. The gateway authenticates the key, checks limits, resolves the pool from the requested model (among the pools the key may use), then picks a healthy node in that pool, favouring less-loaded and faster devices. If a node fails before producing output the request is retried once on another node.
 - **Node and server identity**: each node generates its own key pair and registers its public key when it enrolls. Enrollment is started in the web app, which shows a short one-time code (and a QR); the device user types or scans it in the mobile app, optionally pointing it at a different enrollment URL. Enrollment happens between the device and the control plane over HTTPS; the control plane hands the device the gateway address and public key, and the device then connects to the gateway. The server has its own key pair, which nodes trust from enrollment onwards. The two sides authenticate each other with these keys.
 - **Models are currently replicated**: every device in a pool holds a full copy of the pool's models.
 - **Engine**: LiteRT-LM is the only supported inference engine for now.

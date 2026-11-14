@@ -172,6 +172,48 @@ export const poolModels = pgTable(
 );
 
 /**
+ * An API key for the gateway. Only the SHA-256 of the secret is stored (`hash`); `prefix` is the readable start of the
+ * token for display. Scope: `allPools` (every pool of the organisation, present and future) or the pools listed in
+ * `api_key_pools`. Revoking is a soft delete so usage history keeps its `key_id`. `lastUsedAt` is written by the gateway.
+ */
+export const apiKeys = pgTable(
+  'api_keys',
+  {
+    id: id(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    prefix: text('prefix').notNull(),
+    hash: text('hash').notNull().unique(),
+    allPools: boolean('all_pools').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdBy: text('created_by').notNull(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('api_keys_org_idx').on(t.orgId)],
+);
+
+/** Pools a non-org-wide key may use (rows disappear with the pool or the key). */
+export const apiKeyPools = pgTable(
+  'api_key_pools',
+  {
+    keyId: uuid('key_id')
+      .notNull()
+      .references(() => apiKeys.id, { onDelete: 'cascade' }),
+    poolId: uuid('pool_id')
+      .notNull()
+      .references(() => pools.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.keyId, t.poolId] }),
+    index('api_key_pools_pool_idx').on(t.poolId),
+  ],
+);
+
+/**
  * Change feed for the gateway's in-memory config cache. A row is written in the same transaction as every
  * config change; after commit the control plane sends `NOTIFY config_changes, '<seq>'` (wake-up only).
  */

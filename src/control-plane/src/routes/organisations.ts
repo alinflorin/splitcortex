@@ -11,7 +11,7 @@ import {
 import { requireOrgRole } from '../access';
 import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db } from '../db/client';
-import { memberships, nodes, organisations, pools } from '../db/schema';
+import { apiKeys, memberships, nodes, organisations, pools } from '../db/schema';
 import { isUniqueViolation } from '../errors';
 
 export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db }) => {
@@ -178,6 +178,13 @@ export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app,
         }
         for (const { id } of poolRows) {
           last = await recordConfigChange(tx, { entityType: 'pool', entityId: id, orgId });
+        }
+        const keyRows = await tx
+          .select({ id: apiKeys.id })
+          .from(apiKeys)
+          .where(eq(apiKeys.orgId, orgId));
+        for (const { id } of keyRows) {
+          last = await recordConfigChange(tx, { entityType: 'api_key', entityId: id, orgId });
         }
         await tx.delete(organisations).where(eq(organisations.id, orgId));
         return recordConfigChange(tx, { entityType: 'organisation', entityId: orgId, orgId }).then(

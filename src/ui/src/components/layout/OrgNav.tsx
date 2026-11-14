@@ -10,6 +10,7 @@ import {
 } from '@fluentui/react-components';
 import {
   ArrowLeftRegular,
+  KeyRegular,
   DataTrendingRegular,
   BrainCircuitRegular,
   DeviceMeetingRoomRegular,
@@ -49,6 +50,9 @@ export function OrgNav({ orgId, go }: OrgNavProps) {
   const items = [
     { to: `${base}/pools`, key: 'pools', Icon: DeviceMeetingRoomRegular },
     { to: `${base}/models`, key: 'models', Icon: BrainCircuitRegular },
+    ...(current && isAdmin(current.role)
+      ? [{ to: `${base}/api-keys`, key: 'apiKeys', Icon: KeyRegular }]
+      : []),
     { to: `${base}/members`, key: 'members', Icon: PeopleRegular },
     { to: `${base}/usage`, key: 'usage', Icon: DataTrendingRegular },
     ...(current && isAdmin(current.role)

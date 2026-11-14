@@ -11,6 +11,7 @@ import {
 import { sql } from 'drizzle-orm';
 import type { Db } from './db/client';
 import auth, { type VerifyToken } from './plugins/auth';
+import { apiKeyRoutes } from './routes/api-keys';
 import { memberRoutes } from './routes/members';
 import { meRoutes } from './routes/me';
 import { modelRoutes } from './routes/models';
@@ -99,6 +100,7 @@ export async function buildApp({
       await api.register(nodeRoutes, { db });
       await api.register(modelRoutes, { db, storage });
       await api.register(usageRoutes, { db });
+      await api.register(apiKeyRoutes, { db });
     },
     { prefix: API_PREFIX },
   );

@@ -3,6 +3,7 @@ import { PrivateRoute } from './auth/PrivateRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { About } from './pages/About';
 import { Home } from './pages/Home';
+import { ApiKeysPage } from './pages/organisations/ApiKeysPage';
 import { MembersTab } from './pages/organisations/MembersTab';
 import { OrganisationLayout } from './pages/organisations/OrganisationLayout';
 import { OrganisationSettingsTab } from './pages/organisations/OrganisationSettingsTab';
@@ -29,6 +30,7 @@ export function App() {
             <Route path="pools/:poolId" element={<PoolPage />} />
             <Route path="models" element={<ModelsPage />} />
             <Route path="nodes/:nodeId" element={<NodePage />} />
+            <Route path="api-keys" element={<ApiKeysPage />} />
             <Route path="members" element={<MembersTab />} />
             <Route path="usage" element={<UsageTab />} />
             <Route path="settings" element={<OrganisationSettingsTab />} />

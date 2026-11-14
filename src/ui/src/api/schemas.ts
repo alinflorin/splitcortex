@@ -189,3 +189,56 @@ export type ModelFromUrlForm = z.infer<typeof modelFromUrlFormSchema>;
 
 export const modelUploadFormSchema = z.object({ name: modelNameSchema });
 export type ModelUploadForm = z.infer<typeof modelUploadFormSchema>;
+
+export const apiKeySchema = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  name: z.string(),
+  prefix: z.string(),
+  allPools: z.boolean(),
+  poolIds: z.array(z.string()),
+  expiresAt: z.string().nullable(),
+  createdBy: z.string(),
+  lastUsedAt: z.string().nullable(),
+  revokedAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type ApiKey = z.infer<typeof apiKeySchema>;
+
+export const createdApiKeySchema = z.object({ key: apiKeySchema, secret: z.string() });
+export type CreatedApiKey = z.infer<typeof createdApiKeySchema>;
+
+export const API_KEY_EXPIRIES = ['never', '30', '90', '365'] as const;
+
+export const apiKeyFormSchema = z
+  .object({
+    name: nameSchema,
+    scope: z.enum(['org', 'pools']),
+    poolIds: z.array(z.string()),
+    /** `never` or a number of days from now. */
+    expiry: z.enum(API_KEY_EXPIRIES),
+  })
+  .refine((v) => v.scope === 'org' || v.poolIds.length > 0, {
+    error: 'validation.pickPool',
+    path: ['poolIds'],
+  });
+export type ApiKeyForm = z.infer<typeof apiKeyFormSchema>;
+
+/** Request body for the form values (expiry becomes an absolute time). */
+export function apiKeyRequest(form: ApiKeyForm, now = Date.now()) {
+  return {
+    name: form.name,
+    scope: form.scope,
+    poolIds: form.scope === 'pools' ? form.poolIds : [],
+    ...(form.expiry === 'never'
+      ? {}
+      : { expiresAt: new Date(now + Number(form.expiry) * 86_400_000).toISOString() }),
+  };
+}
+
+export type ApiKeyState = 'active' | 'revoked' | 'expired';
+export function apiKeyState(key: ApiKey, now = Date.now()): ApiKeyState {
+  if (key.revokedAt) return 'revoked';
+  if (key.expiresAt && new Date(key.expiresAt).getTime() <= now) return 'expired';
+  return 'active';
+}

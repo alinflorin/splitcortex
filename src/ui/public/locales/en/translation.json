@@ -70,7 +70,8 @@
     "tooLong": "This is too long.",
     "slug": "Use lowercase letters, digits and single dashes.",
     "hfUrl": "Use a https://huggingface.co/… link to a .litertlm file.",
-    "modelFile": "Only .litertlm files are supported."
+    "modelFile": "Only .litertlm files are supported.",
+    "pickPool": "Pick at least one pool."
   },
   "common": {
     "cancel": "Cancel",
@@ -195,7 +196,8 @@
     "members": "Members",
     "usage": "Usage",
     "settings": "Settings",
-    "models": "Models"
+    "models": "Models",
+    "apiKeys": "API keys"
   },
   "nodes": {
     "status": {
@@ -273,5 +275,47 @@
       "huggingface": "Hugging Face",
       "upload": "Uploaded"
     }
+  },
+  "apiKeys": {
+    "title": "API keys",
+    "new": "New API key",
+    "empty": "No API keys yet. Create one to call the gateway.",
+    "name": "Name",
+    "scope": "Access",
+    "scopeOrg": "Whole organisation",
+    "scopeOrgHint": "Every pool, including pools created later.",
+    "scopePools": "Selected pools",
+    "scopePoolsHint": "Only the pools you tick.",
+    "pools": "Pools",
+    "noPools": "Create a pool first.",
+    "allPools": "All pools",
+    "poolCount_one": "{{count}} pool",
+    "poolCount_other": "{{count}} pools",
+    "noPoolsLeft": "No pools left",
+    "expiry": "Expires",
+    "never": "Never",
+    "days_30": "In 30 days",
+    "days_90": "In 90 days",
+    "days_365": "In 1 year",
+    "created": "API key created.",
+    "secretTitle": "Copy your API key",
+    "secretMessage": "This is the only time the key is shown. Store it somewhere safe.",
+    "copy": "Copy",
+    "copied": "Copied to clipboard.",
+    "done": "Done",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke {{name}}?",
+    "revokeMessage": "Clients using this key stop working right away. This cannot be undone.",
+    "revoked": "API key revoked.",
+    "status": {
+      "active": "Active",
+      "revoked": "Revoked",
+      "expired": "Expired"
+    },
+    "createdBy": "Created by",
+    "lastUsed": "Last used",
+    "neverUsed": "Never",
+    "expires": "Expires",
+    "adminOnly": "API keys are managed by organisation admins."
   }
 }
