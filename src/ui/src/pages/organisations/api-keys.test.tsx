@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Outlet, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -55,6 +55,36 @@ const pools = [
 ];
 
 describe('api keys', () => {
+  it('lists keys with scope and status, and revokes after confirmation', async () => {
+    const calls = stubApi({
+      'GET /api/organisations/o1/api-keys': [
+        key(),
+        key({ id: 'k2', name: 'Prod', allPools: false, poolIds: ['p1'] }),
+        key({ id: 'k3', name: 'Old', revokedAt: '2026-02-01T00:00:00.000Z' }),
+      ],
+      'GET /api/organisations/o1/pools': pools,
+      'DELETE /api/organisations/o1/api-keys/k1': null,
+    });
+    const user = userEvent.setup();
+    await renderPage('admin');
+    expect(await screen.findByText('CI')).toBeInTheDocument();
+    expect(await screen.findByText(/Alpha/)).toBeInTheDocument();
+    expect(screen.getByText('Revoked')).toBeInTheDocument();
+    const revokes = screen.getAllByRole('button', { name: 'Revoke' });
+    expect(revokes).toHaveLength(2);
+    await user.click(revokes[0]!);
+    expect(await screen.findByText('Revoke CI?', {}, { timeout: 5000 })).toBeInTheDocument();
+    // The confirm button inside the dialog (not a card's). While the dialog settles, Fluent marks it hidden for
+    // the accessibility tree, so look it up including hidden elements.
+    const inDialog = screen
+      .getAllByRole('button', { name: 'Revoke', hidden: true })
+      .find((b) => b.closest('.fui-DialogSurface'));
+    fireEvent.click(inDialog!);
+    await waitFor(() =>
+      expect(calls.some((c) => c.key === 'DELETE /api/organisations/o1/api-keys/k1')).toBe(true),
+    );
+  });
+
   it('creates a pool-scoped key and shows the secret once', async () => {
     const calls = stubApi({
       'GET /api/organisations/o1/api-keys': [],
