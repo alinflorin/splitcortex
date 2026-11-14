@@ -1,0 +1,45 @@
+{{- if and .Values.garage.enabled .Values.controlPlane.enabled }}
+{{- /*
+  First-boot setup of Garage (the subchart bootstraps nothing): layout for the single node, the S3 key from the
+  `garage-credentials` Secret and the bucket, through Garage's admin API. A Helm hook (post-install/post-upgrade: Garage and
+  the Secret are part of this release and ready by then), run with the control plane image; idempotent, retries while Garage
+  settles. Only this Job holds the admin token.
+*/ -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: garage-bootstrap
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: garage-bootstrap
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "garage-bootstrap") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: bootstrap
+          image: {{ include "splitcortex.image" (dict "root" . "image" .Values.controlPlane.image) | quote }}
+          imagePullPolicy: {{ .Values.controlPlane.image.pullPolicy }}
+          command:
+            {{- toYaml .Values.garage.bootstrap.command | nindent 12 }}
+          env:
+            {{- include "splitcortex.garageBootstrapEnv" . | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: {{ .Values.controlPlane.readOnlyRootFilesystem }}
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

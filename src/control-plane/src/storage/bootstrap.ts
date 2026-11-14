@@ -1,7 +1,7 @@
 /**
  * First-boot setup of a single-node Garage through its admin API (v2): assign the node a layout, import the S3 key the
  * control plane uses and create the bucket with that key allowed on it. Every step checks first, so it is safe to run on
- * each start (and while Garage is still coming up: the caller retries).
+ * each run. Run by the Helm hook Job (`bootstrap-cli.ts`), never by the API replicas, so there is no race between them.
  */
 export interface GarageBootstrapSettings {
   adminUrl: string;
@@ -76,31 +76,4 @@ export async function bootstrapGarage(s: GarageBootstrapSettings, fetchFn: Fetch
     accessKeyId: s.accessKeyId,
     permissions: { read: true, write: true, owner: true },
   });
-}
-
-/** Runs the bootstrap in the background, retrying with backoff until it works (Garage may still be starting). */
-export function startGarageBootstrap(
-  s: GarageBootstrapSettings,
-  log: { info(msg: string): void; warn(obj: object, msg: string): void },
-  fetchFn: Fetch = fetch,
-): () => void {
-  let stopped = false;
-  let timer: NodeJS.Timeout | undefined;
-  let delay = 2_000;
-  const attempt = async () => {
-    try {
-      await bootstrapGarage(s, fetchFn);
-      log.info('Garage is bootstrapped (layout, key, bucket)');
-    } catch (err) {
-      if (stopped) return;
-      log.warn({ err: String(err) }, 'Garage bootstrap not done yet, retrying');
-      timer = setTimeout(() => void attempt(), delay);
-      delay = Math.min(delay * 2, 60_000);
-    }
-  };
-  void attempt();
-  return () => {
-    stopped = true;
-    clearTimeout(timer);
-  };
 }

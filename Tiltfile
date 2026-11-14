@@ -17,7 +17,10 @@ values_args = ' '.join(['-f ' + v for v in helm_values])
 local_resource(
     'chart',
     # ui/controlPlane.enabled=false: those workloads are built and deployed by Tilt below (live image substitution).
-    cmd=('helm dependency build chart && helm upgrade -i --wait --timeout 5m --set ui.enabled=false --set controlPlane.enabled=false ' +
+    # Repos are derived from Chart.yaml (same as CI) so a new dependency never needs a manual `helm repo add`.
+    cmd=("grep -E '^\\s+repository:' chart/Chart.yaml | awk '{print $2}' | sort -u | while read -r url; do " +
+         "helm repo add \"$(echo \"$url\" | sed -E 's#https?://##; s#[^A-Za-z0-9]+#-#g; s#-$##')\" \"$url\" --force-update >/dev/null; done && " +
+         'helm dependency build chart && helm upgrade -i --wait --timeout 5m --set ui.enabled=false --set controlPlane.enabled=false ' +
          '--create-namespace -n %s %s splitcortex chart' % (NAMESPACE, values_args)),
     deps=['chart/Chart.yaml', 'chart/Chart.lock', 'chart/values.yaml', 'chart/templates'] + helm_values,
     labels=['infra'],
@@ -60,15 +63,19 @@ k8s_yaml(local(
     'helm template splitcortex chart -n %s %s ' % (NAMESPACE, values_args) +
     '--show-only templates/control-plane-deployment.yaml --show-only templates/control-plane-service.yaml ' +
     '--show-only templates/control-plane-ingress.yaml --show-only templates/control-plane-migrate-job.yaml ' +
+    '--show-only templates/garage-bootstrap-job.yaml ' +
     '--set controlPlane.readOnlyRootFilesystem=false ' +
     # The dev image has no build output: run the migrator through tsx (cwd is /app).
-    "--set 'controlPlane.migrate.command={./node_modules/.bin/tsx,src/db/migrate.ts}'",
+    "--set 'controlPlane.migrate.command={./node_modules/.bin/tsx,src/db/migrate.ts}' " +
+    "--set 'garage.bootstrap.command={./node_modules/.bin/tsx,src/storage/bootstrap-cli.ts}'",
     quiet=True,
 ))
 # The chart runs migrations as a Helm hook (post-install/pre-upgrade); under Tilt it is a plain Job that must
 # finish before the API starts.
 k8s_resource('control-plane-migrate', resource_deps=['chart'], labels=['apps'])
-k8s_resource('control-plane', resource_deps=['chart', 'control-plane-migrate'], labels=['apps'],
+# Same for the Garage bootstrap Job (layout, key, bucket): a plain Job under Tilt, run with the control plane image.
+k8s_resource('garage-bootstrap', resource_deps=['chart'], labels=['apps'])
+k8s_resource('control-plane', resource_deps=['chart', 'control-plane-migrate', 'garage-bootstrap'], labels=['apps'],
              links=['https://app.splitcortex.127.0.0.1.nip.io/api/docs'])
 
 # Gateway (Rust; needs a direct Postgres connection for LISTEN):

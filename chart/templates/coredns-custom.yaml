@@ -14,7 +14,7 @@ metadata:
     {{- include "splitcortex.labels" . | nindent 4 }}
 data:
   splitcortex.override: |
-    {{- $target := default (printf "%s-traefik.%s.svc.cluster.local" .Release.Name .Release.Namespace) .Values.dev.coredns.target }}
+    {{- $target := default (printf "traefik.%s.svc.cluster.local" .Release.Namespace) .Values.dev.coredns.target }}
     {{- range .Values.dev.coredns.hosts }}
     rewrite name exact {{ . }} {{ $target }}
     {{- end }}

@@ -5,6 +5,7 @@ ingress:
   className: traefik
 
 traefik:
+  fullnameOverride: traefik   # no release prefix on names (Service `traefik`, used by the dev CoreDNS rewrite)
   enabled: true
   ingressClass:
     # Fixed name so Ingresses and the ACME HTTP-01 solver do not depend on the release name.
@@ -30,6 +31,8 @@ clusterIssuers:
 
 cert-manager:
   enabled: true
+  # Resource and pod names are `cert-manager`, `cert-manager-webhook`, ... without the release prefix.
+  fullnameOverride: cert-manager
   # Install and keep the CRDs with the release (cert-manager is unusable without them).
   crds:
     enabled: true
@@ -58,6 +61,7 @@ postgres:
 
 dex:
   enabled: true
+  fullnameOverride: dex   # Service `dex` (in-cluster JWKS URL of the control plane)
   image:
     tag: latest
     pullPolicy: IfNotPresent   # `latest` is a moving tag; re-pull on every pod start
@@ -159,13 +163,15 @@ ui:
 
 # Garage: single-node S3-compatible object storage for model files (subchart `garage` 2.5.0 from https://charts.derwitt.dev, a thin
 # wrapper around upstream Garage; `dxflrs/garage` is multi-arch, the chart default is amd64-only). It is internal only: no ingress,
-# the control plane streams uploads and Hugging Face mirrors into it. The subchart does not bootstrap anything, so the control
-# plane applies the layout and creates the key and bucket through the admin API at start (src/storage/bootstrap.ts). Credentials
+# the control plane streams uploads and Hugging Face mirrors into it. The subchart does not bootstrap anything, so a Helm hook
+# Job (templates/garage-bootstrap-job.yaml, control plane image) applies the layout and creates the key and bucket through the admin API. Credentials
 # are random and live in the `garage-credentials` Secret (templates/garage-credentials.yaml).
 garage:
   enabled: true
   fullnameOverride: garage     # Service name the control plane uses (S3_ENDPOINT http://garage:3900)
   bucket: models               # created by the control plane (S3_BUCKET)
+  bootstrap:
+    command: [node, dist/storage/bootstrap-cli.js]   # run with the control plane image (Tilt overrides it to use tsx)
   capacityGiB: 20              # declared layout capacity; keep <= persistence.data.size
   image:
     repository: dxflrs/garage
@@ -210,7 +216,7 @@ controlPlane:
     key: DATABASE_URL
   oidc:
     audience: splitcortex-ui   # the Dex client id of the web app (`aud` of its tokens)
-    jwksUrl: ""                # default: http://<release>-dex:5556/keys (in-cluster, no public TLS needed)
+    jwksUrl: ""                # default: http://dex:5556/keys (in-cluster, no public TLS needed)
   migrate:
     enabled: true
     command: [node, dist/db/migrate.js]
@@ -256,7 +262,7 @@ dev:
     # Replaces any existing `coredns-custom` ConfigMap; k3s CoreDNS may need a restart to pick it up
     # (`kubectl -n kube-system rollout restart deploy coredns`).
     enabled: true
-    # Service the hosts are rewritten to. Default: <release>-traefik.<namespace>.svc.cluster.local
+    # Service the hosts are rewritten to. Default: traefik.<namespace>.svc.cluster.local
     target: ""
     hosts:
       - dex.splitcortex.127.0.0.1.nip.io

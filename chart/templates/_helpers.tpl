@@ -77,7 +77,7 @@ app.kubernetes.io/component: {{ .component }}
   value: {{ .Values.controlPlane.oidc.audience | quote }}
 {{- $jwks := .Values.controlPlane.oidc.jwksUrl }}
 {{- if and (not $jwks) .Values.dex.enabled }}
-{{- $jwks = printf "http://%s-dex:5556/keys" .Release.Name }}
+{{- $jwks = "http://dex:5556/keys" }}
 {{- end }}
 {{- if $jwks }}
 - name: OIDC_JWKS_URL
@@ -95,11 +95,21 @@ app.kubernetes.io/component: {{ .component }}
   valueFrom: {secretKeyRef: {name: garage-credentials, key: access-key}}
 - name: S3_SECRET_ACCESS_KEY
   valueFrom: {secretKeyRef: {name: garage-credentials, key: secret-key}}
+{{- end }}
+{{- end }}
+
+{{/* Environment of the Garage bootstrap Job (src/storage/bootstrap-cli.ts): the S3 key to import plus the admin API. */}}
+{{- define "splitcortex.garageBootstrapEnv" -}}
+- name: S3_BUCKET
+  value: {{ .Values.garage.bucket | quote }}
+- name: S3_ACCESS_KEY_ID
+  valueFrom: {secretKeyRef: {name: garage-credentials, key: access-key}}
+- name: S3_SECRET_ACCESS_KEY
+  valueFrom: {secretKeyRef: {name: garage-credentials, key: secret-key}}
 - name: GARAGE_ADMIN_URL
   value: "http://garage-admin:3903"
 - name: GARAGE_ADMIN_TOKEN
   valueFrom: {secretKeyRef: {name: garage-credentials, key: token}}
 - name: GARAGE_CAPACITY_BYTES
   value: {{ mul (int .Values.garage.capacityGiB) 1073741824 | quote }}
-{{- end }}
 {{- end }}
