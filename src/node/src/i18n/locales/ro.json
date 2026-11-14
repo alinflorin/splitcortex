@@ -1,0 +1,12 @@
+{
+  "app": { "name": "SplitCortex" },
+  "nav": { "home": "Nod", "settings": "Setări" },
+  "home": {
+    "title": "Pune acest dispozitiv la treabă",
+    "subtitle": "Înrolează-l într-un pool și va servi modele pentru organizația ta.",
+    "status": "Neînrolat",
+    "enroll": "Înrolează dispozitivul"
+  },
+  "theme": { "label": "Temă", "system": "Sistem", "light": "Luminoasă", "dark": "Întunecată" },
+  "language": { "label": "Limbă", "en": "English", "ro": "Română" }
+}

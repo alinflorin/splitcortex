@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "SplitCortex Node",
+    "slug": "splitcortex-node",
+    "scheme": "splitcortex",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.splitcortex.node"
+    },
+    "android": {
+      "package": "com.splitcortex.node",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "./plugins/withReleaseSigning",
+      "expo-router",
+      "expo-font",
+      "expo-localization",
+      "expo-secure-store",
+      "expo-status-bar"
+    ]
+  }
+}

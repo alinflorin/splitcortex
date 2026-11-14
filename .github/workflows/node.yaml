@@ -1,0 +1,101 @@
+name: Node app
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/node/**", ".github/workflows/node.yaml"]
+  pull_request:
+    paths: ["src/node/**", ".github/workflows/node.yaml"]
+  workflow_dispatch:
+  # Tags are handled by release.yaml, which calls this workflow.
+  workflow_call:
+
+concurrency:
+  group: node-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+permissions:
+  contents: read
+
+# The app is built locally on devices (no EAS, no image, no deploy), so this workflow only
+# verifies it and produces a debug APK artifact; release.yaml calls it on a tag, which builds a signed release APK
+# (secrets ANDROID_KEYSTORE_*) and attaches it to the GitHub release.
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/node
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: src/node/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: src/node/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm format:check
+      - run: pnpm test
+      # Bundles the JS for Android: catches import and Metro errors without a device.
+      - run: pnpm exec expo export --platform android --output-dir "$RUNNER_TEMP/export"
+
+  android:
+    needs: verify
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/node
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: src/node/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: src/node/pnpm-lock.yaml
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+      - run: pnpm install --frozen-lockfile
+      # Tags build a signed release APK whose version follows the tag; everything else a debug APK.
+      - name: Set version and signing
+        if: github.ref_type == 'tag'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            [ -n "${!v}" ] || { echo "::error::secret ANDROID_$v is not set (see src/node/scripts/create-keystore.sh)"; exit 1; }
+          done
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "APP_VERSION=${GITHUB_REF_NAME#v}"
+            echo "SC_KEYSTORE_FILE=$RUNNER_TEMP/release.jks"
+            echo "SC_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "SC_KEY_ALIAS=$KEY_ALIAS"
+            echo "SC_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+      # Generates the native android/ project (git-ignored, never committed).
+      - run: pnpm exec expo prebuild --platform android --no-install
+      - name: Build APK
+        working-directory: src/node/android
+        run: ./gradlew ${{ github.ref_type == 'tag' && 'assembleRelease' || 'assembleDebug' }}
+      # Tag builds are named after the version (vX.Y.Z), others after the commit.
+      - name: Name the APK
+        run: cp android/app/build/outputs/apk/${{ github.ref_type == 'tag' && 'release/app-release' || 'debug/app-debug' }}.apk "splitcortex-node-${{ github.ref_type == 'tag' && github.ref_name || github.sha }}.apk"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: splitcortex-node-apk
+          path: src/node/splitcortex-node-*.apk
+          if-no-files-found: error
+          retention-days: 14

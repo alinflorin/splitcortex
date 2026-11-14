@@ -1,0 +1,12 @@
+{
+  "app": { "name": "SplitCortex" },
+  "nav": { "home": "Node", "settings": "Settings" },
+  "home": {
+    "title": "Put this device to work",
+    "subtitle": "Enroll it into a pool and it will serve models for your organisation.",
+    "status": "Not enrolled",
+    "enroll": "Enroll device"
+  },
+  "theme": { "label": "Theme", "system": "System", "light": "Light", "dark": "Dark" },
+  "language": { "label": "Language", "en": "English", "ro": "Română" }
+}

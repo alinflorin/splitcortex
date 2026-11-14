@@ -1,4 +1,5 @@
-# Tag vX.Y.Z: validate and publish the chart, build all images, then deploy to stg.
+# Tag vX.Y.Z: validate and publish the chart, build all images and the Android APK, publish the
+# GitHub release with the APK, then deploy to stg.
 name: Release
 
 on:
@@ -23,6 +24,29 @@ jobs:
 
   control-plane:
     uses: ./.github/workflows/control-plane.yaml
+
+  node:
+    uses: ./.github/workflows/node.yaml
+    secrets: inherit
+
+  # Attaches the signed release APK to the GitHub release (created here if it does not exist yet).
+  github-release:
+    needs: [chart, ui, control-plane, node]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: splitcortex-node-apk
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
+          gh release upload "$TAG" splitcortex-node-*.apk --clobber
 
   deploy-stg:
     needs: [chart, ui, control-plane]
