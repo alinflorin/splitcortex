@@ -190,6 +190,7 @@
     }
   },
   "orgNav": {
+    "current": "Organizație",
     "pools": "Pool-uri",
     "members": "Membri",
     "usage": "Utilizare",

@@ -1,5 +1,13 @@
 import type { MouseEvent } from 'react';
-import { NavDivider, NavItem } from '@fluentui/react-components';
+import {
+  Badge,
+  Caption1,
+  NavDivider,
+  NavItem,
+  Text,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
 import {
   ArrowLeftRegular,
   DataTrendingRegular,
@@ -12,6 +20,19 @@ import { useTranslation } from 'react-i18next';
 import { useOrganisation } from '../../api/hooks';
 import { isAdmin } from '../../lib/roles';
 
+const useStyles = makeStyles({
+  // Context label, not a heading: the page's own title stays the only heading on screen.
+  org: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXXS,
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
+    minWidth: 0,
+  },
+  name: { overflowWrap: 'anywhere', fontWeight: tokens.fontWeightSemibold },
+  role: { alignSelf: 'flex-start' },
+});
+
 interface OrgNavProps {
   orgId: string;
   go: (to: string) => (e: MouseEvent) => void;
@@ -19,6 +40,7 @@ interface OrgNavProps {
 
 /** Sidebar content for the organisation in the URL: a back item plus its pages. */
 export function OrgNav({ orgId, go }: OrgNavProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   // Same query (and cache entry) as the page itself, so the role never disagrees with the content.
   const { data: current } = useOrganisation(orgId);
@@ -44,6 +66,15 @@ export function OrgNav({ orgId, go }: OrgNavProps) {
       >
         {t('organisations.back')}
       </NavItem>
+      {current && (
+        <div className={styles.org} aria-label={t('orgNav.current')}>
+          <Caption1>{t('orgNav.current')}</Caption1>
+          <Text className={styles.name}>{current.name}</Text>
+          <Badge appearance="tint" size="small" className={styles.role}>
+            {t(`roles.${current.role}`)}
+          </Badge>
+        </div>
+      )}
       <NavDivider />
       {items.map(({ to, key, Icon }) => (
         <NavItem key={to} value={to} href={to} icon={<Icon />} onClick={go(to)}>

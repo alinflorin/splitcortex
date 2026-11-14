@@ -190,6 +190,7 @@
     }
   },
   "orgNav": {
+    "current": "Organisation",
     "pools": "Pools",
     "members": "Members",
     "usage": "Usage",
