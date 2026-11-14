@@ -11,5 +11,8 @@ dependencies:
 - name: dex
   repository: https://charts.dexidp.io
   version: 0.26.0
-digest: sha256:b132cdbff6a3badd48fa30031aac4a19675c93fa10fd7b2a92865982054244f0
-generated: "2026-11-13T08:36:16.943860418+02:00"
+- name: garage
+  repository: https://charts.derwitt.dev
+  version: 2.5.0
+digest: sha256:86ed0684fe0a8d6824ad73b10a3c9f692cf28e223b87ee941c40528da0bc6380
+generated: "2026-11-14T09:34:11.857271166+02:00"

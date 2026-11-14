@@ -13,6 +13,9 @@ import type { Db } from './db/client';
 import auth, { type VerifyToken } from './plugins/auth';
 import { memberRoutes } from './routes/members';
 import { meRoutes } from './routes/me';
+import { modelRoutes } from './routes/models';
+import type { ModelStorage } from './storage/types';
+import { nodeRoutes } from './routes/nodes';
 import { organisationRoutes } from './routes/organisations';
 import { poolRoutes } from './routes/pools';
 import { usageRoutes } from './routes/usage';
@@ -20,6 +23,8 @@ import { usageRoutes } from './routes/usage';
 export interface AppDeps {
   db: Db;
   verify: VerifyToken;
+  /** Object storage for model files; null when not configured (the models API then answers 503). */
+  storage?: ModelStorage | null;
   /** Dex issuer (browser-reachable URL) and the public client Swagger UI signs in with (code + PKCE). */
   oidc?: { issuer: string; clientId: string };
   logLevel?: string;
@@ -30,7 +35,13 @@ export const API_PREFIX = '/api';
 
 const OIDC_FALLBACK = { issuer: 'http://localhost:5556', clientId: 'splitcortex-ui' };
 
-export async function buildApp({ db, verify, oidc = OIDC_FALLBACK, logLevel = 'info' }: AppDeps) {
+export async function buildApp({
+  db,
+  verify,
+  storage = null,
+  oidc = OIDC_FALLBACK,
+  logLevel = 'info',
+}: AppDeps) {
   const app = Fastify({ logger: { level: logLevel } }).withTypeProvider<ZodTypeProvider>();
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -85,6 +96,8 @@ export async function buildApp({ db, verify, oidc = OIDC_FALLBACK, logLevel = 'i
       await api.register(organisationRoutes, { db });
       await api.register(memberRoutes, { db });
       await api.register(poolRoutes, { db });
+      await api.register(nodeRoutes, { db });
+      await api.register(modelRoutes, { db, storage });
       await api.register(usageRoutes, { db });
     },
     { prefix: API_PREFIX },

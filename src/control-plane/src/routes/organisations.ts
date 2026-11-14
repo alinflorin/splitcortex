@@ -11,7 +11,7 @@ import {
 import { requireOrgRole } from '../access';
 import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db } from '../db/client';
-import { memberships, organisations, pools } from '../db/schema';
+import { memberships, nodes, organisations, pools } from '../db/schema';
 import { isUniqueViolation } from '../errors';
 
 export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db }) => {
@@ -169,6 +169,13 @@ export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app,
           .from(pools)
           .where(eq(pools.orgId, orgId));
         let last = 0;
+        const nodeRows = await tx
+          .select({ id: nodes.id })
+          .from(nodes)
+          .where(eq(nodes.orgId, orgId));
+        for (const { id } of nodeRows) {
+          last = await recordConfigChange(tx, { entityType: 'node', entityId: id, orgId });
+        }
         for (const { id } of poolRows) {
           last = await recordConfigChange(tx, { entityType: 'pool', entityId: id, orgId });
         }

@@ -157,6 +157,41 @@ ui:
         hosts:
           - app.splitcortex.127.0.0.1.nip.io
 
+# Garage: single-node S3-compatible object storage for model files (subchart `garage` 2.5.0 from https://charts.derwitt.dev, a thin
+# wrapper around upstream Garage; `dxflrs/garage` is multi-arch, the chart default is amd64-only). It is internal only: no ingress,
+# the control plane streams uploads and Hugging Face mirrors into it. The subchart does not bootstrap anything, so the control
+# plane applies the layout and creates the key and bucket through the admin API at start (src/storage/bootstrap.ts). Credentials
+# are random and live in the `garage-credentials` Secret (templates/garage-credentials.yaml).
+garage:
+  enabled: true
+  fullnameOverride: garage     # Service name the control plane uses (S3_ENDPOINT http://garage:3900)
+  bucket: models               # created by the control plane (S3_BUCKET)
+  capacityGiB: 20              # declared layout capacity; keep <= persistence.data.size
+  image:
+    repository: dxflrs/garage
+  deployment:
+    replicaCount: 1
+  garage:
+    replicationFactor: "1"
+    rpc:
+      secret:
+        create: false
+        name: garage-credentials   # key rpcSecret
+    admin:
+      token:
+        create: true
+        secret:
+          create: false
+          name: garage-credentials # key token
+  service:
+    admin:
+      enabled: true            # ClusterIP only (garage-admin:3903), used by the control plane bootstrap
+  persistence:
+    meta:
+      size: 1Gi
+    data:
+      size: 20Gi
+
 # Control plane (src/control-plane): Fastify REST API under /api (Swagger UI at /api/docs), Drizzle migrations
 # run by a Helm hook Job. The OIDC issuer comes from dex.config.issuer; DATABASE_URL from the postgres Secret.
 controlPlane:

@@ -46,6 +46,7 @@ ui:
         hosts:
           - app.stg.splitcortex.com
 
+
 controlPlane:
   image:
     repository: ghcr.io/alinflorin/splitcortex-control-plane

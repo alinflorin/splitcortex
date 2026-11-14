@@ -66,6 +66,12 @@ interface SidebarProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/** The sidebar item an organisation URL belongs to (a node belongs to Pools). */
+const sectionOf = (pathname: string) => {
+  const seg = pathname.split('/')[3];
+  return !seg || seg === 'nodes' ? 'pools' : seg;
+};
+
 export function Sidebar({ open, overlay, onOpenChange }: SidebarProps) {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -75,7 +81,7 @@ export function Sidebar({ open, overlay, onOpenChange }: SidebarProps) {
   // Inside an organisation the sidebar shows only that organisation's pages.
   const orgId = matchPath('/organisations/:orgId/*', pathname)?.params.orgId;
   const selected = orgId
-    ? `/organisations/${orgId}/${pathname.split('/')[3] || 'pools'}`
+    ? `/organisations/${orgId}/${sectionOf(pathname)}`
     : ITEMS.find((i) => (i.to === '/' ? pathname === '/' : pathname.startsWith(i.to)))?.to;
 
   const go = (to: string) => (e: MouseEvent) => {

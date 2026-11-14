@@ -1,5 +1,7 @@
 import {
   bigint,
+  doublePrecision,
+  integer,
   bigserial,
   boolean,
   index,
@@ -16,6 +18,22 @@ const id = () => uuid('id').primaryKey().defaultRandom();
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 
 export const orgRole = pgEnum('org_role', ['owner', 'admin', 'member']);
+/** How a pool serves models. Only identical replication for now; sharding a model across nodes is future work. */
+export const servingType = pgEnum('serving_type', ['replicated']);
+export const balancingType = pgEnum('balancing_type', [
+  'weighted_p2c',
+  'least_in_flight',
+  'round_robin',
+  'random',
+]);
+export const modelSource = pgEnum('model_source', ['huggingface', 'upload']);
+export const modelStatus = pgEnum('model_status', [
+  'pending',
+  'downloading',
+  'uploading',
+  'ready',
+  'failed',
+]);
 
 export const organisations = pgTable('organisations', {
   id: id(),
@@ -47,9 +65,110 @@ export const pools = pgTable(
       .references(() => organisations.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     requireApproval: boolean('require_approval').notNull().default(false),
+    servingType: servingType('serving_type').notNull().default('replicated'),
+    balancingType: balancingType('balancing_type').notNull().default('weighted_p2c'),
     createdAt: createdAt(),
   },
   (t) => [unique('pools_org_id_name_unique').on(t.orgId, t.name)],
+);
+
+/**
+ * A registered device. Created by enrollment (not built yet); `publicKey` is the device's own key (the gateway
+ * authenticates by proof of possession), revoking a node means deleting this row.
+ */
+export const nodes = pgTable(
+  'nodes',
+  {
+    id: id(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    poolId: uuid('pool_id')
+      .notNull()
+      .references(() => pools.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    publicKey: text('public_key').notNull().unique(),
+    /** Short fingerprint of the public key, shown to admins when approving. */
+    fingerprint: text('fingerprint').notNull(),
+    approved: boolean('approved').notNull().default(true),
+    // Device info reported at enrollment.
+    platform: text('platform'),
+    deviceModel: text('device_model'),
+    osVersion: text('os_version'),
+    appVersion: text('app_version'),
+    cpuCores: integer('cpu_cores'),
+    memoryTotalMb: integer('memory_total_mb'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('nodes_pool_idx').on(t.poolId)],
+);
+
+/**
+ * Live telemetry, written by the gateway only (it holds the node connections) and read by the control plane for
+ * dashboards. A node counts as online only while `connected` is true AND the row was updated recently, so a crashed
+ * gateway cannot leave nodes looking online forever.
+ */
+export const nodeStatus = pgTable('node_status', {
+  nodeId: uuid('node_id')
+    .primaryKey()
+    .references(() => nodes.id, { onDelete: 'cascade' }),
+  connected: boolean('connected').notNull().default(false),
+  connectedSince: timestamp('connected_since', { withTimezone: true }),
+  cpuPercent: doublePrecision('cpu_percent'),
+  memoryUsedMb: integer('memory_used_mb'),
+  batteryPercent: integer('battery_percent'),
+  charging: boolean('charging'),
+  temperatureC: doublePrecision('temperature_c'),
+  inFlight: integer('in_flight').notNull().default(0),
+  tokensPerSec: doublePrecision('tokens_per_sec'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** A model file owned by an organisation, stored in object storage and replicated onto the nodes of the pools it is assigned to. */
+export const models = pgTable(
+  'models',
+  {
+    id: id(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    source: modelSource('source').notNull(),
+    /** Hugging Face URL (normalised to `/resolve/`) for `source = huggingface`. */
+    sourceUrl: text('source_url'),
+    fileName: text('file_name').notNull(),
+    status: modelStatus('status').notNull(),
+    error: text('error'),
+    /** Object key in the models bucket. */
+    storageKey: text('storage_key').notNull(),
+    /** Open multipart upload (browser uploads only). */
+    uploadId: text('upload_id'),
+    sizeBytes: bigint('size_bytes', { mode: 'number' }),
+    /** Bytes mirrored so far (Hugging Face downloads). */
+    progressBytes: bigint('progress_bytes', { mode: 'number' }).notNull().default(0),
+    sha256: text('sha256'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('models_org_id_name_unique').on(t.orgId, t.name),
+    index('models_status_idx').on(t.status),
+  ],
+);
+
+/** Which models a pool serves (every node of the pool gets all of them). */
+export const poolModels = pgTable(
+  'pool_models',
+  {
+    poolId: uuid('pool_id')
+      .notNull()
+      .references(() => pools.id, { onDelete: 'cascade' }),
+    modelId: uuid('model_id')
+      .notNull()
+      .references(() => models.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.poolId, t.modelId] })],
 );
 
 /**

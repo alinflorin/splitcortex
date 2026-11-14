@@ -68,7 +68,9 @@
     "nameMax": "Folosește cel mult 50 de caractere.",
     "email": "Introdu o adresă de email validă.",
     "tooLong": "Valoarea este prea lungă.",
-    "slug": "Folosește litere mici, cifre și cratime simple."
+    "slug": "Folosește litere mici, cifre și cratime simple.",
+    "hfUrl": "Folosește un link https://huggingface.co/… către un fișier .litertlm.",
+    "modelFile": "Sunt acceptate doar fișiere .litertlm."
   },
   "common": {
     "cancel": "Anulează",
@@ -122,8 +124,30 @@
     "deleteMessage": "Dispozitivele lui vor fi deconectate. Acțiunea nu poate fi anulată.",
     "details": "Detalii",
     "devices": "Dispozitive",
-    "devicesEmpty": "Încă nu există dispozitive",
-    "devicesSoon": "Dispozitivele vor apărea aici când înrolarea va fi disponibilă."
+    "devicesEmpty": "Încă nu există dispozitive în acest pool.",
+    "serving": {
+      "label": "Tip de servire",
+      "replicated": "Replicat",
+      "replicatedHint": "Fiecare nod din pool are aceleași modele."
+    },
+    "balancing": {
+      "label": "Echilibrarea încărcării",
+      "weighted_p2c": "Două alegeri, ponderat",
+      "weighted_p2cHint": "Alege nodul mai puțin încărcat din două alese aleatoriu, ponderat după viteza măsurată. Cea mai bună opțiune pentru dispozitive diferite.",
+      "least_in_flight": "Cel mai liber",
+      "least_in_flightHint": "Întotdeauna nodul cu cele mai puține cereri în curs.",
+      "round_robin": "Round robin",
+      "round_robinHint": "Nodurile pe rând, indiferent de încărcare sau viteză.",
+      "random": "Aleatoriu",
+      "randomHint": "Un nod aleatoriu pentru fiecare cerere."
+    },
+    "models": "Modele",
+    "modelsEmpty": "Acest pool nu servește încă niciun model.",
+    "pickModel": "Alege un model de servit",
+    "noModelsToAdd": "Nu mai sunt modele gata de adăugat",
+    "addModel": "Adaugă model",
+    "modelAdded": "Modelul a fost adăugat în pool.",
+    "removeModel": "Nu mai servi"
   },
   "members": {
     "title": "Membri",
@@ -169,6 +193,84 @@
     "pools": "Pool-uri",
     "members": "Membri",
     "usage": "Utilizare",
-    "settings": "Setări"
+    "settings": "Setări",
+    "models": "Modele"
+  },
+  "nodes": {
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "pending": "În așteptarea aprobării"
+    },
+    "backToPool": "Înapoi la pool",
+    "live": "Stare în timp real",
+    "device": "Dispozitiv",
+    "approve": "Aprobă",
+    "approved": "Nodul a fost aprobat.",
+    "revoke": "Revocă",
+    "revokeTitle": "Revoci {{name}}?",
+    "revokeMessage": "Dispozitivul este deconectat și trebuie să se înroleze din nou.",
+    "revoked": "Nodul a fost revocat.",
+    "cpu": "CPU",
+    "cpuUsage": "Utilizare",
+    "memory": "Memorie",
+    "memoryUsage": "În uz",
+    "load": "Încărcare",
+    "inFlight": "Cereri în curs",
+    "tokensPerSec": "Tokeni pe secundă",
+    "tokensPerSecShort": "tok/s",
+    "power": "Energie și temperatură",
+    "battery": "Baterie",
+    "charging": "se încarcă",
+    "temperature": "Temperatură",
+    "connection": "Conexiune",
+    "connectedSince": "Conectat",
+    "lastReport": "Ultimul raport",
+    "pendingTitle": "Se așteaptă aprobarea",
+    "pendingHint": "Aprobă acest dispozitiv ca să poată servi cereri.",
+    "offlineTitle": "Offline",
+    "offlineHint": "Dispozitivul nu este conectat la gateway, deci nu există date în timp real.",
+    "unknownDevice": "Dispozitiv necunoscut",
+    "platform": "Platformă",
+    "os": "Sistem",
+    "app": "Versiune aplicație",
+    "cores": "Nuclee CPU",
+    "memoryTotal": "Memorie",
+    "fingerprint": "Amprenta cheii"
+  },
+  "models": {
+    "title": "Modele",
+    "add": "Adaugă model",
+    "empty": "Încă nu există modele. Adaugă unul de pe Hugging Face sau încarcă un fișier .litertlm.",
+    "fromUrl": "URL Hugging Face",
+    "fromUpload": "Încarcă fișier",
+    "name": "Nume",
+    "hfUrl": "Link Hugging Face",
+    "hfUrlHint": "Un link către un fișier .litertlm. Platforma îl descarcă o dată și păstrează o copie.",
+    "addUrl": "Adaugă",
+    "upload": "Încarcă",
+    "file": "Fișier",
+    "fileHint": "Un fișier .litertlm, până la 32 GB.",
+    "fileSize": "Fișierul este gol sau mai mare de 32 GB.",
+    "keepOpen": "Ține fereastra deschisă până se termină încărcarea.",
+    "added": "Modelul a fost adăugat. Se descarcă în fundal.",
+    "uploaded": "Modelul a fost încărcat.",
+    "uploadFailed": "Încărcarea a eșuat",
+    "retry": "Reîncearcă descărcarea",
+    "progress": "Progres",
+    "deleted": "Modelul a fost șters.",
+    "deleteTitle": "Ștergi {{name}}?",
+    "deleteMessage": "Fișierul este eliminat și toate pool-urile nu mai servesc acest model.",
+    "status": {
+      "pending": "În coadă",
+      "downloading": "Se descarcă",
+      "uploading": "Se încarcă",
+      "ready": "Gata",
+      "failed": "Eșuat"
+    },
+    "source": {
+      "huggingface": "Hugging Face",
+      "upload": "Încărcat"
+    }
   }
 }

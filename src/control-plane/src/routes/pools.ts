@@ -12,7 +12,7 @@ import {
 import { requireOrgRole } from '../access';
 import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db } from '../db/client';
-import { pools } from '../db/schema';
+import { nodes, pools } from '../db/schema';
 import { isUniqueViolation } from '../errors';
 
 const toDto = (p: typeof pools.$inferSelect) => ({ ...p, createdAt: p.createdAt.toISOString() });
@@ -165,6 +165,13 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
       const { orgId, poolId } = req.params;
       await requireOrgRole(app, db, req, orgId, 'admin');
       const seq = await db.transaction(async (tx) => {
+        // Nodes go with the pool (cascade); the gateway must drop them and close their sockets.
+        const nodeRows = await tx
+          .select({ id: nodes.id })
+          .from(nodes)
+          .where(and(eq(nodes.poolId, poolId), eq(nodes.orgId, orgId)));
+        for (const { id } of nodeRows)
+          await recordConfigChange(tx, { entityType: 'node', entityId: id, orgId });
         const deleted = await tx
           .delete(pools)
           .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)))

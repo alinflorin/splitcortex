@@ -3,6 +3,7 @@ import { NavDivider, NavItem } from '@fluentui/react-components';
 import {
   ArrowLeftRegular,
   DataTrendingRegular,
+  BrainCircuitRegular,
   DeviceMeetingRoomRegular,
   PeopleRegular,
   SettingsRegular,
@@ -25,6 +26,7 @@ export function OrgNav({ orgId, go }: OrgNavProps) {
   const base = `/organisations/${orgId}`;
   const items = [
     { to: `${base}/pools`, key: 'pools', Icon: DeviceMeetingRoomRegular },
+    { to: `${base}/models`, key: 'models', Icon: BrainCircuitRegular },
     { to: `${base}/members`, key: 'members', Icon: PeopleRegular },
     { to: `${base}/usage`, key: 'usage', Icon: DataTrendingRegular },
     ...(current && isAdmin(current.role)

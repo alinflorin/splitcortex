@@ -5,10 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { usePool } from '../../api/hooks';
 import { QueryBoundary } from '../../components/QueryBoundary';
-import { CardList, ItemCard, Stat, StatRow } from '../../components/cards/cards';
+import { ItemCard, Stat, StatRow } from '../../components/cards/cards';
 import { isAdmin } from '../../lib/roles';
 import { useOrganisationContext } from './OrganisationLayout';
 import { PoolFormDialog } from './PoolFormDialog';
+import { PoolModels, PoolNodes } from './PoolSections';
 import { UsageView } from './UsageView';
 import { useDeletePoolAction } from './useDeletePoolAction';
 
@@ -86,9 +87,12 @@ export function PoolPage() {
 
             <section className={styles.section}>
               <Subtitle1>{t('pools.devices')}</Subtitle1>
-              <CardList>
-                <ItemCard title={t('pools.devicesEmpty')} subtitle={t('pools.devicesSoon')} />
-              </CardList>
+              <PoolNodes pool={pool} />
+            </section>
+
+            <section className={styles.section}>
+              <Subtitle1>{t('pools.models')}</Subtitle1>
+              <PoolModels pool={pool} admin={admin} />
             </section>
 
             <section className={styles.section}>

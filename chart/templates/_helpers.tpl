@@ -83,4 +83,23 @@ app.kubernetes.io/component: {{ .component }}
 - name: OIDC_JWKS_URL
   value: {{ $jwks | quote }}
 {{- end }}
+{{- if .Values.garage.enabled }}
+{{- /* Model storage: in-cluster only. The control plane streams uploads into it and bootstraps it through the admin API. */}}
+- name: S3_ENDPOINT
+  value: "http://garage:3900"
+- name: S3_BUCKET
+  value: {{ .Values.garage.bucket | quote }}
+- name: S3_REGION
+  value: "garage"
+- name: S3_ACCESS_KEY_ID
+  valueFrom: {secretKeyRef: {name: garage-credentials, key: access-key}}
+- name: S3_SECRET_ACCESS_KEY
+  valueFrom: {secretKeyRef: {name: garage-credentials, key: secret-key}}
+- name: GARAGE_ADMIN_URL
+  value: "http://garage-admin:3903"
+- name: GARAGE_ADMIN_TOKEN
+  valueFrom: {secretKeyRef: {name: garage-credentials, key: token}}
+- name: GARAGE_CAPACITY_BYTES
+  value: {{ mul (int .Values.garage.capacityGiB) 1073741824 | quote }}
+{{- end }}
 {{- end }}

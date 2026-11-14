@@ -6,3 +6,5 @@ export * from './user';
 export * from './organisation';
 export * from './pool';
 export * from './usage';
+export * from './node';
+export * from './model';

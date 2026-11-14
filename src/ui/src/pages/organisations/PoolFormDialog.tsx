@@ -1,14 +1,21 @@
-import { Checkbox, Field } from '@fluentui/react-components';
+import { Checkbox, Dropdown, Field, Option } from '@fluentui/react-components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useCreatePool, useUpdatePool } from '../../api/hooks';
-import { poolFormSchema } from '../../api/schemas';
-import type { Pool, PoolForm } from '../../api/schemas';
+import { BALANCING_TYPES, poolFormSchema } from '../../api/schemas';
+import type { BalancingType, Pool, PoolForm } from '../../api/schemas';
 import { useToast } from '../../components/feedback/useToast';
 import { FormDialog } from '../../components/forms/FormDialog';
 import { TextField } from '../../components/forms/TextField';
+
+const DEFAULTS: PoolForm = {
+  name: '',
+  requireApproval: false,
+  servingType: 'replicated',
+  balancingType: 'weighted_p2c',
+};
 
 interface PoolFormDialogProps {
   orgId: string;
@@ -26,7 +33,7 @@ export function PoolFormDialog({ orgId, target, onClose }: PoolFormDialogProps) 
   const form = useForm<PoolForm>({
     resolver: zodResolver(poolFormSchema),
     mode: 'onTouched',
-    defaultValues: { name: '', requireApproval: false },
+    defaultValues: DEFAULTS,
   });
 
   const { reset } = form;
@@ -34,8 +41,13 @@ export function PoolFormDialog({ orgId, target, onClose }: PoolFormDialogProps) 
     if (target === null) return;
     reset(
       target === 'new'
-        ? { name: '', requireApproval: false }
-        : { name: target.name, requireApproval: target.requireApproval },
+        ? DEFAULTS
+        : {
+            name: target.name,
+            requireApproval: target.requireApproval,
+            servingType: target.servingType,
+            balancingType: target.balancingType,
+          },
     );
   }, [target, reset]);
 
@@ -60,6 +72,40 @@ export function PoolFormDialog({ orgId, target, onClose }: PoolFormDialogProps) 
       onSubmit={(e) => void submit(e)}
     >
       <TextField control={form.control} name="name" label={t('pools.name')} autoFocus />
+      <Controller
+        name="servingType"
+        control={form.control}
+        render={({ field }) => (
+          <Field label={t('pools.serving.label')} hint={t(`pools.serving.${field.value}Hint`)}>
+            <Dropdown
+              value={t(`pools.serving.${field.value}`)}
+              selectedOptions={[field.value]}
+              onOptionSelect={(_, d) => field.onChange(d.optionValue)}
+            >
+              <Option value="replicated">{t('pools.serving.replicated')}</Option>
+            </Dropdown>
+          </Field>
+        )}
+      />
+      <Controller
+        name="balancingType"
+        control={form.control}
+        render={({ field }) => (
+          <Field label={t('pools.balancing.label')} hint={t(`pools.balancing.${field.value}Hint`)}>
+            <Dropdown
+              value={t(`pools.balancing.${field.value}`)}
+              selectedOptions={[field.value]}
+              onOptionSelect={(_, d) => field.onChange(d.optionValue as BalancingType)}
+            >
+              {BALANCING_TYPES.map((b) => (
+                <Option key={b} value={b} text={t(`pools.balancing.${b}`)}>
+                  {t(`pools.balancing.${b}`)}
+                </Option>
+              ))}
+            </Dropdown>
+          </Field>
+        )}
+      />
       <Controller
         name="requireApproval"
         control={form.control}

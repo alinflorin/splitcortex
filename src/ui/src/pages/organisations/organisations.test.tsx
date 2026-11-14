@@ -102,6 +102,8 @@ describe('pools tab', () => {
       orgId: 'o1',
       name: 'edge',
       requireApproval: true,
+      servingType: 'replicated',
+      balancingType: 'weighted_p2c',
       createdAt: '2026-01-01T00:00:00.000Z',
     },
   ];
@@ -122,6 +124,32 @@ describe('pools tab', () => {
     );
   });
 
+  it('creates a pool with its serving and balancing settings', async () => {
+    const calls = stubApi({
+      'GET /api/organisations/o1/pools': [],
+      'POST /api/organisations/o1/pools': pools[0]!,
+    });
+    const user = userEvent.setup();
+    await renderTab(<PoolsTab />, 'admin');
+    await user.click(await screen.findByRole('button', { name: 'New pool' }));
+    await user.type(await screen.findByLabelText(/^Name/), 'edge');
+    // defaults: replicated + weighted power of two choices
+    expect(screen.getByRole('combobox', { name: /Load balancing/ })).toHaveTextContent(
+      'Weighted power of two choices',
+    );
+    await user.click(screen.getByRole('combobox', { name: /Load balancing/ }));
+    await user.click(await screen.findByRole('option', { name: 'Round robin' }));
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.key === 'POST /api/organisations/o1/pools')?.body).toEqual({
+        name: 'edge',
+        requireApproval: false,
+        servingType: 'replicated',
+        balancingType: 'round_robin',
+      }),
+    );
+  });
+
   it('hides management for plain members', async () => {
     stubApi({ 'GET /api/organisations/o1/pools': pools });
     await renderTab(<PoolsTab />, 'member');
@@ -137,6 +165,8 @@ describe('pool page', () => {
     orgId: 'o1',
     name: 'edge',
     requireApproval: true,
+    servingType: 'replicated',
+    balancingType: 'round_robin',
     createdAt: '2026-01-01T00:00:00.000Z',
   };
   const usage = {
@@ -157,7 +187,12 @@ describe('pool page', () => {
   };
 
   it('shows the pool, its pool-scoped usage and admin actions', async () => {
-    const calls = stubApi({ 'GET /api/organisations/o1/pools/p1': pool });
+    const calls = stubApi({
+      'GET /api/organisations/o1/pools/p1': pool,
+      'GET /api/organisations/o1/pools/p1/nodes': [],
+      'GET /api/organisations/o1/pools/p1/models': [],
+      'GET /api/organisations/o1/models': [],
+    });
     // the usage URL carries a changing query string; answer it for any range
     const base = globalThis.fetch;
     vi.stubGlobal('fetch', (url: string, init?: RequestInit) =>
@@ -174,7 +209,7 @@ describe('pool page', () => {
       '/pools/p1',
     );
     expect((await screen.findAllByText('edge')).length).toBeGreaterThan(0);
-    expect(await screen.findByText('No devices yet')).toBeInTheDocument();
+    expect(await screen.findByText('No devices in this pool yet.')).toBeInTheDocument();
     expect((await screen.findAllByText('Requests')).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     expect(calls.some((c) => c.key === 'GET /api/organisations/o1/pools/p1')).toBe(true);

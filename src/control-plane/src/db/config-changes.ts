@@ -3,7 +3,7 @@ import type { Db, Tx } from './client';
 import { configChanges } from './schema';
 
 export interface ConfigChange {
-  entityType: 'organisation' | 'pool' | 'node' | 'api_key';
+  entityType: 'organisation' | 'pool' | 'node' | 'model' | 'api_key';
   entityId: string;
   orgId: string;
 }

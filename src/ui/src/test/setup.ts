@@ -11,14 +11,12 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
 }));
 
 // Fluent components (MessageBar etc.) use ResizeObserver, which jsdom lacks.
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-);
+// (assigned directly, not via vi.stubGlobal: tests call vi.unstubAllGlobals() to restore `fetch`)
+globalThis.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
 
 afterEach(() => {
   cleanup();

@@ -27,11 +27,23 @@ export const memberSchema = z.object({
 });
 export type Member = z.infer<typeof memberSchema>;
 
+export const servingTypeSchema = z.enum(['replicated']);
+export const balancingTypeSchema = z.enum([
+  'weighted_p2c',
+  'least_in_flight',
+  'round_robin',
+  'random',
+]);
+export type BalancingType = z.infer<typeof balancingTypeSchema>;
+export const BALANCING_TYPES = balancingTypeSchema.options;
+
 export const poolSchema = z.object({
   id: z.string(),
   orgId: z.string(),
   name: z.string(),
   requireApproval: z.boolean(),
+  servingType: servingTypeSchema,
+  balancingType: balancingTypeSchema,
   createdAt: z.string(),
 });
 export type Pool = z.infer<typeof poolSchema>;
@@ -63,7 +75,12 @@ export const slugSchema = z
 export const organisationFormSchema = z.object({ name: nameSchema, slug: slugSchema });
 export type OrganisationForm = z.infer<typeof organisationFormSchema>;
 
-export const poolFormSchema = z.object({ name: nameSchema, requireApproval: z.boolean() });
+export const poolFormSchema = z.object({
+  name: nameSchema,
+  requireApproval: z.boolean(),
+  servingType: servingTypeSchema,
+  balancingType: balancingTypeSchema,
+});
 export type PoolForm = z.infer<typeof poolFormSchema>;
 
 export const addMemberFormSchema = z.object({
@@ -76,3 +93,99 @@ export const addMemberFormSchema = z.object({
   role: orgRoleSchema,
 });
 export type AddMemberForm = z.infer<typeof addMemberFormSchema>;
+
+export const nodeStatusSchema = z.enum(['pending', 'online', 'offline']);
+export type NodeStatus = z.infer<typeof nodeStatusSchema>;
+
+export const nodeSchema = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  poolId: z.string(),
+  name: z.string(),
+  fingerprint: z.string(),
+  approved: z.boolean(),
+  status: nodeStatusSchema,
+  platform: z.string().nullable(),
+  deviceModel: z.string().nullable(),
+  osVersion: z.string().nullable(),
+  appVersion: z.string().nullable(),
+  cpuCores: z.number().nullable(),
+  memoryTotalMb: z.number().nullable(),
+  createdAt: z.string(),
+  live: z
+    .object({
+      connectedSince: z.string().nullable(),
+      updatedAt: z.string(),
+      cpuPercent: z.number().nullable(),
+      memoryUsedMb: z.number().nullable(),
+      batteryPercent: z.number().nullable(),
+      charging: z.boolean().nullable(),
+      temperatureC: z.number().nullable(),
+      inFlight: z.number(),
+      tokensPerSec: z.number().nullable(),
+    })
+    .nullable(),
+});
+export type Node = z.infer<typeof nodeSchema>;
+
+export const modelStatusSchema = z.enum(['pending', 'downloading', 'uploading', 'ready', 'failed']);
+export type ModelStatus = z.infer<typeof modelStatusSchema>;
+
+export const modelSchema = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  name: z.string(),
+  source: z.enum(['huggingface', 'upload']),
+  sourceUrl: z.string().nullable(),
+  fileName: z.string(),
+  status: modelStatusSchema,
+  error: z.string().nullable(),
+  sizeBytes: z.number().nullable(),
+  progressBytes: z.number(),
+  sha256: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type Model = z.infer<typeof modelSchema>;
+
+export const modelUploadSchema = z.object({
+  model: modelSchema,
+  partSize: z.number(),
+  partCount: z.number(),
+});
+export type ModelUpload = z.infer<typeof modelUploadSchema>;
+
+/** LiteRT-LM is the only supported engine. */
+export const MODEL_EXTENSION = '.litertlm';
+
+const modelNameSchema = z
+  .string()
+  .trim()
+  .min(1, { error: 'validation.required' })
+  .max(100, { error: 'validation.tooLong' });
+
+export const modelFromUrlFormSchema = z.object({
+  name: modelNameSchema,
+  url: z
+    .string()
+    .trim()
+    .min(1, { error: 'validation.required' })
+    .refine(
+      (v) => {
+        try {
+          const u = new URL(v);
+          return (
+            u.protocol === 'https:' &&
+            (u.hostname === 'huggingface.co' || u.hostname.endsWith('.huggingface.co')) &&
+            u.pathname.toLowerCase().endsWith(MODEL_EXTENSION)
+          );
+        } catch {
+          return false;
+        }
+      },
+      { error: 'validation.hfUrl' },
+    ),
+});
+export type ModelFromUrlForm = z.infer<typeof modelFromUrlFormSchema>;
+
+export const modelUploadFormSchema = z.object({ name: modelNameSchema });
+export type ModelUploadForm = z.infer<typeof modelUploadFormSchema>;

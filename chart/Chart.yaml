@@ -22,3 +22,7 @@ dependencies:
     version: 0.26.0
     repository: https://charts.dexidp.io
     condition: dex.enabled
+  - name: garage
+    version: 2.5.0
+    repository: https://charts.derwitt.dev
+    condition: garage.enabled

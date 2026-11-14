@@ -68,7 +68,9 @@
     "nameMax": "Use at most 50 characters.",
     "email": "Enter a valid email address.",
     "tooLong": "This is too long.",
-    "slug": "Use lowercase letters, digits and single dashes."
+    "slug": "Use lowercase letters, digits and single dashes.",
+    "hfUrl": "Use a https://huggingface.co/… link to a .litertlm file.",
+    "modelFile": "Only .litertlm files are supported."
   },
   "common": {
     "cancel": "Cancel",
@@ -122,8 +124,30 @@
     "deleteMessage": "Its devices will be disconnected. This cannot be undone.",
     "details": "Details",
     "devices": "Devices",
-    "devicesEmpty": "No devices yet",
-    "devicesSoon": "Devices will appear here once enrolment is available."
+    "devicesEmpty": "No devices in this pool yet.",
+    "serving": {
+      "label": "Serving type",
+      "replicated": "Replicated",
+      "replicatedHint": "Every node of the pool holds the same models."
+    },
+    "balancing": {
+      "label": "Load balancing",
+      "weighted_p2c": "Weighted power of two choices",
+      "weighted_p2cHint": "Picks the less loaded of two random nodes, weighted by measured speed. Best default for mixed devices.",
+      "least_in_flight": "Least busy",
+      "least_in_flightHint": "Always the node with the fewest requests in flight.",
+      "round_robin": "Round robin",
+      "round_robinHint": "Nodes in turn, regardless of load or speed.",
+      "random": "Random",
+      "randomHint": "A random node for each request."
+    },
+    "models": "Models",
+    "modelsEmpty": "This pool serves no models yet.",
+    "pickModel": "Pick a model to serve",
+    "noModelsToAdd": "No more ready models to add",
+    "addModel": "Add model",
+    "modelAdded": "Model added to the pool.",
+    "removeModel": "Stop serving"
   },
   "members": {
     "title": "Members",
@@ -169,6 +193,84 @@
     "pools": "Pools",
     "members": "Members",
     "usage": "Usage",
-    "settings": "Settings"
+    "settings": "Settings",
+    "models": "Models"
+  },
+  "nodes": {
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "pending": "Pending approval"
+    },
+    "backToPool": "Back to pool",
+    "live": "Live status",
+    "device": "Device",
+    "approve": "Approve",
+    "approved": "Node approved.",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke {{name}}?",
+    "revokeMessage": "The device is disconnected and must enrol again to come back.",
+    "revoked": "Node revoked.",
+    "cpu": "CPU",
+    "cpuUsage": "Usage",
+    "memory": "Memory",
+    "memoryUsage": "In use",
+    "load": "Load",
+    "inFlight": "Requests in flight",
+    "tokensPerSec": "Tokens per second",
+    "tokensPerSecShort": "tok/s",
+    "power": "Power and thermals",
+    "battery": "Battery",
+    "charging": "charging",
+    "temperature": "Temperature",
+    "connection": "Connection",
+    "connectedSince": "Connected",
+    "lastReport": "Last report",
+    "pendingTitle": "Waiting for approval",
+    "pendingHint": "Approve this device to let it serve requests.",
+    "offlineTitle": "Offline",
+    "offlineHint": "The device is not connected to the gateway, so there is no live data.",
+    "unknownDevice": "Unknown device",
+    "platform": "Platform",
+    "os": "System",
+    "app": "App version",
+    "cores": "CPU cores",
+    "memoryTotal": "Memory",
+    "fingerprint": "Key fingerprint"
+  },
+  "models": {
+    "title": "Models",
+    "add": "Add model",
+    "empty": "No models yet. Add one from Hugging Face or upload a .litertlm file.",
+    "fromUrl": "Hugging Face URL",
+    "fromUpload": "Upload file",
+    "name": "Name",
+    "hfUrl": "Hugging Face link",
+    "hfUrlHint": "A link to a .litertlm file. The platform downloads it once and keeps a copy.",
+    "addUrl": "Add",
+    "upload": "Upload",
+    "file": "File",
+    "fileHint": "A .litertlm file, up to 32 GB.",
+    "fileSize": "The file is empty or larger than 32 GB.",
+    "keepOpen": "Keep this window open until the upload finishes.",
+    "added": "Model added. It is downloading in the background.",
+    "uploaded": "Model uploaded.",
+    "uploadFailed": "Upload failed",
+    "retry": "Retry download",
+    "progress": "Progress",
+    "deleted": "Model deleted.",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteMessage": "The file is removed and every pool stops serving this model.",
+    "status": {
+      "pending": "Queued",
+      "downloading": "Downloading",
+      "uploading": "Uploading",
+      "ready": "Ready",
+      "failed": "Failed"
+    },
+    "source": {
+      "huggingface": "Hugging Face",
+      "upload": "Uploaded"
+    }
   }
 }
