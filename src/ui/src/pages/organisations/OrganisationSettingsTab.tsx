@@ -48,7 +48,7 @@ export function OrganisationSettingsTab() {
     defaultValues: { name: org.name, slug: org.slug },
   });
 
-  if (!isAdmin(org.role)) return <Navigate to={`/organisations/${org.id}/pools`} replace />;
+  if (!isAdmin(org.role)) return <Navigate to={`/organisations/${org.id}/models`} replace />;
 
   const submit = form.handleSubmit(async (values) => {
     try {

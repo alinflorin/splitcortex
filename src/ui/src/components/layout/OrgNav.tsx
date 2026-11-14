@@ -48,8 +48,8 @@ export function OrgNav({ orgId, go }: OrgNavProps) {
 
   const base = `/organisations/${orgId}`;
   const items = [
-    { to: `${base}/pools`, key: 'pools', Icon: DeviceMeetingRoomRegular },
     { to: `${base}/models`, key: 'models', Icon: BrainCircuitRegular },
+    { to: `${base}/pools`, key: 'pools', Icon: DeviceMeetingRoomRegular },
     ...(current && isAdmin(current.role)
       ? [{ to: `${base}/api-keys`, key: 'apiKeys', Icon: KeyRegular }]
       : []),

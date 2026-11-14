@@ -25,7 +25,7 @@ export function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="organisations" element={<OrganisationsPage />} />
           <Route path="organisations/:orgId" element={<OrganisationLayout />}>
-            <Route index element={<Navigate to="pools" replace />} />
+            <Route index element={<Navigate to="models" replace />} />
             <Route path="pools" element={<PoolsTab />} />
             <Route path="pools/:poolId" element={<PoolPage />} />
             <Route path="models" element={<ModelsPage />} />

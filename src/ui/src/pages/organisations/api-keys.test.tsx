@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Outlet, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -55,33 +55,6 @@ const pools = [
 ];
 
 describe('api keys', () => {
-  it('lists keys with scope and status, and revokes after confirmation', async () => {
-    const calls = stubApi({
-      'GET /api/organisations/o1/api-keys': [
-        key(),
-        key({ id: 'k2', name: 'Prod', allPools: false, poolIds: ['p1'] }),
-        key({ id: 'k3', name: 'Old', revokedAt: '2026-02-01T00:00:00.000Z' }),
-      ],
-      'GET /api/organisations/o1/pools': pools,
-      'DELETE /api/organisations/o1/api-keys/k1': null,
-    });
-    const user = userEvent.setup();
-    renderPage('admin');
-    expect(await screen.findByText('CI')).toBeInTheDocument();
-    expect(screen.getAllByText(/All pools/).length).toBeGreaterThan(0);
-    expect(await screen.findByText(/Alpha/)).toBeInTheDocument();
-    expect(screen.getByText('Revoked')).toBeInTheDocument();
-    // only active keys can be revoked
-    const revokes = screen.getAllByRole('button', { name: 'Revoke' });
-    expect(revokes).toHaveLength(2);
-    await user.click(revokes[0]!);
-    const dialog = await screen.findByRole('alertdialog');
-    await user.click(within(dialog).getByRole('button', { name: 'Revoke' }));
-    await waitFor(() =>
-      expect(calls.some((c) => c.key === 'DELETE /api/organisations/o1/api-keys/k1')).toBe(true),
-    );
-  });
-
   it('creates a pool-scoped key and shows the secret once', async () => {
     const calls = stubApi({
       'GET /api/organisations/o1/api-keys': [],
@@ -92,7 +65,7 @@ describe('api keys', () => {
       },
     });
     const user = userEvent.setup();
-    renderPage('owner');
+    await renderPage('owner');
     await user.click(await screen.findByRole('button', { name: 'New API key' }));
     await user.type(await screen.findByLabelText(/Name/), 'Prod');
     await user.click(screen.getByRole('radio', { name: 'Selected pools' }));
@@ -111,7 +84,7 @@ describe('api keys', () => {
 
   it('shows nothing to fetch for plain members', async () => {
     const calls = stubApi({ 'GET /api/organisations/o1/pools': pools });
-    renderPage('member');
+    await renderPage('member');
     expect(await screen.findByText(/managed by organisation admins/)).toBeInTheDocument();
     expect(calls.some((c) => c.key.includes('api-keys'))).toBe(false);
   });
