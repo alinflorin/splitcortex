@@ -1,6 +1,8 @@
 import {
+  bigint,
   bigserial,
   boolean,
+  index,
   pgEnum,
   pgTable,
   primaryKey,
@@ -59,5 +61,40 @@ export const configChanges = pgTable('config_changes', {
   entityType: text('entity_type').notNull(),
   entityId: uuid('entity_id').notNull(),
   orgId: uuid('org_id').notNull(),
+  createdAt: createdAt(),
+});
+
+/**
+ * Metering store, written by the gateway only (the control plane reads it for dashboards). One row per
+ * (minute bucket, org, pool, key, model), flushed with an additive upsert
+ * (`ON CONFLICT DO UPDATE SET x = x + EXCLUDED.x`) so several gateway instances add up.
+ * `pool_id` and `key_id` deliberately have no foreign keys: usage history must outlive deleted pools and keys, and the
+ * gateway must never fail a flush because of a config race. Rows are removed with the organisation.
+ */
+export const usageRecords = pgTable(
+  'usage_records',
+  {
+    /** Start of the minute (UTC). */
+    bucket: timestamp('bucket', { withTimezone: true }).notNull(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    poolId: uuid('pool_id').notNull(),
+    keyId: uuid('key_id').notNull(),
+    model: text('model').notNull(),
+    tokensIn: bigint('tokens_in', { mode: 'number' }).notNull().default(0),
+    tokensOut: bigint('tokens_out', { mode: 'number' }).notNull().default(0),
+    requests: bigint('requests', { mode: 'number' }).notNull().default(0),
+    errors: bigint('errors', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.bucket, t.orgId, t.poolId, t.keyId, t.model] }),
+    index('usage_records_org_bucket_idx').on(t.orgId, t.bucket),
+  ],
+);
+
+/** One row per flushed batch: a retry after an ambiguous commit hits the primary key and becomes a no-op. */
+export const usageFlushes = pgTable('usage_flushes', {
+  batchId: uuid('batch_id').primaryKey(),
   createdAt: createdAt(),
 });

@@ -15,3 +15,10 @@ export const CreatePoolSchema = z.object({
   requireApproval: z.boolean().default(false),
 });
 export type CreatePoolDto = z.input<typeof CreatePoolSchema>;
+
+export const PoolParamsSchema = z.object({ orgId: IdSchema, poolId: IdSchema });
+
+export const UpdatePoolSchema = CreatePoolSchema.partial()
+  .extend({ requireApproval: z.boolean().optional() })
+  .refine((v) => v.name !== undefined || v.requireApproval !== undefined, 'validation.required');
+export type UpdatePoolDto = z.infer<typeof UpdatePoolSchema>;

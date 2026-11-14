@@ -8,6 +8,8 @@ import {
   tokens,
 } from '@fluentui/react-components';
 import {
+  Building24Filled,
+  Building24Regular,
   Home24Filled,
   Home24Regular,
   Info24Filled,
@@ -17,14 +19,17 @@ import {
   bundleIcon,
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { matchPath, useLocation, useNavigate } from 'react-router-dom';
+import { OrgNav } from './OrgNav';
 
 const HomeIcon = bundleIcon(Home24Filled, Home24Regular);
+const OrgIcon = bundleIcon(Building24Filled, Building24Regular);
 const InfoIcon = bundleIcon(Info24Filled, Info24Regular);
 const SettingsIcon = bundleIcon(Settings24Filled, Settings24Regular);
 
 const ITEMS = [
   { to: '/', key: 'home', Icon: HomeIcon },
+  { to: '/organisations', key: 'organisations', Icon: OrgIcon },
   { to: '/about', key: 'about', Icon: InfoIcon },
   { to: '/settings', key: 'settings', Icon: SettingsIcon },
 ] as const;
@@ -67,9 +72,11 @@ export function Sidebar({ open, overlay, onOpenChange }: SidebarProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  const selected = ITEMS.find((i) =>
-    i.to === '/' ? pathname === '/' : pathname.startsWith(i.to),
-  )?.to;
+  // Inside an organisation the sidebar shows only that organisation's pages.
+  const orgId = matchPath('/organisations/:orgId/*', pathname)?.params.orgId;
+  const selected = orgId
+    ? `/organisations/${orgId}/${pathname.split('/')[3] || 'pools'}`
+    : ITEMS.find((i) => (i.to === '/' ? pathname === '/' : pathname.startsWith(i.to)))?.to;
 
   const go = (to: string) => (e: MouseEvent) => {
     // Let the browser handle modified clicks (new tab etc.), route everything else client-side.
@@ -96,11 +103,16 @@ export function Sidebar({ open, overlay, onOpenChange }: SidebarProps) {
         </Text>
       </div>
       <NavDrawerBody className={styles.body}>
-        {ITEMS.map(({ to, key, Icon }) => (
-          <NavItem key={to} value={to} href={to} icon={<Icon />} onClick={go(to)}>
-            {t(`nav.${key}`)}
-          </NavItem>
-        ))}
+        {orgId ? (
+          // Inside an organisation the sidebar is only about that organisation.
+          <OrgNav orgId={orgId} go={go} />
+        ) : (
+          ITEMS.map(({ to, key, Icon }) => (
+            <NavItem key={to} value={to} href={to} icon={<Icon />} onClick={go(to)}>
+              {t(`nav.${key}`)}
+            </NavItem>
+          ))
+        )}
       </NavDrawerBody>
     </NavDrawer>
   );

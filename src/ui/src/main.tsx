@@ -2,10 +2,12 @@ import { Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
+import { ApiProvider } from './api/ApiProvider';
 import { OidcProvider } from './auth/OidcProvider';
 import './i18n';
 import './fonts.css';
 import './index.css';
+import { FeedbackProvider } from './components/feedback/FeedbackProvider';
 import { ThemeProvider } from './theme/ThemeContext';
 
 // i18next loads translation JSON from /locales; suspend until ready.
@@ -14,7 +16,11 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <BrowserRouter>
         <OidcProvider>
-          <App />
+          <FeedbackProvider>
+            <ApiProvider>
+              <App />
+            </ApiProvider>
+          </FeedbackProvider>
         </OidcProvider>
       </BrowserRouter>
     </ThemeProvider>

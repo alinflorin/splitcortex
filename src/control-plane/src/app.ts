@@ -11,9 +11,11 @@ import {
 import { sql } from 'drizzle-orm';
 import type { Db } from './db/client';
 import auth, { type VerifyToken } from './plugins/auth';
+import { memberRoutes } from './routes/members';
 import { meRoutes } from './routes/me';
 import { organisationRoutes } from './routes/organisations';
 import { poolRoutes } from './routes/pools';
+import { usageRoutes } from './routes/usage';
 
 export interface AppDeps {
   db: Db;
@@ -81,7 +83,9 @@ export async function buildApp({ db, verify, oidc = OIDC_FALLBACK, logLevel = 'i
     async (api) => {
       await api.register(meRoutes);
       await api.register(organisationRoutes, { db });
+      await api.register(memberRoutes, { db });
       await api.register(poolRoutes, { db });
+      await api.register(usageRoutes, { db });
     },
     { prefix: API_PREFIX },
   );

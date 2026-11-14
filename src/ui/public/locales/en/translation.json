@@ -6,7 +6,8 @@
     "home": "Home",
     "about": "About",
     "settings": "Settings",
-    "toggle": "Toggle navigation"
+    "toggle": "Toggle navigation",
+    "organisations": "Organisations"
   },
   "auth": {
     "signIn": "Sign in",
@@ -65,6 +66,109 @@
     "required": "This field is required.",
     "nameMin": "Use at least 2 characters.",
     "nameMax": "Use at most 50 characters.",
-    "email": "Enter a valid email address."
+    "email": "Enter a valid email address.",
+    "tooLong": "This is too long.",
+    "slug": "Use lowercase letters, digits and single dashes."
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "loading": "Loading…",
+    "create": "Create",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "created": "Created"
+  },
+  "errors": {
+    "generic": "Something went wrong",
+    "load": "Could not load data"
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "member": "Member"
+  },
+  "organisations": {
+    "title": "Organisations",
+    "new": "New organisation",
+    "empty": "You are not a member of any organisation yet. Create one to get started.",
+    "name": "Name",
+    "slug": "Slug",
+    "slugHint": "Lowercase letters, digits and dashes.",
+    "created": "Organisation created.",
+    "deleted": "Organisation deleted.",
+    "notFound": "Organisation not found.",
+    "back": "All organisations",
+    "dangerZone": "Danger zone",
+    "delete": "Delete organisation",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteMessage": "This permanently deletes the organisation with its pools, memberships and usage history."
+  },
+  "pools": {
+    "title": "Pools",
+    "new": "New pool",
+    "edit": "Edit pool",
+    "empty": "No pools yet.",
+    "name": "Name",
+    "approval": "Require admin approval",
+    "approvalHint": "New devices stay pending until an admin approves them.",
+    "approvalOn": "Approval required",
+    "approvalOff": "Automatic",
+    "created": "Pool created.",
+    "updated": "Pool updated.",
+    "deleted": "Pool deleted.",
+    "deleteTitle": "Delete pool {{name}}?",
+    "deleteMessage": "Its devices will be disconnected. This cannot be undone.",
+    "details": "Details",
+    "devices": "Devices",
+    "devicesEmpty": "No devices yet",
+    "devicesSoon": "Devices will appear here once enrolment is available."
+  },
+  "members": {
+    "title": "Members",
+    "add": "Add member",
+    "email": "Email",
+    "emailHint": "The email address they sign in with.",
+    "role": "Role",
+    "you": "you",
+    "added": "Member added.",
+    "roleChanged": "Role updated.",
+    "remove": "Remove",
+    "removeTitle": "Remove {{email}}?",
+    "removeMessage": "They lose access to this organisation.",
+    "removed": "Member removed.",
+    "leave": "Leave",
+    "leaveTitle": "Leave this organisation?",
+    "leaveMessage": "You lose access unless another admin adds you again.",
+    "left": "You left the organisation."
+  },
+  "usage": {
+    "title": "Usage",
+    "range": "Period",
+    "groupBy": "Group by",
+    "period": "Period",
+    "requests": "Requests",
+    "tokensIn": "Tokens in",
+    "tokensOut": "Tokens out",
+    "errors": "Errors",
+    "empty": "No usage in this period.",
+    "ranges": {
+      "24h": "Last 24 hours",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days"
+    },
+    "groups": {
+      "none": "None",
+      "pool": "Pool",
+      "model": "Model",
+      "key": "API key"
+    }
+  },
+  "orgNav": {
+    "pools": "Pools",
+    "members": "Members",
+    "usage": "Usage",
+    "settings": "Settings"
   }
 }

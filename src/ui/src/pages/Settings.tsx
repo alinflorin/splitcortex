@@ -1,20 +1,10 @@
-import { useState } from 'react';
-import {
-  Button,
-  Field,
-  Input,
-  MessageBar,
-  MessageBarBody,
-  Text,
-  Title1,
-  makeStyles,
-  tokens,
-} from '@fluentui/react-components';
+import { Button, Field, Input, Text, Title1, makeStyles, tokens } from '@fluentui/react-components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { useCurrentUser } from '../auth/useCurrentUser';
+import { useToast } from '../components/feedback/useToast';
 
 // Messages are i18n keys; they are translated where they are rendered.
 const settingsSchema = z.object({
@@ -53,7 +43,7 @@ export function Settings() {
   const styles = useStyles();
   const { t } = useTranslation();
   const user = useCurrentUser();
-  const [saved, setSaved] = useState(false);
+  const toast = useToast();
 
   const {
     control,
@@ -70,7 +60,7 @@ export function Settings() {
   const onSubmit = (values: SettingsForm) => {
     // TODO: persist through the control plane API once it exists.
     reset(values);
-    setSaved(true);
+    toast.success(t('settings.saved'));
   };
 
   return (
@@ -96,13 +86,7 @@ export function Settings() {
                 fieldState.error?.message ? t(fieldState.error.message) : undefined
               }
             >
-              <Input
-                {...field}
-                onChange={(_, d) => {
-                  setSaved(false);
-                  field.onChange(d.value);
-                }}
-              />
+              <Input {...field} onChange={(_, d) => field.onChange(d.value)} />
             </Field>
           )}
         />
@@ -118,22 +102,10 @@ export function Settings() {
                 fieldState.error?.message ? t(fieldState.error.message) : undefined
               }
             >
-              <Input
-                {...field}
-                type="email"
-                onChange={(_, d) => {
-                  setSaved(false);
-                  field.onChange(d.value);
-                }}
-              />
+              <Input {...field} type="email" onChange={(_, d) => field.onChange(d.value)} />
             </Field>
           )}
         />
-        {saved && (
-          <MessageBar intent="success">
-            <MessageBarBody>{t('settings.saved')}</MessageBarBody>
-          </MessageBar>
-        )}
         <div className={styles.actions}>
           <Button appearance="primary" type="submit" disabled={isSubmitting}>
             {t('settings.save')}

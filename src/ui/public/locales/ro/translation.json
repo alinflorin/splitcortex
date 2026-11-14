@@ -6,7 +6,8 @@
     "home": "Acasă",
     "about": "Despre",
     "settings": "Setări",
-    "toggle": "Comută navigarea"
+    "toggle": "Comută navigarea",
+    "organisations": "Organizații"
   },
   "auth": {
     "signIn": "Autentificare",
@@ -65,6 +66,109 @@
     "required": "Acest câmp este obligatoriu.",
     "nameMin": "Folosește cel puțin 2 caractere.",
     "nameMax": "Folosește cel mult 50 de caractere.",
-    "email": "Introdu o adresă de email validă."
+    "email": "Introdu o adresă de email validă.",
+    "tooLong": "Valoarea este prea lungă.",
+    "slug": "Folosește litere mici, cifre și cratime simple."
+  },
+  "common": {
+    "cancel": "Anulează",
+    "confirm": "Confirmă",
+    "loading": "Se încarcă…",
+    "create": "Creează",
+    "save": "Salvează",
+    "edit": "Editează",
+    "delete": "Șterge",
+    "created": "Creat"
+  },
+  "errors": {
+    "generic": "Ceva nu a funcționat",
+    "load": "Nu s-au putut încărca datele"
+  },
+  "roles": {
+    "owner": "Proprietar",
+    "admin": "Administrator",
+    "member": "Membru"
+  },
+  "organisations": {
+    "title": "Organizații",
+    "new": "Organizație nouă",
+    "empty": "Nu ești membru în nicio organizație. Creează una pentru a începe.",
+    "name": "Nume",
+    "slug": "Identificator",
+    "slugHint": "Litere mici, cifre și cratime.",
+    "created": "Organizația a fost creată.",
+    "deleted": "Organizația a fost ștearsă.",
+    "notFound": "Organizația nu a fost găsită.",
+    "back": "Toate organizațiile",
+    "dangerZone": "Zonă periculoasă",
+    "delete": "Șterge organizația",
+    "deleteTitle": "Ștergi {{name}}?",
+    "deleteMessage": "Șterge definitiv organizația împreună cu pool-urile, membrii și istoricul de utilizare."
+  },
+  "pools": {
+    "title": "Pool-uri",
+    "new": "Pool nou",
+    "edit": "Editează pool-ul",
+    "empty": "Încă nu există pool-uri.",
+    "name": "Nume",
+    "approval": "Necesită aprobarea unui administrator",
+    "approvalHint": "Dispozitivele noi rămân în așteptare până le aprobă un administrator.",
+    "approvalOn": "Necesită aprobare",
+    "approvalOff": "Automat",
+    "created": "Pool-ul a fost creat.",
+    "updated": "Pool-ul a fost actualizat.",
+    "deleted": "Pool-ul a fost șters.",
+    "deleteTitle": "Ștergi pool-ul {{name}}?",
+    "deleteMessage": "Dispozitivele lui vor fi deconectate. Acțiunea nu poate fi anulată.",
+    "details": "Detalii",
+    "devices": "Dispozitive",
+    "devicesEmpty": "Încă nu există dispozitive",
+    "devicesSoon": "Dispozitivele vor apărea aici când înrolarea va fi disponibilă."
+  },
+  "members": {
+    "title": "Membri",
+    "add": "Adaugă membru",
+    "email": "Email",
+    "emailHint": "Adresa de email cu care se autentifică.",
+    "role": "Rol",
+    "you": "tu",
+    "added": "Membrul a fost adăugat.",
+    "roleChanged": "Rolul a fost actualizat.",
+    "remove": "Elimină",
+    "removeTitle": "Elimini {{email}}?",
+    "removeMessage": "Pierde accesul la această organizație.",
+    "removed": "Membrul a fost eliminat.",
+    "leave": "Părăsește",
+    "leaveTitle": "Părăsești această organizație?",
+    "leaveMessage": "Pierzi accesul dacă un administrator nu te adaugă din nou.",
+    "left": "Ai părăsit organizația."
+  },
+  "usage": {
+    "title": "Utilizare",
+    "range": "Perioadă",
+    "groupBy": "Grupează după",
+    "period": "Perioadă",
+    "requests": "Cereri",
+    "tokensIn": "Tokeni de intrare",
+    "tokensOut": "Tokeni de ieșire",
+    "errors": "Erori",
+    "empty": "Nicio utilizare în această perioadă.",
+    "ranges": {
+      "24h": "Ultimele 24 de ore",
+      "7d": "Ultimele 7 zile",
+      "30d": "Ultimele 30 de zile"
+    },
+    "groups": {
+      "none": "Fără",
+      "pool": "Pool",
+      "model": "Model",
+      "key": "Cheie API"
+    }
+  },
+  "orgNav": {
+    "pools": "Pool-uri",
+    "members": "Membri",
+    "usage": "Utilizare",
+    "settings": "Setări"
   }
 }
