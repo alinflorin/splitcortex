@@ -33,7 +33,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 
 ## Roadmap / open research
 
-- **Sharding large models across multiple devices.** Models that do not fit on a single device cannot be served today. We need to investigate how to split a model over several devices (pipeline/tensor parallelism over weak, high-latency links) and what the engine supports.
+- **Sharding large models across multiple devices.** Models that do not fit on a single device cannot be served today. Sharding over the internet is not viable (every token crosses every stage, each hop adds a network round trip through the gateway, and any dropped phone kills the request), and LiteRT-LM's public API has no layer-range execution or activation export. The plan is a **local cluster mode**: an opt-in group of devices on the same LAN or switch (a rack of phones or Pis, sub-millisecond RTT) serving one model as a pipeline of layer-range stages, presented to the gateway as a single logical node. It needs per-stage model conversion, a runtime below LiteRT-LM's engine API (LiteRT or a fork), and direct node-to-node links inside the site (the gateway link stays outbound). First step is a time-boxed two-device LAN spike measuring per-token latency and what LiteRT exposes. Until then, larger models are handled by device capability reporting, per-model minimum requirements and quantisation, not sharding.
 - Additional inference engines beyond LiteRT-LM.
 
 ## Tech stack
