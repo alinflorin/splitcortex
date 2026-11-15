@@ -1,6 +1,6 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
-// app.json holds the static config. CI passes APP_VERSION (the tag without the `v`) so the app
+// app.json holds the static config. CI passes APP_VERSION (the `node-vX.Y.Z` tag without the prefix) so the app
 // version follows the release; the Android versionCode is derived from it (X.Y.Z -> X*10000 +
 // Y*100 + Z) and so always grows with the tag. Without it (local builds) app.json is used as is.
 export default ({ config }: ConfigContext): ExpoConfig => {

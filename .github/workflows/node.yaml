@@ -7,7 +7,7 @@ on:
   pull_request:
     paths: ["src/node/**", ".github/workflows/node.yaml"]
   workflow_dispatch:
-  # Tags are handled by release.yaml, which calls this workflow.
+  # Tags (node-vX.Y.Z) are handled by node-release.yaml, which calls this workflow.
   workflow_call:
 
 concurrency:
@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 # The app is built locally on devices (no EAS, no image, no deploy), so this workflow only
-# verifies it and produces a debug APK artifact; release.yaml calls it on a tag, which builds a signed release APK
+# verifies it and produces a debug APK artifact; node-release.yaml calls it on a node-vX.Y.Z tag, which builds a signed release APK
 # (secrets ANDROID_KEYSTORE_*) and attaches it to the GitHub release.
 jobs:
   verify:
@@ -79,7 +79,7 @@ jobs:
           done
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           {
-            echo "APP_VERSION=${GITHUB_REF_NAME#v}"
+            echo "APP_VERSION=${GITHUB_REF_NAME#node-v}"
             echo "SC_KEYSTORE_FILE=$RUNNER_TEMP/release.jks"
             echo "SC_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
             echo "SC_KEY_ALIAS=$KEY_ALIAS"
@@ -90,9 +90,14 @@ jobs:
       - name: Build APK
         working-directory: src/node/android
         run: ./gradlew ${{ github.ref_type == 'tag' && 'assembleRelease' || 'assembleDebug' }}
-      # Tag builds are named after the version (vX.Y.Z), others after the commit.
+      # Tag builds are named after the version (splitcortex-node-vX.Y.Z.apk), others after the commit.
       - name: Name the APK
-        run: cp android/app/build/outputs/apk/${{ github.ref_type == 'tag' && 'release/app-release' || 'debug/app-debug' }}.apk "splitcortex-node-${{ github.ref_type == 'tag' && github.ref_name || github.sha }}.apk"
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk "splitcortex-node-v${GITHUB_REF_NAME#node-v}.apk"
+          else
+            cp android/app/build/outputs/apk/debug/app-debug.apk "splitcortex-node-$GITHUB_SHA.apk"
+          fi
       - uses: actions/upload-artifact@v7
         with:
           name: splitcortex-node-apk
