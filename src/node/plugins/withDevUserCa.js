@@ -1,13 +1,14 @@
 // Debug builds only: trust CAs installed by the user (the local cert-manager root CA, see
 // scripts/start-emulator.sh) in addition to the system ones. Android 7+ ignores user CAs unless an
-// app opts in. This is written to the `debug` source set, so release builds never trust user CAs.
+// app opts in. Cleartext stays allowed because a network security config overrides the manifest's
+// usesCleartextTraffic and the dev client loads the bundle from Metro over http. This is written to the `debug` source set, so release builds never trust user CAs.
 const { withDangerousMod } = require('expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
 const NSC = `<?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <base-config>
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
             <certificates src="user" />
