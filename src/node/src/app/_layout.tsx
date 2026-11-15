@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Brand } from '../components/Brand';
 import '../i18n';
 import { fontAssets, fontFamilyForWeight } from '../theme/fonts';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
@@ -22,7 +23,10 @@ function Shell() {
           contentStyle: { backgroundColor: t.colorNeutralBackground2 },
         }}
       >
-        <Stack.Screen name="index" options={{ title: tr('app.name') }} />
+        <Stack.Screen
+          name="index"
+          options={{ title: tr('app.name'), headerTitle: () => <Brand /> }}
+        />
         <Stack.Screen name="settings" options={{ title: tr('nav.settings') }} />
       </Stack>
     </>

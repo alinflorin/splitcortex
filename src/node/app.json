@@ -22,6 +22,7 @@
     },
     "plugins": [
       "./plugins/withReleaseSigning",
+      "./plugins/withDevUserCa",
       "expo-router",
       "expo-font",
       "expo-localization",
