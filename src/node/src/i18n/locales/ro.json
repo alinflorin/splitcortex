@@ -1,12 +1,51 @@
 {
-  "app": { "name": "SplitCortex" },
-  "nav": { "home": "Nod", "settings": "Setări" },
+  "app": {
+    "name": "SplitCortex"
+  },
+  "nav": {
+    "home": "Nod",
+    "settings": "Setări"
+  },
   "home": {
     "title": "Pune acest dispozitiv la treabă",
     "subtitle": "Înrolează-l într-un pool și va servi modele pentru organizația ta.",
     "status": "Neînrolat",
     "enroll": "Înrolează dispozitivul"
   },
-  "theme": { "label": "Temă", "system": "Sistem", "light": "Luminoasă", "dark": "Întunecată" },
-  "language": { "label": "Limbă", "en": "English", "ro": "Română" }
+  "theme": {
+    "label": "Temă",
+    "system": "Sistem",
+    "light": "Luminoasă",
+    "dark": "Întunecată"
+  },
+  "language": {
+    "label": "Limbă",
+    "en": "English",
+    "ro": "Română"
+  },
+  "enroll": {
+    "title": "Înrolează acest dispozitiv",
+    "intro": "În aplicația web deschide un pool, alege Adaugă dispozitiv, apoi introdu codul afișat sau scanează codul QR.",
+    "code": "Cod de înrolare",
+    "scan": "Scanează codul QR",
+    "noCamera": "Accesul la cameră este oprit. Poți introduce codul manual.",
+    "url": "URL de înrolare",
+    "urlHint": "Serverul SplitCortex (control plane). Schimbă-l doar pentru o instalare proprie sau locală.",
+    "submit": "Înrolează",
+    "errors": {
+      "invalidCode": "Codul nu este valid, a expirat sau a fost deja folosit.",
+      "rateLimited": "Prea multe încercări. Așteaptă un minut și încearcă din nou.",
+      "conflict": "Acest dispozitiv este deja înregistrat.",
+      "untrustedServer": "Serverul nu a putut dovedi că știe acest cod. Verifică URL-ul și codul.",
+      "network": "Nu s-a putut contacta serverul. Verifică URL-ul și conexiunea.",
+      "server": "Serverul a răspuns neașteptat."
+    }
+  },
+  "status": {
+    "pending": "Înrolat, în așteptarea aprobării unui administrator",
+    "approved": "Înrolat",
+    "fingerprint": "Amprenta cheii",
+    "forget": "Uită înrolarea",
+    "forgetNote": "Elimină înrolarea doar de pe acest dispozitiv. Revocă dispozitivul și în aplicația web."
+  }
 }

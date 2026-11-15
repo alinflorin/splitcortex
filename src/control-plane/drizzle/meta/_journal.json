@@ -29,6 +29,13 @@
       "when": 1794642761113,
       "tag": "0003_new_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794770989747,
+      "tag": "0004_flawless_fabian_cortez",
+      "breakpoints": true
     }
   ]
 }

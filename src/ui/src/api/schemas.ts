@@ -242,3 +242,18 @@ export function apiKeyState(key: ApiKey, now = Date.now()): ApiKeyState {
   if (key.expiresAt && new Date(key.expiresAt).getTime() <= now) return 'expired';
   return 'active';
 }
+
+export const enrollmentSchema = z.object({
+  id: z.string(),
+  poolId: z.string(),
+  createdBy: z.string(),
+  expiresAt: z.string(),
+  attempts: z.number(),
+  maxAttempts: z.number(),
+  createdAt: z.string(),
+});
+export type Enrollment = z.infer<typeof enrollmentSchema>;
+
+/** The code is only returned by the create call. */
+export const createdEnrollmentSchema = z.object({ enrollment: enrollmentSchema, code: z.string() });
+export type CreatedEnrollment = z.infer<typeof createdEnrollmentSchema>;

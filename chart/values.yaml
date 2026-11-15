@@ -217,6 +217,9 @@ controlPlane:
   oidc:
     audience: splitcortex-ui   # the Dex client id of the web app (`aud` of its tokens)
     jwksUrl: ""                # default: http://dex:5556/keys (in-cluster, no public TLS needed)
+  gateway:
+    publicKey: ""   # the gateway's public key (devices pin it at enrollment); empty until the gateway exists
+    url: ""         # wss URL nodes connect to
   migrate:
     enabled: true
     command: [node, dist/db/migrate.js]

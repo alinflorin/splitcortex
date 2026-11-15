@@ -104,6 +104,33 @@ export const nodes = pgTable(
 );
 
 /**
+ * A pending device enrollment, created by an admin from the web app. The code shown to the admin is
+ * `<lookupId>-<secret>` (Crockford base32, 4 + 6 chars). The lookup id is public (unique among live enrollments);
+ * the secret is the PAKE password (CPace is a balanced PAKE, so the server must know it; the row lives at most
+ * ~10 minutes and is deleted when the device enrols). `sessionSid`/`sessionIsk` hold the state of the PAKE round in
+ * progress, so any instance can serve any round.
+ */
+export const enrollments = pgTable('enrollments', {
+  id: id(),
+  orgId: uuid('org_id')
+    .notNull()
+    .references(() => organisations.id, { onDelete: 'cascade' }),
+  poolId: uuid('pool_id')
+    .notNull()
+    .references(() => pools.id, { onDelete: 'cascade' }),
+  createdBy: text('created_by').notNull(),
+  lookupId: text('lookup_id').notNull().unique(),
+  secret: text('secret').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  /** PAKE runs started (each is one password guess); the enrollment dies at `maxAttempts`. */
+  attempts: integer('attempts').notNull().default(0),
+  maxAttempts: integer('max_attempts').notNull().default(3),
+  sessionSid: text('session_sid'),
+  sessionIsk: text('session_isk'),
+  createdAt: createdAt(),
+});
+
+/**
  * Live telemetry, written by the gateway only (it holds the node connections) and read by the control plane for
  * dashboards. A node counts as online only while `connected` is true AND the row was updated recently, so a crashed
  * gateway cannot leave nodes looking online forever.

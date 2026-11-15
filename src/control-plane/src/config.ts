@@ -19,6 +19,9 @@ const ConfigSchema = z.object({
   S3_REGION: z.string().default('garage'),
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
+  /** The gateway's identity handed to devices at enrollment (they pin the key). Optional until the gateway exists. */
+  GATEWAY_PUBLIC_KEY: z.string().optional(),
+  GATEWAY_WSS_URL: z.string().optional(),
   /** Optional Hugging Face token for gated models; only ever sent to huggingface.co, never to devices. */
   HF_TOKEN: z.string().optional(),
 });
@@ -33,6 +36,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     S3_ENDPOINT: blank(env.S3_ENDPOINT),
     S3_ACCESS_KEY_ID: blank(env.S3_ACCESS_KEY_ID),
     S3_SECRET_ACCESS_KEY: blank(env.S3_SECRET_ACCESS_KEY),
+    GATEWAY_PUBLIC_KEY: blank(env.GATEWAY_PUBLIC_KEY),
+    GATEWAY_WSS_URL: blank(env.GATEWAY_WSS_URL),
     HF_TOKEN: blank(env.HF_TOKEN),
   });
 }

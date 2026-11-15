@@ -1,12 +1,51 @@
 {
-  "app": { "name": "SplitCortex" },
-  "nav": { "home": "Node", "settings": "Settings" },
+  "app": {
+    "name": "SplitCortex"
+  },
+  "nav": {
+    "home": "Node",
+    "settings": "Settings"
+  },
   "home": {
     "title": "Put this device to work",
     "subtitle": "Enroll it into a pool and it will serve models for your organisation.",
     "status": "Not enrolled",
     "enroll": "Enroll device"
   },
-  "theme": { "label": "Theme", "system": "System", "light": "Light", "dark": "Dark" },
-  "language": { "label": "Language", "en": "English", "ro": "Română" }
+  "theme": {
+    "label": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "ro": "Română"
+  },
+  "enroll": {
+    "title": "Enroll this device",
+    "intro": "In the web app, open a pool and choose Add device, then type the code shown or scan its QR.",
+    "code": "Enrollment code",
+    "scan": "Scan QR code",
+    "noCamera": "Camera access is off. You can still type the code.",
+    "url": "Enrollment URL",
+    "urlHint": "The SplitCortex server (control plane). Change it only for a self-hosted or local setup.",
+    "submit": "Enroll",
+    "errors": {
+      "invalidCode": "This code is not valid, has expired or was already used.",
+      "rateLimited": "Too many attempts. Wait a minute and try again.",
+      "conflict": "This device is already registered.",
+      "untrustedServer": "The server could not prove it knows this code. Check the URL and the code.",
+      "network": "Could not reach the server. Check the URL and your connection.",
+      "server": "The server returned an unexpected answer."
+    }
+  },
+  "status": {
+    "pending": "Enrolled, waiting for admin approval",
+    "approved": "Enrolled",
+    "fingerprint": "Key fingerprint",
+    "forget": "Forget enrollment",
+    "forgetNote": "Removes the enrollment from this device only. Revoke the device in the web app too."
+  }
 }

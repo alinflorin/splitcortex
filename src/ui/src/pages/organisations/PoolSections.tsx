@@ -24,6 +24,7 @@ import { CardList, ItemCard } from '../../components/cards/cards';
 import { useToast } from '../../components/feedback/useToast';
 import { NodeStatusBadge } from '../../components/status/StatusBadge';
 import { formatAgo } from '../../lib/format';
+import { EnrollDeviceDialog } from './EnrollDeviceDialog';
 import { ModelCard } from './ModelCard';
 
 const useStyles = makeStyles({
@@ -39,40 +40,51 @@ const useStyles = makeStyles({
 });
 
 /** The devices of a pool as cards; each opens the node view. */
-export function PoolNodes({ pool }: { pool: Pool }) {
+export function PoolNodes({ pool, admin = false }: { pool: Pool; admin?: boolean }) {
   const styles = useStyles();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const query = useNodes(pool.orgId, pool.id);
+  const [enrolling, setEnrolling] = useState(false);
 
   return (
-    <QueryBoundary query={query}>
-      {(nodes) =>
-        nodes.length === 0 ? (
-          <Body1 className={styles.muted}>{t('pools.devicesEmpty')}</Body1>
-        ) : (
-          <CardList>
-            {nodes.map((n) => (
-              <ItemCard
-                key={n.id}
-                title={n.name}
-                subtitle={[
-                  n.deviceModel,
-                  n.live?.tokensPerSec != null
-                    ? `${new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(n.live.tokensPerSec)} ${t('nodes.tokensPerSecShort')}`
-                    : null,
-                  n.live ? formatAgo(n.live.updatedAt, i18n.language) : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-                meta={<NodeStatusBadge status={n.status} />}
-                onClick={() => void navigate(`/organisations/${pool.orgId}/nodes/${n.id}`)}
-              />
-            ))}
-          </CardList>
-        )
-      }
-    </QueryBoundary>
+    <>
+      {admin && (
+        <div>
+          <Button icon={<Add20Regular />} onClick={() => setEnrolling(true)}>
+            {t('enroll.add')}
+          </Button>
+          <EnrollDeviceDialog pool={pool} open={enrolling} onClose={() => setEnrolling(false)} />
+        </div>
+      )}
+      <QueryBoundary query={query}>
+        {(nodes) =>
+          nodes.length === 0 ? (
+            <Body1 className={styles.muted}>{t('pools.devicesEmpty')}</Body1>
+          ) : (
+            <CardList>
+              {nodes.map((n) => (
+                <ItemCard
+                  key={n.id}
+                  title={n.name}
+                  subtitle={[
+                    n.deviceModel,
+                    n.live?.tokensPerSec != null
+                      ? `${new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(n.live.tokensPerSec)} ${t('nodes.tokensPerSecShort')}`
+                      : null,
+                    n.live ? formatAgo(n.live.updatedAt, i18n.language) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                  meta={<NodeStatusBadge status={n.status} />}
+                  onClick={() => void navigate(`/organisations/${pool.orgId}/nodes/${n.id}`)}
+                />
+              ))}
+            </CardList>
+          )
+        }
+      </QueryBoundary>
+    </>
   );
 }
 

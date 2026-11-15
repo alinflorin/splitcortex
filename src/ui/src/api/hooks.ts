@@ -8,6 +8,7 @@ import {
   apiKeyRequest,
   apiKeySchema,
   createdApiKeySchema,
+  createdEnrollmentSchema,
   memberSchema,
   modelSchema,
   modelUploadSchema,
@@ -260,6 +261,29 @@ export function useDeleteNode(orgId: string, nodeId: string) {
       qc.removeQueries({ queryKey: keys.node(orgId, nodeId) });
       return qc.invalidateQueries({ queryKey: ['organisations', orgId, 'pools'] });
     },
+  });
+}
+
+// ---- Enrollment -----------------------------------------------------------------------------------------------
+
+export function useCreateEnrollment(orgId: string, poolId: string) {
+  const req = useRequest();
+  return useMutation({
+    mutationFn: () =>
+      req(
+        'POST',
+        `/organisations/${orgId}/pools/${poolId}/enrollments`,
+        createdEnrollmentSchema,
+        {},
+      ),
+  });
+}
+
+export function useCancelEnrollment(orgId: string) {
+  const req = useRequest();
+  return useMutation({
+    mutationFn: (enrollmentId: string) =>
+      req('DELETE', `/organisations/${orgId}/enrollments/${enrollmentId}`, null),
   });
 }
 

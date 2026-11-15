@@ -27,6 +27,7 @@
       "expo-font",
       "expo-localization",
       "expo-secure-store",
+      ["expo-camera", { "cameraPermission": "Allow SplitCortex Node to scan the enrollment QR code.", "recordAudioAndroid": false }],
       "expo-status-bar"
     ]
   }

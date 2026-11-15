@@ -14,6 +14,10 @@ const app = await buildApp({
   storage,
   verify: createDexVerifier(config),
   oidc: { issuer: config.OIDC_ISSUER, clientId: config.OIDC_AUDIENCE },
+  gateway:
+    config.GATEWAY_PUBLIC_KEY && config.GATEWAY_WSS_URL
+      ? { publicKey: config.GATEWAY_PUBLIC_KEY, url: config.GATEWAY_WSS_URL }
+      : null,
   logLevel: config.LOG_LEVEL,
 });
 

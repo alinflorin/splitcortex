@@ -9,3 +9,4 @@ export * from './usage';
 export * from './node';
 export * from './model';
 export * from './api-key';
+export * from './enrollment';

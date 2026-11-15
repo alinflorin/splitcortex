@@ -87,7 +87,7 @@ export function PoolPage() {
 
             <section className={styles.section}>
               <Subtitle1>{t('pools.devices')}</Subtitle1>
-              <PoolNodes pool={pool} />
+              <PoolNodes pool={pool} admin={admin} />
             </section>
 
             <section className={styles.section}>

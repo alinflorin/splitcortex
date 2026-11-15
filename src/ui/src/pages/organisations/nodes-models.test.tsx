@@ -193,3 +193,51 @@ describe('models page', () => {
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
   });
 });
+
+describe('device enrollment', () => {
+  const pool = {
+    id: 'p1',
+    orgId: 'o1',
+    name: 'edge',
+    requireApproval: false,
+    servingType: 'replicated' as const,
+    balancingType: 'weighted_p2c' as const,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  };
+  const created = {
+    enrollment: {
+      id: 'e1',
+      poolId: 'p1',
+      createdBy: 'a@b.c',
+      expiresAt: new Date(Date.now() + 600_000).toISOString(),
+      attempts: 0,
+      maxAttempts: 3,
+      createdAt: new Date().toISOString(),
+    },
+    code: 'K7M2-QX9H4T',
+  };
+
+  it('shows the code for an admin and cancels it when closed', async () => {
+    const calls = stubApi({
+      'GET /api/organisations/o1/pools/p1/nodes': [],
+      'POST /api/organisations/o1/pools/p1/enrollments': created,
+      'DELETE /api/organisations/o1/enrollments/e1': null,
+    });
+    const user = userEvent.setup();
+    await renderWithApi(<PoolNodes pool={pool} admin />);
+    await user.click(await screen.findByRole('button', { name: 'Add device' }));
+    expect(await screen.findByTestId('enroll-code')).toHaveTextContent('K7M2-QX9H4T');
+    expect(await screen.findByAltText(/QR code/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() =>
+      expect(calls.some((c) => c.key === 'DELETE /api/organisations/o1/enrollments/e1')).toBe(true),
+    );
+  });
+
+  it('does not offer enrollment to non-admins', async () => {
+    stubApi({ 'GET /api/organisations/o1/pools/p1/nodes': [] });
+    await renderWithApi(<PoolNodes pool={pool} />);
+    await screen.findByText('No devices in this pool yet.');
+    expect(screen.queryByRole('button', { name: 'Add device' })).not.toBeInTheDocument();
+  });
+});

@@ -81,7 +81,8 @@
     "save": "Save",
     "edit": "Edit",
     "delete": "Delete",
-    "created": "Created"
+    "created": "Created",
+    "close": "Close"
   },
   "errors": {
     "generic": "Something went wrong",
@@ -317,5 +318,18 @@
     "neverUsed": "Never",
     "expires": "Expires",
     "adminOnly": "API keys are managed by organisation admins."
+  },
+  "enroll": {
+    "add": "Add device",
+    "title": "Add a device",
+    "intro": "On the phone, open SplitCortex Node, tap Enroll and type this code or scan the QR.",
+    "qrAlt": "QR code with the enrollment link",
+    "copy": "Copy code",
+    "copied": "Code copied.",
+    "newCode": "New code",
+    "expires": "Valid for {{time}}",
+    "expired": "This code has expired. Create a new one.",
+    "approvalNote": "This pool requires approval: the device will wait for an admin to approve it.",
+    "done": "{{name}} was added."
   }
 }

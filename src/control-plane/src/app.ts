@@ -12,6 +12,7 @@ import { sql } from 'drizzle-orm';
 import type { Db } from './db/client';
 import auth, { type VerifyToken } from './plugins/auth';
 import { apiKeyRoutes } from './routes/api-keys';
+import { enrollmentRoutes, type GatewayIdentity } from './routes/enrollment';
 import { memberRoutes } from './routes/members';
 import { meRoutes } from './routes/me';
 import { modelRoutes } from './routes/models';
@@ -28,6 +29,8 @@ export interface AppDeps {
   storage?: ModelStorage | null;
   /** Dex issuer (browser-reachable URL) and the public client Swagger UI signs in with (code + PKCE). */
   oidc?: { issuer: string; clientId: string };
+  /** The gateway's public key and wss URL, handed to devices at enrollment; null until configured. */
+  gateway?: GatewayIdentity | null;
   logLevel?: string;
 }
 
@@ -41,9 +44,13 @@ export async function buildApp({
   verify,
   storage = null,
   oidc = OIDC_FALLBACK,
+  gateway = null,
   logLevel = 'info',
 }: AppDeps) {
-  const app = Fastify({ logger: { level: logLevel } }).withTypeProvider<ZodTypeProvider>();
+  const app = Fastify({
+    logger: { level: logLevel },
+    trustProxy: true,
+  }).withTypeProvider<ZodTypeProvider>();
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
@@ -101,6 +108,7 @@ export async function buildApp({
       await api.register(modelRoutes, { db, storage });
       await api.register(usageRoutes, { db });
       await api.register(apiKeyRoutes, { db });
+      await api.register(enrollmentRoutes, { db, gateway });
     },
     { prefix: API_PREFIX },
   );

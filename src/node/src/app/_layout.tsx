@@ -1,3 +1,4 @@
+import '../polyfills';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -27,6 +28,7 @@ function Shell() {
           name="index"
           options={{ title: tr('app.name'), headerTitle: () => <Brand /> }}
         />
+        <Stack.Screen name="enroll" options={{ title: tr('enroll.title') }} />
         <Stack.Screen name="settings" options={{ title: tr('nav.settings') }} />
       </Stack>
     </>

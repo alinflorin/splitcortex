@@ -81,7 +81,8 @@
     "save": "Salvează",
     "edit": "Editează",
     "delete": "Șterge",
-    "created": "Creat"
+    "created": "Creat",
+    "close": "Închide"
   },
   "errors": {
     "generic": "Ceva nu a funcționat",
@@ -317,5 +318,18 @@
     "neverUsed": "Niciodată",
     "expires": "Expiră",
     "adminOnly": "Cheile API sunt gestionate de administratorii organizației."
+  },
+  "enroll": {
+    "add": "Adaugă dispozitiv",
+    "title": "Adaugă un dispozitiv",
+    "intro": "Pe telefon, deschide SplitCortex Node, apasă Înrolare și introdu acest cod sau scanează codul QR.",
+    "qrAlt": "Cod QR cu linkul de înrolare",
+    "copy": "Copiază codul",
+    "copied": "Cod copiat.",
+    "newCode": "Cod nou",
+    "expires": "Valabil încă {{time}}",
+    "expired": "Codul a expirat. Creează unul nou.",
+    "approvalNote": "Acest pool necesită aprobare: dispozitivul va aștepta aprobarea unui administrator.",
+    "done": "{{name}} a fost adăugat."
   }
 }
