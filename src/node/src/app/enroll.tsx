@@ -67,7 +67,10 @@ export default function Enroll() {
         enrollmentUrl: baseUrl,
         enrolledAt: new Date().toISOString(),
       });
-      router.replace('/');
+      // Pop back to the existing Home; replacing would leave two Home screens in the stack. When the
+      // screen was opened by a deep link there is nothing to pop, so replace instead.
+      if (router.canGoBack()) router.back();
+      else router.replace('/');
     } catch (e) {
       setError(e instanceof EnrollError ? e.kind : 'server');
     } finally {
