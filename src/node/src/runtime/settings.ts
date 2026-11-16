@@ -6,8 +6,18 @@ import { nodeService } from '../native/nodeService';
 const KEY = 'sc-node-settings';
 
 export type ComputeChoice = 'auto' | 'cpu' | 'gpu';
-/** Context windows offered in the settings (tokens); 0 = automatic from the device's RAM. */
-export const CONTEXT_CHOICES = [0, 2048, 4096, 8192, 16384] as const;
+/** Bounds of a context window the user may type (tokens), the same the control plane accepts for the admin override. */
+export const MIN_CONTEXT = 512;
+export const MAX_CONTEXT = 131072;
+
+/** Parses the context field: empty = automatic (0), a whole number within the bounds, else null (invalid). */
+export function parseContext(text: string): number | null {
+  const v = text.trim();
+  if (v === '') return 0;
+  if (!/^\d+$/.test(v)) return null;
+  const n = Number(v);
+  return n >= MIN_CONTEXT && n <= MAX_CONTEXT ? n : null;
+}
 
 export interface NodeSettings {
   /** Start the background service (gateway connection, model, inference) when the device boots. Android only. */

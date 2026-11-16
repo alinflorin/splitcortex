@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../components/Card';
 import { ChoiceGroup } from '../components/ChoiceGroup';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
+import { TextField } from '../components/TextField';
 import { ToggleRow } from '../components/ToggleRow';
 import { LANGUAGES, setLanguage, type Language } from '../i18n';
 import { runtime } from '../runtime';
 import {
-  CONTEXT_CHOICES,
+  MAX_CONTEXT,
+  MIN_CONTEXT,
   computePrefs,
+  parseContext,
   useNodeSettings,
   type ComputeChoice,
   type NodeSettings,
@@ -24,6 +28,16 @@ export default function Settings() {
     updateSettings(patch);
     if (settings && (patch.compute !== undefined || patch.maxContextTokens !== undefined))
       runtime.setLocalCompute(computePrefs({ ...settings, ...patch }));
+  };
+  // What is typed, until it is saved (undefined = show the saved value).
+  const [contextText, setContextText] = useState<string | undefined>(undefined);
+  const contextInvalid = contextText !== undefined && parseContext(contextText) === null;
+  const saveContext = () => {
+    if (contextText === undefined) return;
+    const n = parseContext(contextText);
+    if (n === null) return; // the error stays visible, nothing is saved
+    if (n !== settings?.maxContextTokens) update({ maxContextTokens: n });
+    setContextText(undefined);
   };
   return (
     <Screen>
@@ -58,18 +72,25 @@ export default function Settings() {
           <Text variant="caption" muted>
             {t('settings.compute.hint')}
           </Text>
-          <ChoiceGroup
+          <TextField
             label={t('settings.context.label')}
-            value={String(settings.maxContextTokens)}
-            onChange={(v) => update({ maxContextTokens: Number(v) })}
-            choices={CONTEXT_CHOICES.map((c) => ({
-              value: String(c),
-              label: c === 0 ? t('settings.context.auto') : `${c}`,
-            }))}
+            value={
+              contextText ??
+              (settings.maxContextTokens > 0 ? String(settings.maxContextTokens) : '')
+            }
+            onChangeText={setContextText}
+            // Saved when the field loses focus or is submitted: every change reloads the model on the device.
+            onBlur={saveContext}
+            onSubmitEditing={saveContext}
+            keyboardType="number-pad"
+            placeholder={t('settings.context.auto')}
+            error={
+              contextInvalid
+                ? t('settings.context.invalid', { min: MIN_CONTEXT, max: MAX_CONTEXT })
+                : undefined
+            }
+            hint={t('settings.context.hint')}
           />
-          <Text variant="caption" muted>
-            {t('settings.context.hint')}
-          </Text>
         </Card>
       ) : null}
       <Card>

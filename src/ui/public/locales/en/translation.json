@@ -249,7 +249,9 @@
     "contextWindow": "Context window (tokens)",
     "backend": "Compute backend",
     "maxContext": "Maximum context (tokens)",
-    "deviceDecides": "Device decides (recommended)"
+    "deviceDecides": "Device decides (recommended)",
+    "maxContextHint": "Empty lets the device decide (RAM based). Prompt, history and answer together; larger needs more memory.",
+    "maxContextInvalid": "Enter a whole number from {{min}} to {{max}}, or leave empty."
   },
   "models": {
     "title": "Models",

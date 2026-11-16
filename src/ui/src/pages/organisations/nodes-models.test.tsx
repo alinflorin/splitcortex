@@ -84,7 +84,7 @@ describe('node view', () => {
     const user = userEvent.setup();
     await inOrg('admin', '/nodes/:nodeId', <NodePage />);
     expect(await screen.findByText('Running on')).toBeInTheDocument();
-    expect(screen.getAllByText('4096').length).toBeGreaterThan(1); // the stat and the option
+    expect(screen.getByText('4096')).toBeInTheDocument(); // the context window it reports
     const backend = screen.getByLabelText('Compute backend');
     expect(backend).toHaveValue('cpu');
     await user.selectOptions(backend, 'gpu');
@@ -93,7 +93,22 @@ describe('node view', () => {
         computeBackend: 'gpu',
       }),
     );
-    await user.selectOptions(screen.getByLabelText('Maximum context (tokens)'), '');
+    const ctx = screen.getByLabelText('Maximum context (tokens)');
+    await user.clear(ctx);
+    await user.type(ctx, '99');
+    await user.tab(); // below the minimum: an error, nothing is sent
+    expect(await screen.findByText(/whole number from 512 to 131072/)).toBeInTheDocument();
+    expect(calls.filter((c) => c.key.startsWith('PATCH'))).toHaveLength(1);
+    await user.clear(ctx);
+    await user.type(ctx, '3000');
+    await user.tab();
+    await waitFor(() =>
+      expect(calls.filter((c) => c.key.startsWith('PATCH')).at(-1)?.body).toEqual({
+        maxContextTokens: 3000,
+      }),
+    );
+    await user.clear(ctx);
+    await user.tab(); // empty clears the override
     await waitFor(() =>
       expect(calls.filter((c) => c.key.startsWith('PATCH')).at(-1)?.body).toEqual({
         maxContextTokens: null,

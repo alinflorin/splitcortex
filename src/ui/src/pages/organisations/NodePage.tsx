@@ -1,6 +1,7 @@
 import {
   Button,
   Field,
+  Input,
   ProgressBar,
   Select,
   Subtitle1,
@@ -9,6 +10,7 @@ import {
   tokens,
 } from '@fluentui/react-components';
 import { CheckmarkCircle20Regular, Delete20Regular } from '@fluentui/react-icons';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDeleteNode, useNode, useUpdateNode } from '../../api/hooks';
@@ -38,7 +40,17 @@ const useStyles = makeStyles({
   muted: { color: tokens.colorNeutralForeground3 },
 });
 
-const CONTEXT_OPTIONS = [2048, 4096, 8192, 16384, 32768];
+const MAX_CONTEXT_MIN = 512;
+const MAX_CONTEXT_MAX = 131072;
+
+/** Empty = no override (null), a whole number within the bounds the server enforces, else undefined (invalid). */
+function parseContext(text: string): number | null | undefined {
+  const v = text.trim();
+  if (v === '') return null;
+  if (!/^\d+$/.test(v)) return undefined;
+  const n = Number(v);
+  return n >= MAX_CONTEXT_MIN && n <= MAX_CONTEXT_MAX ? n : undefined;
+}
 
 /** Admin overrides for the device's engine. `null` = the device decides (its own setting, else it measures and takes the fastest). */
 function ComputeSettings({ node, admin }: { node: Node; admin: boolean }) {
@@ -50,11 +62,17 @@ function ComputeSettings({ node, admin }: { node: Node; admin: boolean }) {
     computeBackend?: 'cpu' | 'gpu' | null;
     maxContextTokens?: number | null;
   }) => update.mutate(body, { onSuccess: () => toast.success(t('nodes.computeSaved')) });
-  const contexts = CONTEXT_OPTIONS.includes(node.maxContextTokens ?? 0)
-    ? CONTEXT_OPTIONS
-    : [...CONTEXT_OPTIONS, node.maxContextTokens]
-        .filter((v): v is number => v != null)
-        .sort((a, b) => a - b);
+  // What is typed until it is saved (undefined = show the saved value). Saved on blur or Enter: every change
+  // reloads the model on the device.
+  const [contextText, setContextText] = useState<string | undefined>(undefined);
+  const invalid = contextText !== undefined && parseContext(contextText) === undefined;
+  const saveContext = () => {
+    if (contextText === undefined) return;
+    const n = parseContext(contextText);
+    if (n === undefined) return; // the error stays visible, nothing is saved
+    setContextText(undefined);
+    if (n !== node.maxContextTokens) save({ maxContextTokens: n });
+  };
   const live = node.live;
   return (
     <ItemCard title={t('nodes.computeTitle')} subtitle={t('nodes.computeHint')}>
@@ -77,19 +95,27 @@ function ComputeSettings({ node, admin }: { node: Node; admin: boolean }) {
           <option value="gpu">GPU</option>
         </Select>
       </Field>
-      <Field label={t('nodes.maxContext')}>
-        <Select
-          value={node.maxContextTokens?.toString() ?? ''}
+      <Field
+        label={t('nodes.maxContext')}
+        hint={t('nodes.maxContextHint')}
+        validationState={invalid ? 'error' : 'none'}
+        validationMessage={
+          invalid
+            ? t('nodes.maxContextInvalid', { min: MAX_CONTEXT_MIN, max: MAX_CONTEXT_MAX })
+            : undefined
+        }
+      >
+        <Input
+          inputMode="numeric"
+          placeholder={t('nodes.deviceDecides')}
+          value={contextText ?? node.maxContextTokens?.toString() ?? ''}
           disabled={!admin || update.isPending}
-          onChange={(_, d) => save({ maxContextTokens: d.value === '' ? null : Number(d.value) })}
-        >
-          <option value="">{t('nodes.deviceDecides')}</option>
-          {contexts.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </Select>
+          onChange={(_, d) => setContextText(d.value)}
+          onBlur={saveContext}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') saveContext();
+          }}
+        />
       </Field>
     </ItemCard>
   );

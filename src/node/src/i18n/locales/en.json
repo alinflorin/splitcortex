@@ -99,7 +99,8 @@
     "context": {
       "label": "Context window (tokens)",
       "auto": "Automatic",
-      "hint": "Prompt, history and answer together. Larger needs more memory; automatic follows the device's RAM. An administrator can override this from the web app."
+      "hint": "Prompt, history and answer together. Larger needs more memory; automatic follows the device's RAM. An administrator can override this from the web app.",
+      "invalid": "Enter a whole number from {{min}} to {{max}}, or leave empty for automatic."
     }
   }
 }

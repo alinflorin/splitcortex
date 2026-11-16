@@ -249,7 +249,9 @@
     "contextWindow": "Fereastra de context (tokeni)",
     "backend": "Backend de calcul",
     "maxContext": "Context maxim (tokeni)",
-    "deviceDecides": "Decide dispozitivul (recomandat)"
+    "deviceDecides": "Decide dispozitivul (recomandat)",
+    "maxContextHint": "Gol lasă dispozitivul să decidă (după RAM). Prompt, istoric și răspuns la un loc; mai mare înseamnă mai multă memorie.",
+    "maxContextInvalid": "Introdu un număr întreg între {{min}} și {{max}}, sau lasă gol."
   },
   "models": {
     "title": "Modele",
