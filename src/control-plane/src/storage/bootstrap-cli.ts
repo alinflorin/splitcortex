@@ -22,7 +22,7 @@ for (let attempt = 1; ; attempt++) {
     await bootstrapGarage(settings);
     break;
   } catch (err) {
-    if (attempt >= 30) {
+    if (attempt >= 300) {
       console.error('garage bootstrap failed:', String(err));
       process.exit(1);
     }

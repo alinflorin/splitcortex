@@ -1,8 +1,11 @@
 {{- if and .Values.controlPlane.enabled .Values.controlPlane.migrate.enabled }}
 {{- /*
-  Database migrations (drizzle) as a Helm hook: post-install (Postgres is part of this release and already ready
-  with --wait) and pre-upgrade (schema is updated before the new control plane rolls out). The script retries
-  while Postgres is unreachable. Deleted when it succeeds; a failed Job is kept for inspection until the next run.
+  Database migrations (drizzle). First install: a plain Job (not a hook), created together with Postgres and the
+  workloads; a post-install hook would deadlock, because hooks only run once everything is ready and the gateway and
+  control plane cannot become ready before the schema exists. They crash-loop until the Job finishes, and --wait
+  waits for the Job too. Upgrade: a pre-upgrade hook, so the schema is updated before the new version rolls out
+  (the Job from the install is dropped from the release then). The script retries while Postgres is unreachable.
+  Hook Jobs are deleted when they succeed; a failed one is kept for inspection until the next run.
 */ -}}
 apiVersion: batch/v1
 kind: Job
@@ -12,11 +15,13 @@ metadata:
   labels:
     {{- include "splitcortex.labels" . | nindent 4 }}
     app.kubernetes.io/component: control-plane-migrate
+  {{- if not .Release.IsInstall }}
   annotations:
-    helm.sh/hook: post-install,pre-upgrade
+    helm.sh/hook: pre-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  {{- end }}
 spec:
-  backoffLimit: 3
+  backoffLimit: 6
   template:
     metadata:
       labels:

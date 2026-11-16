@@ -6,12 +6,16 @@ const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL is required');
 const folder = process.env.MIGRATIONS_DIR ?? './drizzle';
 
+// ~10 minutes: on first install Postgres starts in parallel (a slow SD card on a Raspberry Pi can take minutes).
+const maxAttempts = 300;
+
 const { db, pool } = createDb(url);
 // Only connection-level failures are retried; a bad migration fails fast with the underlying database error.
 const transient = new Set([
   'ECONNREFUSED',
   'ENOTFOUND',
   'ECONNRESET',
+  'ETIMEDOUT',
   'EAI_AGAIN',
   '57P03',
   '08006',
@@ -29,7 +33,7 @@ for (let attempt = 1; ; attempt++) {
     break;
   } catch (err) {
     const cause = rootCause(err);
-    if (!cause.code || !transient.has(cause.code) || attempt >= 30) {
+    if (!cause.code || !transient.has(cause.code) || attempt >= maxAttempts) {
       console.error('migration failed:', cause.message);
       await pool.end();
       process.exit(1);

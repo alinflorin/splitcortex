@@ -1,9 +1,9 @@
 {{- if and .Values.garage.enabled .Values.controlPlane.enabled }}
 {{- /*
   First-boot setup of Garage (the subchart bootstraps nothing): layout for the single node, the S3 key from the
-  `garage-credentials` Secret and the bucket, through Garage's admin API. A Helm hook (post-install/post-upgrade: Garage and
-  the Secret are part of this release and ready by then), run with the control plane image; idempotent, retries while Garage
-  settles. Only this Job holds the admin token.
+  `garage-credentials` Secret and the bucket, through Garage's admin API. Run with the control plane image; idempotent, retries while Garage
+  settles (about 10 minutes). Only this Job holds the admin token. First install: a plain Job created with Garage itself
+  (it waits for Garage like the migration Job, see control-plane-migrate-job.yaml); upgrade: a post-upgrade hook.
 */ -}}
 apiVersion: batch/v1
 kind: Job
@@ -13,11 +13,13 @@ metadata:
   labels:
     {{- include "splitcortex.labels" . | nindent 4 }}
     app.kubernetes.io/component: garage-bootstrap
+  {{- if not .Release.IsInstall }}
   annotations:
-    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook: post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  {{- end }}
 spec:
-  backoffLimit: 3
+  backoffLimit: 6
   template:
     metadata:
       labels:
