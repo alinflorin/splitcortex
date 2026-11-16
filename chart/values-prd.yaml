@@ -20,6 +20,16 @@ dex:
           - dex.prd.splitcortex.com
   config:
     issuer: https://dex.prd.splitcortex.com
+    # Google client credentials: placeholders substituted at deploy time (GitHub environment secrets
+    # GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET); never commit the real values.
+    connectors:
+      - type: google
+        id: google
+        name: Google
+        config:
+          clientID: "${GOOGLE_CLIENT_ID}"
+          clientSecret: "${GOOGLE_CLIENT_SECRET}"
+          redirectURI: https://dex.prd.splitcortex.com/callback
     web:
       http: 0.0.0.0:5556
     staticClients:

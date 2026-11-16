@@ -76,9 +76,11 @@ jobs:
         if: matrix.env != 'dev'
         env:
           LETSENCRYPT_EMAIL: ci@example.com
+          GOOGLE_CLIENT_ID: ci-client-id
+          GOOGLE_CLIENT_SECRET: ci-client-secret
         run: |
           f="$CHART_DIR/values-${{ matrix.env }}.yaml"
-          envsubst '$LETSENCRYPT_EMAIL' < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+          envsubst '$LETSENCRYPT_EMAIL $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET' < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
 
       - name: Lint
         run: helm lint "$CHART_DIR" --strict $VALUES_ARGS

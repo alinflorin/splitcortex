@@ -31,7 +31,8 @@ jobs:
   deploy:
     name: deploy (${{ inputs.environment }})
     runs-on: ubuntu-latest
-    # Environment secrets: KUBECONFIG (base64 or plain), LETSENCRYPT_EMAIL.
+    # Environment secrets: KUBECONFIG (base64 or plain), LETSENCRYPT_EMAIL,
+    # GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (stg Dex Google login).
     # Add required reviewers on the environment for a manual approval gate.
     environment: ${{ inputs.environment }}
     concurrency:
@@ -40,6 +41,8 @@ jobs:
     env:
       ENVIRONMENT: ${{ inputs.environment }}
       LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
     steps:
       - name: Normalise version
         run: |
@@ -73,7 +76,7 @@ jobs:
       - name: Substitute deploy-time placeholders
         run: |
           f="chart/values-${ENVIRONMENT}.yaml"
-          envsubst '$LETSENCRYPT_EMAIL' < "$f" > "$RUNNER_TEMP/values.yaml"
+          envsubst '$LETSENCRYPT_EMAIL $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET' < "$f" > "$RUNNER_TEMP/values.yaml"
 
       - name: Helm upgrade
         run: |
