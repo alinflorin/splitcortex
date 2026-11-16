@@ -14,6 +14,10 @@ function memoryFiles() {
   const files: ModelFiles = {
     size: async (n) => disk.get(n)?.length ?? -1,
     write: async (n, at, bytes) => {
+      const data = bytes.slice();
+      // Like the real storage, take the buffer over: the caller's array is empty afterwards.
+      structuredClone(bytes.buffer, { transfer: [bytes.buffer] });
+      bytes = data;
       const cur = disk.get(n) ?? new Uint8Array();
       const out = new Uint8Array(Math.max(cur.length, at + bytes.length));
       out.set(cur);

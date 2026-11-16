@@ -191,9 +191,11 @@ export class ModelManager {
             const { done, value } = await reader.read();
             if (done) break;
             if (value && value.length > 0) {
+              // The storage takes the chunk's buffer over (it is transferred to the worker and `value` goes empty).
+              const n = value.length;
               await files.write(name, offset, value);
-              offset += value.length;
-              got += value.length;
+              offset += n;
+              got += n;
               if (Date.now() - lastReport > 1000) {
                 lastReport = Date.now();
                 report();
