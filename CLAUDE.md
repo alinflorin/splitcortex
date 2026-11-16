@@ -83,7 +83,7 @@ Details, CI/CD, release streams and deploy: [docs/commands-and-ci.md](docs/comma
 - Chart: `helm lint chart --strict [-f chart/values-stg.yaml]`, `helm template`. Local stack: `tilt up` at the repo root (`--wait` is required for the install because of the ClusterIssuer hooks).
 - Each of `src/ui`, `src/web-node`, `src/desktop-node`, `src/control-plane`, `src/mobile-node` is its own pnpm project: `pnpm install`, `pnpm typecheck`, `pnpm test`, `pnpm format` (run it before committing; Prettier config is at the repo root). UI/web node/control plane: `pnpm dev`/`pnpm build`; control plane also `pnpm db:generate`/`pnpm db:migrate`; node: `pnpm exec expo export --platform android` (bundle check), `expo run:android` (local dev build).
 - `src/cli-node` is plain Cargo (`cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo build --release`; `python3 scripts/fetch-litert.py` first so the library-loading test runs).
-- Releases: server tags `vX.Y.Z` (lockstep chart/ui/control-plane/gateway, the same build is promoted stg to prd); mobile tags `mobile-node-vX.Y.Z`; desktop tags `desktop-node-vX.Y.Z`; CLI tags `cli-node-vX.Y.Z`. Chart/app versions are the tag without `v`.
+- Releases: server tags `vX.Y.Z` (lockstep chart/ui/control-plane/gateway, the same build is promoted stg to prd); mobile tags `mobile-node-vX.Y.Z`; desktop tags `desktop-node-vX.Y.Z`; CLI tags `cli-node-vX.Y.Z`. Chart/app versions are the tag without `v`. **Push release tags one at a time** (a separate `git push origin <tag>` each, a few seconds apart): GitHub fires no tag-push workflows when more than 3 tags arrive in one push, so a batch silently starts no releases (this happened with 1.3.0, whose four tags were pushed together).
 
 ## Layout
 
