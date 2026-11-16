@@ -44,7 +44,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI1QzNBNDEwMUQzM0QwQzMKUldURDBETWRFS1REdFo5VjQyZTUwbXp2aFUwbjBzZ3VyOE40S0ZScnlvc1FIc3hEb3RRYWZ0eVkK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDBGNTQwNzE3RURFMUJGM0YKUldRL3YrSHRGd2RVRDJKZll3VFgxOWNHR2Z5b05rS1htdVpVTmJiMzlNaUliM1NZVUhvUUJDREYK",
       "endpoints": [
         "https://github.com/alinflorin/splitcortex/releases/download/desktop-node-updater/latest.json"
       ]

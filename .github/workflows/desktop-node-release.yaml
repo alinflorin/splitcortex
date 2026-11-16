@@ -99,10 +99,23 @@ jobs:
       - name: Fetch the LiteRT-LM library for this target
         run: node scripts/fetch-litert.mjs ${{ matrix.triple }} --required
 
+      # The secret may carry a trailing newline (paste/`gh secret set < file`), which Tauri's base64 decoder rejects.
+      - name: Normalise the signing key (strip whitespace)
+        shell: bash
+        env:
+          RAW_KEY: ${{ secrets.DESKTOP_NODE_SIGNING_PRIVATE_KEY }}
+        run: |
+          key="$(printf '%s' "$RAW_KEY" | tr -d '[:space:]')"
+          echo "::add-mask::$key"
+          {
+            echo "TAURI_SIGNING_PRIVATE_KEY<<KEY_EOF"
+            echo "$key"
+            echo "KEY_EOF"
+          } >> "$GITHUB_ENV"
+
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.DESKTOP_NODE_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.DESKTOP_NODE_SIGNING_PRIVATE_KEY_PASSWORD }}
           VITE_APP_VERSION: ${{ needs.create-release.outputs.version }}
         with:
