@@ -2,7 +2,8 @@
 #   irm https://raw.githubusercontent.com/alinflorin/splitcortex/main/src/cli-node/install.ps1 | iex
 # Downloads the newest cli-node-vX.Y.Z release from GitHub, checks its SHA-256 and unpacks it into
 # %LOCALAPPDATA%\Programs\SplitCortexNode (the program and the engine library next to it), then adds that folder to your PATH.
-# Environment: $env:SPLITCORTEX_VERSION = "X.Y.Z" installs that version; $env:SPLITCORTEX_INSTALL_DIR changes the folder.
+# Environment: $env:SPLITCORTEX_VERSION = "X.Y.Z" installs that version; $env:SPLITCORTEX_INSTALL_DIR changes the folder;
+# $env:SPLITCORTEX_URL sets the web app address without asking (otherwise it asks, Enter keeps the default).
 # Remove it again: delete the folder and take it out of your user PATH.
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -51,10 +52,25 @@ if (($userPath -split ';') -notcontains $InstallDir) {
   Write-Host "Added $InstallDir to your PATH (open a new terminal to use it by name)."
 }
 
+# The web app address `join` enrolls against; Enter keeps the default, SPLITCORTEX_URL skips the question.
+$DefaultUrl = 'https://app.prd.splitcortex.com'
+$AppUrl = $env:SPLITCORTEX_URL
+if (-not $AppUrl) {
+  $AppUrl = $DefaultUrl
+  if ([Environment]::UserInteractive) {
+    try {
+      $answer = Read-Host "Web app address [$DefaultUrl]"
+      if ($answer) { $AppUrl = $answer.Trim() }
+    } catch { }
+  }
+}
+$Join = if ($AppUrl -eq $DefaultUrl) { 'splitcortex-node join' } else { "splitcortex-node join --url $AppUrl" }
+
 Write-Host ''
 Write-Host "Installed: $exe ($Version)"
 Write-Host ''
 Write-Host 'Next:'
-Write-Host '  splitcortex-node join              enroll with the code from "Add device" in the web app'
+Write-Host "  $Join"
+Write-Host '                                     (enroll with the code from "Add device" in the web app)'
 Write-Host '  splitcortex-node run               start serving (Ctrl+C stops)'
 Write-Host '  splitcortex-node service install   or keep it running in the background and at logon'

@@ -23,6 +23,7 @@ describe('JoinCard', () => {
     });
     const onJoined = vi.fn();
     await renderApp(<JoinCard onJoined={onJoined} />);
+    await userEvent.clear(screen.getByLabelText('Control plane address'));
     await userEvent.type(
       screen.getByLabelText('Control plane address'),
       'https://app.example.com/api/',
@@ -49,6 +50,7 @@ describe('JoinCard', () => {
     await renderApp(<JoinCard onJoined={vi.fn()} />);
     const url = screen.getByLabelText('Control plane address');
     const input = screen.getByLabelText('Join code');
+    await userEvent.clear(url);
     await userEvent.type(url, 'not a url');
     await userEvent.type(input, 'abc');
     await userEvent.click(screen.getByRole('button', { name: 'Join' }));

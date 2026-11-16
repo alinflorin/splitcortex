@@ -31,13 +31,15 @@ struct Cli {
     command: Command,
 }
 
+const DEFAULT_URL: &str = "https://app.prd.splitcortex.com";
+
 #[derive(Subcommand)]
 enum Command {
     /// Enroll this computer with a code from "Add device" in the web app
     Join {
-        /// The web app's API address, e.g. https://app.example.com/api (asked for when missing)
-        #[arg(long, env = "SPLITCORTEX_URL")]
-        url: Option<String>,
+        /// The web app's address (default: https://app.prd.splitcortex.com)
+        #[arg(long, env = "SPLITCORTEX_URL", default_value = DEFAULT_URL)]
+        url: String,
         /// The enrollment code XXXX-XXXXXX (asked for when missing)
         #[arg(long)]
         code: Option<String>,
@@ -143,10 +145,6 @@ async fn main() -> Result<()> {
                     e.node_id
                 );
             }
-            let url = match url {
-                Some(u) => u,
-                None => ask("Web app address (e.g. https://app.example.com): ")?,
-            };
             let code = match code {
                 Some(c) => c,
                 None => ask("Enrollment code (XXXX-XXXXXX): ")?,

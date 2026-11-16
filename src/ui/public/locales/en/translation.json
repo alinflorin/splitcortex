@@ -82,6 +82,21 @@
       }
     }
   },
+  "endpoints": {
+    "title": "Endpoints",
+    "body": "The addresses your clients and tools connect to.",
+    "copy": "Copy",
+    "copied": "Address copied",
+    "copyFailed": "Could not copy the address",
+    "gateway": {
+      "title": "Gateway (OpenAI API)",
+      "body": "Base URL for OpenAI-compatible clients, together with an API key."
+    },
+    "api": {
+      "title": "Control plane API",
+      "body": "The REST API behind this web app."
+    }
+  },
   "about": {
     "title": "About SplitCortex",
     "p1": "SplitCortex is a platform for reusing mobile compute devices as inference serving nodes.",
@@ -389,7 +404,10 @@
     "expires": "Valid for {{time}}",
     "expired": "This code has expired. Create a new one.",
     "approvalNote": "This pool requires approval: the device will wait for an admin to approve it.",
-    "done": "{{name}} was added."
+    "done": "{{name}} was added.",
+    "apiUrl": "API address (if the device asks for it)",
+    "copyApiUrl": "Copy API address",
+    "apiUrlCopied": "API address copied."
   },
   "limits": {
     "title": "Limits",

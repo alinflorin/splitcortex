@@ -6,6 +6,7 @@ import {
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { AppDownloads } from '../components/AppDownloads';
+import { Endpoints } from '../components/Endpoints';
 import { useCurrentUser } from '../auth/useCurrentUser';
 
 const useStyles = makeStyles({
@@ -34,6 +35,7 @@ const useStyles = makeStyles({
     boxShadow: 'none',
     border: `1px solid ${tokens.colorNeutralStroke3}`,
   },
+  endpoints: { marginTop: tokens.spacingVerticalXXL },
   downloads: { marginTop: tokens.spacingVerticalXXL },
   icon: { color: tokens.colorBrandForeground1, display: 'flex' },
 });
@@ -79,6 +81,9 @@ export function Home() {
           </Card>
         ))}
       </section>
+      <div className={styles.endpoints}>
+        <Endpoints />
+      </div>
       <div className={styles.downloads}>
         <AppDownloads />
       </div>

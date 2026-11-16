@@ -4,6 +4,7 @@
 # Downloads the newest cli-node-vX.Y.Z release for this machine from GitHub, checks its SHA-256 and unpacks it into
 # ~/.local/lib/splitcortex-node (the binary and the engine library next to it), with a link in ~/.local/bin.
 # Environment: SPLITCORTEX_VERSION=X.Y.Z installs that version; SPLITCORTEX_INSTALL_DIR changes the folder;
+# SPLITCORTEX_URL sets the web app address without asking (otherwise it asks, Enter keeps the default);
 # SPLITCORTEX_DOWNLOAD_BASE replaces the release download address (for testing a build).
 # Remove it again: rm -rf ~/.local/lib/splitcortex-node ~/.local/bin/splitcortex-node
 set -eu
@@ -62,6 +63,22 @@ tar -xzf "$TMP/$NAME" -C "$INSTALL_DIR"
 chmod 755 "$INSTALL_DIR/splitcortex-node"
 ln -sf "$INSTALL_DIR/splitcortex-node" "$BIN_DIR/splitcortex-node"
 
+# The web app address `join` enrolls against. Asked on the terminal (the script itself comes through a pipe), Enter
+# keeps the default; SPLITCORTEX_URL skips the question.
+DEFAULT_URL="https://app.prd.splitcortex.com"
+APP_URL="${SPLITCORTEX_URL:-}"
+if [ -z "$APP_URL" ]; then
+  APP_URL="$DEFAULT_URL"
+  if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+    printf 'Web app address [%s]: ' "$DEFAULT_URL" >/dev/tty
+    ANSWER=""
+    read -r ANSWER </dev/tty || ANSWER=""
+    [ -z "$ANSWER" ] || APP_URL="$ANSWER"
+  fi
+fi
+JOIN="splitcortex-node join"
+[ "$APP_URL" = "$DEFAULT_URL" ] || JOIN="splitcortex-node join --url $APP_URL"
+
 say ""
 say "Installed: $BIN_DIR/splitcortex-node ($VERSION)"
 case ":$PATH:" in
@@ -70,6 +87,7 @@ case ":$PATH:" in
 esac
 say ""
 say "Next:"
-say "  splitcortex-node join              enroll with the code from \"Add device\" in the web app"
+say "  $JOIN"
+say "                                     (enroll with the code from \"Add device\" in the web app)"
 say "  splitcortex-node run               start serving (Ctrl+C stops)"
 say "  splitcortex-node service install   or keep it running in the background and at login"

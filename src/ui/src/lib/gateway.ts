@@ -25,3 +25,9 @@ reply = client.chat.completions.create(
 print(reply.choices[0].message.content)`,
   };
 }
+
+/** The control plane API: same origin as the web app (`/api`), or `VITE_API_URL` for a standalone dev server. */
+export function getApiBaseUrl(location: Pick<Location, 'origin'> = window.location): string {
+  const override = import.meta.env.VITE_API_URL as string | undefined;
+  return `${(override || location.origin).replace(/\/+$/, '')}/api`;
+}

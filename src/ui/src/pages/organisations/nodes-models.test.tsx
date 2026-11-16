@@ -303,6 +303,7 @@ describe('device enrollment', () => {
     await renderWithApi(<PoolNodes pool={pool} admin />);
     await user.click(await screen.findByRole('button', { name: 'Add device' }));
     expect(await screen.findByTestId('enroll-code')).toHaveTextContent('K7M2-QX9H4T');
+    expect(screen.getByTestId('enroll-api-url')).toHaveTextContent(`${window.location.origin}/api`);
     expect(await screen.findByAltText(/QR code/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() =>

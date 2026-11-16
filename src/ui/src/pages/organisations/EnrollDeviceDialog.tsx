@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { useCancelEnrollment, useCreateEnrollment, useNodes } from '../../api/hooks';
 import type { CreatedEnrollment, Pool } from '../../api/schemas';
 import { useToast } from '../../components/feedback/useToast';
+import { getApiBaseUrl } from '../../lib/gateway';
 
 const useStyles = makeStyles({
   body: {
@@ -41,6 +42,24 @@ const useStyles = makeStyles({
     border: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   muted: { color: tokens.colorNeutralForeground3, textAlign: 'center' },
+  address: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXS,
+    width: '100%',
+  },
+  addressRow: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS },
+  addressUrl: {
+    flexGrow: 1,
+    minWidth: 0,
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
+    borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: tokens.colorNeutralBackground3,
+    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    fontFamily: tokens.fontFamilyMonospace,
+    fontSize: tokens.fontSizeBase200,
+    wordBreak: 'break-all',
+  },
 });
 
 /** What the QR carries: the app's deep link with the enrollment URL (the control plane) and the same code. */
@@ -141,6 +160,16 @@ export function EnrollDeviceDialog({
     }
   };
 
+  const apiUrl = getApiBaseUrl();
+  const copyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(apiUrl);
+      toast.success(t('enroll.apiUrlCopied'));
+    } catch {
+      // clipboard blocked: the address stays selectable
+    }
+  };
+
   const expired = created !== null && remaining === 0;
   const mm = String(Math.floor(remaining / 60));
   const ss = String(remaining % 60).padStart(2, '0');
@@ -163,6 +192,19 @@ export function EnrollDeviceDialog({
                 <Caption1 className={styles.muted}>
                   {expired ? t('enroll.expired') : t('enroll.expires', { time: `${mm}:${ss}` })}
                 </Caption1>
+                <div className={styles.address}>
+                  <Caption1 className={styles.muted}>{t('enroll.apiUrl')}</Caption1>
+                  <div className={styles.addressRow}>
+                    <code className={styles.addressUrl} data-testid="enroll-api-url">
+                      {apiUrl}
+                    </code>
+                    <Button
+                      icon={<Copy20Regular />}
+                      aria-label={t('enroll.copyApiUrl')}
+                      onClick={() => void copyUrl()}
+                    />
+                  </div>
+                </div>
                 {pool.requireApproval && (
                   <Caption1 className={styles.muted}>{t('enroll.approvalNote')}</Caption1>
                 )}

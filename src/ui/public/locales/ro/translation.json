@@ -82,6 +82,21 @@
       }
     }
   },
+  "endpoints": {
+    "title": "Adrese",
+    "body": "Adresele la care se conectează clienții și uneltele tale.",
+    "copy": "Copiază",
+    "copied": "Adresă copiată",
+    "copyFailed": "Nu s-a putut copia adresa",
+    "gateway": {
+      "title": "Gateway (API OpenAI)",
+      "body": "URL de bază pentru clienții compatibili OpenAI, împreună cu o cheie API."
+    },
+    "api": {
+      "title": "API control plane",
+      "body": "API-ul REST din spatele acestei aplicații web."
+    }
+  },
   "about": {
     "title": "Despre SplitCortex",
     "p1": "SplitCortex este o platformă pentru refolosirea dispozitivelor mobile ca noduri de inferență.",
@@ -389,7 +404,10 @@
     "expires": "Valabil încă {{time}}",
     "expired": "Codul a expirat. Creează unul nou.",
     "approvalNote": "Acest pool necesită aprobare: dispozitivul va aștepta aprobarea unui administrator.",
-    "done": "{{name}} a fost adăugat."
+    "done": "{{name}} a fost adăugat.",
+    "apiUrl": "Adresa API (dacă o cere dispozitivul)",
+    "copyApiUrl": "Copiază adresa API",
+    "apiUrlCopied": "Adresa API a fost copiată."
   },
   "limits": {
     "title": "Limite",
