@@ -13,3 +13,16 @@ index 9e9e02101cdf87b2feae26e998c85ad22f7024a4..b675596852f726d63c9a84ef8eeae180
          }
      }
      
+diff --git a/android/src/main/java/dev/litert/litertlm/LiteRTLMPackage.kt b/android/src/main/java/dev/litert/litertlm/LiteRTLMPackage.kt
+index a8dda251989898dc9b42f9ab14b6f5b5649aba15..0b4f107d26e7d6017037f303ccabf223f60440c6 100644
+--- a/android/src/main/java/dev/litert/litertlm/LiteRTLMPackage.kt
++++ b/android/src/main/java/dev/litert/litertlm/LiteRTLMPackage.kt
+@@ -17,7 +17,7 @@ class LiteRTLMPackage : TurboReactPackage() {
+ 
+         private fun isSupportedPrimaryAbi(): Boolean {
+             val primaryAbi = Build.SUPPORTED_64_BIT_ABIS.firstOrNull() ?: return false
+-            return primaryAbi == "arm64-v8a"
++            return primaryAbi == "arm64-v8a" || primaryAbi == "x86_64"
+         }
+     }
+     init {
