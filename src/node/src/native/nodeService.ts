@@ -22,6 +22,7 @@ interface Native {
   stopService(): Promise<void>;
   setStartAtBoot(enabled: boolean): Promise<void>;
   getTelemetry(): Promise<DeviceTelemetry>;
+  setKeepScreenOn(enabled: boolean): Promise<void>;
   isIgnoringBatteryOptimizations(): Promise<boolean>;
   requestIgnoreBatteryOptimizations(): Promise<void>;
 }
@@ -33,11 +34,15 @@ const native = requireOptionalNativeModule<Native>('SplitCortexNodeService');
 export interface ServiceControl {
   start(): Promise<void>;
   stop(): Promise<void>;
+  /** Optional: keep the display on while the app is in the foreground. */
+  setKeepScreenOn?(enabled: boolean): Promise<void>;
 }
 
 export const nodeService: ServiceControl & {
   setStartAtBoot(enabled: boolean): Promise<void>;
   telemetry(): Promise<DeviceTelemetry>;
+  /** Android: keep the display on while the app is in the foreground (no-op elsewhere). */
+  setKeepScreenOn(enabled: boolean): Promise<void>;
   /** Android: is the app exempt from battery optimisation (Doze)? True where it does not apply (iOS, no native module). */
   batteryExempt(): Promise<boolean>;
   /** Opens the system dialog asking the user to exempt the app. */
@@ -63,6 +68,9 @@ export const nodeService: ServiceControl & {
   },
   async telemetry() {
     return (await native?.getTelemetry()) ?? UNKNOWN_TELEMETRY;
+  },
+  async setKeepScreenOn(enabled) {
+    await native?.setKeepScreenOn(enabled).catch(() => undefined);
   },
   async batteryExempt() {
     if (!native) return true;

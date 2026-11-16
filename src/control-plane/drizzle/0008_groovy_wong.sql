@@ -1,0 +1,1 @@
+ALTER TABLE "nodes" ADD COLUMN "keep_screen_on" boolean;

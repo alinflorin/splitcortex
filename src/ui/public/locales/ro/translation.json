@@ -251,7 +251,13 @@
     "maxContext": "Context maxim (tokeni)",
     "deviceDecides": "Decide dispozitivul (recomandat)",
     "maxContextHint": "Gol lasă dispozitivul să decidă (după RAM). Prompt, istoric și răspuns la un loc; mai mare înseamnă mai multă memorie.",
-    "maxContextInvalid": "Introdu un număr întreg între {{min}} și {{max}}, sau lasă gol."
+    "maxContextInvalid": "Introdu un număr întreg între {{min}} și {{max}}, sau lasă gol.",
+    "enableMtp": "Predicție multi-token (MTP)",
+    "enableMtpHint": "Decodare speculativă cu drafter-ul modelului; ignorată dacă modelul nu are. Reîncarcă modelul.",
+    "keepScreenOn": "Ține ecranul pornit",
+    "keepScreenOnHint": "Unele dispozitive Android folosesc GPU-ul la capacitate maximă doar cu aplicația deschisă în prim-plan și ecranul aprins. Aplicația trebuie să rămână deschisă.",
+    "on": "Pornit",
+    "off": "Oprit"
   },
   "models": {
     "title": "Modele",

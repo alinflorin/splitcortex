@@ -128,6 +128,8 @@ export const nodeSchema = z.object({
   /** Admin overrides; null = the device decides. */
   computeBackend: z.enum(['cpu', 'gpu']).nullable(),
   maxContextTokens: z.number().nullable(),
+  keepScreenOn: z.boolean().nullable(),
+  enableMtp: z.boolean().nullable(),
   createdAt: z.string(),
   live: z
     .object({

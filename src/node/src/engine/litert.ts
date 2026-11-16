@@ -97,6 +97,7 @@ export class LiteRtEngine implements Engine {
     const base: Record<string, unknown> = {};
     if (opts.backend) base.backend = opts.backend;
     if (opts.maxContextTokens) base.maxContextTokens = opts.maxContextTokens;
+    if (opts.enableMtp) base.enableSpeculativeDecoding = true;
     await llm.loadModel(path, base);
     this.llm = llm;
     this.path = path;

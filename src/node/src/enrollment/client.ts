@@ -45,6 +45,8 @@ export interface EnrollmentResult {
   approved: boolean;
   /** The gateway identity to pin; null when the platform has none configured yet. */
   gateway: { publicKey: string; url: string } | null;
+  orgName?: string;
+  poolName?: string;
 }
 
 async function post(baseUrl: string, path: string, body: object): Promise<Record<string, unknown>> {
@@ -119,6 +121,8 @@ export async function enroll(params: {
     fingerprint?: string;
     approved?: boolean;
     gateway?: { publicKey: string; url: string } | null;
+    orgName?: string;
+    poolName?: string;
   };
   if (typeof r.nodeId !== 'string' || typeof r.approved !== 'boolean') {
     throw new EnrollError('server', 'bad response');
@@ -129,5 +133,7 @@ export async function enroll(params: {
     fingerprint: fingerprint(params.identity.publicKey),
     approved: r.approved,
     gateway: r.gateway ?? null,
+    orgName: r.orgName,
+    poolName: r.poolName,
   };
 }

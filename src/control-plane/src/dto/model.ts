@@ -87,4 +87,16 @@ export const NodeModelSchema = z.object({
 });
 export type NodeModelDto = z.infer<typeof NodeModelSchema>;
 
+/** What a device may learn about itself (`GET /node/me`). */
+export const NodeSelfSchema = z.object({
+  nodeId: IdSchema,
+  name: z.string(),
+  orgName: z.string(),
+  orgSlug: z.string(),
+  poolName: z.string(),
+  approved: z.boolean(),
+  createdAt: z.iso.datetime(),
+});
+export type NodeSelfDto = z.infer<typeof NodeSelfSchema>;
+
 export const NodeModelParamsSchema = z.object({ modelId: IdSchema });

@@ -52,6 +52,10 @@ function parseContext(text: string): number | null | undefined {
   return n >= MAX_CONTEXT_MIN && n <= MAX_CONTEXT_MAX ? n : undefined;
 }
 
+/** Tri-state override as a select value: '' = the device decides. */
+const triValue = (v: boolean | null) => (v === null ? '' : v ? 'on' : 'off');
+const triParse = (v: string): boolean | null => (v === '' ? null : v === 'on');
+
 /** Admin overrides for the device's engine. `null` = the device decides (its own setting, else it measures and takes the fastest). */
 function ComputeSettings({ node, admin }: { node: Node; admin: boolean }) {
   const { t } = useTranslation();
@@ -61,6 +65,8 @@ function ComputeSettings({ node, admin }: { node: Node; admin: boolean }) {
   const save = (body: {
     computeBackend?: 'cpu' | 'gpu' | null;
     maxContextTokens?: number | null;
+    keepScreenOn?: boolean | null;
+    enableMtp?: boolean | null;
   }) => update.mutate(body, { onSuccess: () => toast.success(t('nodes.computeSaved')) });
   // What is typed until it is saved (undefined = show the saved value). Saved on blur or Enter: every change
   // reloads the model on the device.
@@ -116,6 +122,28 @@ function ComputeSettings({ node, admin }: { node: Node; admin: boolean }) {
             if (e.key === 'Enter') saveContext();
           }}
         />
+      </Field>
+      <Field label={t('nodes.enableMtp')} hint={t('nodes.enableMtpHint')}>
+        <Select
+          value={triValue(node.enableMtp)}
+          disabled={!admin || update.isPending}
+          onChange={(_, d) => save({ enableMtp: triParse(d.value) })}
+        >
+          <option value="">{t('nodes.deviceDecides')}</option>
+          <option value="on">{t('nodes.on')}</option>
+          <option value="off">{t('nodes.off')}</option>
+        </Select>
+      </Field>
+      <Field label={t('nodes.keepScreenOn')} hint={t('nodes.keepScreenOnHint')}>
+        <Select
+          value={triValue(node.keepScreenOn)}
+          disabled={!admin || update.isPending}
+          onChange={(_, d) => save({ keepScreenOn: triParse(d.value) })}
+        >
+          <option value="">{t('nodes.deviceDecides')}</option>
+          <option value="on">{t('nodes.on')}</option>
+          <option value="off">{t('nodes.off')}</option>
+        </Select>
       </Field>
     </ItemCard>
   );

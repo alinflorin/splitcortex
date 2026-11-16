@@ -27,8 +27,14 @@ export default function Settings() {
   // Compute changes also reach the running engine (it reloads the model when the effective settings change).
   const update = (patch: Partial<NodeSettings>) => {
     updateSettings(patch);
-    if (settings && (patch.compute !== undefined || patch.maxContextTokens !== undefined))
+    if (
+      settings &&
+      (patch.compute !== undefined ||
+        patch.maxContextTokens !== undefined ||
+        patch.enableMtp !== undefined)
+    )
       runtime.setLocalCompute(computePrefs({ ...settings, ...patch }));
+    if (patch.keepScreenOn !== undefined) runtime.setLocalScreen(patch.keepScreenOn);
   };
   // What is typed, until it is saved (undefined = show the saved value).
   const [contextText, setContextText] = useState<string | undefined>(undefined);
@@ -92,6 +98,18 @@ export default function Settings() {
                 : undefined
             }
             hint={t('settings.context.hint')}
+          />
+          <ToggleRow
+            label={t('settings.enableMtp')}
+            hint={t('settings.enableMtpHint')}
+            value={settings.enableMtp}
+            onChange={(enableMtp) => update({ enableMtp })}
+          />
+          <ToggleRow
+            label={t('settings.keepScreenOn')}
+            hint={t('settings.keepScreenOnHint')}
+            value={settings.keepScreenOn}
+            onChange={(keepScreenOn) => update({ keepScreenOn })}
           />
         </Card>
       ) : null}

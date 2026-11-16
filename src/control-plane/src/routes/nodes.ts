@@ -43,6 +43,8 @@ export function toNodeDto({ node, live }: Row, now = Date.now()): NodeDto {
     memoryTotalMb: node.memoryTotalMb,
     computeBackend: parseBackend(node.computeBackend),
     maxContextTokens: node.maxContextTokens,
+    keepScreenOn: node.keepScreenOn,
+    enableMtp: node.enableMtp,
     createdAt: node.createdAt.toISOString(),
     // Telemetry of a node that stopped reporting is stale; do not present it as current.
     live:

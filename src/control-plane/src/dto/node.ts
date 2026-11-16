@@ -46,6 +46,10 @@ export const NodeSchema = z.object({
   /** Admin overrides; null = the device decides (its own setting, else it measures and picks the fastest). */
   computeBackend: ComputeBackendSchema.nullable(),
   maxContextTokens: z.number().int().nullable(),
+  /** Admin override of "keep the screen on"; null = the device decides. */
+  keepScreenOn: z.boolean().nullable(),
+  /** Admin override of multi-token prediction (speculative decoding); null = the device decides. */
+  enableMtp: z.boolean().nullable(),
   createdAt: z.iso.datetime(),
   live: NodeLiveSchema.nullable(),
 });
@@ -67,6 +71,8 @@ export const UpdateNodeSchema = z
       .max(MAX_CONTEXT_MAX)
       .nullable()
       .optional(),
+    keepScreenOn: z.boolean().nullable().optional(),
+    enableMtp: z.boolean().nullable().optional(),
   })
   .refine((v) => Object.values(v).some((x) => x !== undefined), 'validation.required');
 export type UpdateNodeDto = z.infer<typeof UpdateNodeSchema>;

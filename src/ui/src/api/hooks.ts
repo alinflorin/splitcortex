@@ -256,6 +256,8 @@ export function useUpdateNode(orgId: string, nodeId: string) {
       /** null clears the override (the device decides). */
       computeBackend?: 'cpu' | 'gpu' | null;
       maxContextTokens?: number | null;
+      keepScreenOn?: boolean | null;
+      enableMtp?: boolean | null;
     }) => req('PATCH', `/organisations/${orgId}/nodes/${nodeId}`, nodeSchema, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['organisations', orgId] }),
   });

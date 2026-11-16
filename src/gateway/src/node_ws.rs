@@ -392,6 +392,18 @@ pub fn sync_config(app: &AppState, conn: &NodeConn) {
             (
                 n.compute_backend.clone().unwrap_or_default(),
                 n.max_context_tokens.unwrap_or(0),
+                match n.keep_screen_on {
+                    Some(true) => "on",
+                    Some(false) => "off",
+                    None => "",
+                }
+                .to_string(),
+                match n.enable_mtp {
+                    Some(true) => "on",
+                    Some(false) => "off",
+                    None => "",
+                }
+                .to_string(),
             )
         })
         .unwrap_or_default();
@@ -402,6 +414,8 @@ pub fn sync_config(app: &AppState, conn: &NodeConn) {
     let msg = proto::NodeConfig {
         backend: want.0.clone(),
         max_context_tokens: want.1,
+        keep_screen_on: want.2.clone(),
+        enable_mtp: want.3.clone(),
     };
     *sent = Some(want);
     let _ = conn.tx.try_send(Outbound::Send(env(Body::NodeConfig(msg))));

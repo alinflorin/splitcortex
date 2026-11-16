@@ -11,8 +11,10 @@ function fakeEngine(
   caps: Partial<DeviceCaps>,
   speed: Record<Backend, number>,
   broken: Backend[] = [],
+  noDrafter = false,
 ) {
   const loads: { backend?: Backend; ctx?: number }[] = [];
+  const mtp: boolean[] = [];
   let active: { backend: Backend; ctx: number } | null = null;
   const e: Engine = {
     get loaded() {
@@ -27,7 +29,9 @@ function fakeEngine(
     capabilities: () => ({ gpuAvailable: true, emulator: false, totalMemoryMb: 8000, ...caps }),
     async load(_path: string, o: ComputePrefs = {}) {
       if (o.backend && broken.includes(o.backend)) throw new Error(`${o.backend} broke`);
+      if (o.enableMtp && noDrafter) throw new Error('no drafter in this bundle');
       loads.push({ backend: o.backend, ctx: o.maxContextTokens });
+      mtp.push(o.enableMtp === true);
       active = { backend: o.backend ?? 'cpu', ctx: o.maxContextTokens ?? 4096 };
     },
     async unload() {
@@ -36,7 +40,7 @@ function fakeEngine(
     benchmark: async () => speed[active!.backend],
     generate: jest.fn(async () => ({ finishReason: 'stop' as const })),
   };
-  return { e, loads };
+  return { e, loads, mtp };
 }
 const memCache = (): BenchCache & { map: Map<string, Backend> } => {
   const map = new Map<string, Backend>();
@@ -102,6 +106,25 @@ describe('ComputeEngine', () => {
     expect(c.backend).toBe('cpu');
     await c.setPrefs('admin', {});
     expect(c.backend).toBe('gpu'); // clearing the override returns to the local setting
+  });
+
+  it('turns on multi-token prediction by the setting, the admin wins, and it is dropped when the bundle cannot run it', async () => {
+    const { e, mtp } = fakeEngine({}, { cpu: 1, gpu: 1 });
+    const c = new ComputeEngine(e, memCache());
+    await c.setPrefs('local', { backend: 'cpu', enableMtp: true });
+    await c.load('/m/a');
+    expect(mtp.at(-1)).toBe(true);
+    await c.setPrefs('admin', { enableMtp: false });
+    expect(mtp.at(-1)).toBe(false); // the admin override reloads without it
+    await c.setPrefs('admin', {});
+    expect(mtp.at(-1)).toBe(true);
+
+    const plain = fakeEngine({}, { cpu: 1, gpu: 1 }, [], true);
+    const d = new ComputeEngine(plain.e, memCache());
+    await d.setPrefs('local', { backend: 'cpu', enableMtp: true });
+    await d.load('/m/b'); // the first attempt throws, the second loads without MTP
+    expect(plain.mtp).toEqual([false]);
+    expect(d.loaded).toBe(true);
   });
 
   it('does not reload when nothing is loaded yet', async () => {

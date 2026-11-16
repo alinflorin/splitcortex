@@ -27,6 +27,10 @@ pub struct NodeRec {
     /// Admin overrides for the device (`cpu` | `gpu`, context window in tokens); None = the device decides.
     pub compute_backend: Option<String>,
     pub max_context_tokens: Option<u32>,
+    /// Admin override: keep the device's display on (None = the device decides).
+    pub keep_screen_on: Option<bool>,
+    /// Admin override: multi-token prediction (None = the device decides).
+    pub enable_mtp: Option<bool>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -71,7 +75,7 @@ pub struct Cache {
 pub type SharedCache = Arc<RwLock<Cache>>;
 
 const NODE_SQL: &str =
-    "select id, org_id, pool_id, public_key, approved, compute_backend, max_context_tokens from nodes";
+    "select id, org_id, pool_id, public_key, approved, compute_backend, max_context_tokens, keep_screen_on, enable_mtp from nodes";
 const POOL_SQL: &str = "select p.id, p.org_id, p.balancing_type::text as balancing, m.id as model_id, m.name, \
      m.file_name, m.size_bytes, m.sha256 from pools p \
      left join pool_models pm on pm.pool_id = p.id \
@@ -113,6 +117,8 @@ fn node_from(r: &sqlx::postgres::PgRow) -> Option<NodeRec> {
             .get::<Option<i32>, _>("max_context_tokens")
             .and_then(|v| u32::try_from(v).ok())
             .filter(|v| *v > 0),
+        keep_screen_on: r.get("keep_screen_on"),
+        enable_mtp: r.get("enable_mtp"),
     })
 }
 

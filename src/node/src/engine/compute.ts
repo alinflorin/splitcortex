@@ -96,6 +96,7 @@ export class ComputeEngine implements TunableEngine {
     return {
       backend: this.admin.backend ?? this.local.backend,
       maxContextTokens: this.admin.maxContextTokens ?? this.local.maxContextTokens,
+      enableMtp: this.admin.enableMtp ?? this.local.enableMtp,
     };
   }
 
@@ -148,23 +149,26 @@ export class ComputeEngine implements TunableEngine {
     }
     backend ??= await this.fastest(path, ctx, caps);
     // Fallbacks, in order: as asked, the CPU, the CPU with the default window.
-    const attempts: [Backend, number][] = [
-      [backend, ctx],
-      ['cpu', ctx],
-      ['cpu', DEFAULT_CONTEXT],
+    const mtp = wanted.enableMtp === true;
+    const attempts: [Backend, number, boolean][] = [
+      [backend, ctx, mtp],
+      [backend, ctx, false], // a bundle without a drafter, or a backend that cannot run it
+      ['cpu', ctx, false],
+      ['cpu', DEFAULT_CONTEXT, false],
     ];
     let lastError: unknown;
-    for (const [i, [b, c]] of attempts.entries()) {
-      if (i > 0 && b === attempts[i - 1]![0] && c === attempts[i - 1]![1]) continue;
+    for (const [i, [b, c, m]] of attempts.entries()) {
+      const prev = attempts[i - 1];
+      if (prev && b === prev[0] && c === prev[1] && m === prev[2]) continue;
       try {
-        await this.base.load(path, { backend: b, maxContextTokens: c });
+        await this.base.load(path, { backend: b, maxContextTokens: c, enableMtp: m });
         this.applied = JSON.stringify(wanted);
-        this.log(`Engine loaded on ${b.toUpperCase()}, context ${c} tokens`);
+        this.log(`Engine loaded on ${b.toUpperCase()}, context ${c} tokens${m ? ', MTP on' : ''}`);
         return;
       } catch (e) {
         lastError = e;
         this.log(
-          `Loading on ${b.toUpperCase()} with context ${c} failed: ${e instanceof Error ? e.message : String(e)}`,
+          `Loading on ${b.toUpperCase()} with context ${c}${m ? ' and MTP' : ''} failed: ${e instanceof Error ? e.message : String(e)}`,
         );
       }
     }

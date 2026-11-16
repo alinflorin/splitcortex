@@ -77,5 +77,8 @@ export const EnrollResponsePlainSchema = z.object({
   approved: z.boolean(),
   /** The gateway's pinned identity; null when the control plane has none configured yet. */
   gateway: z.object({ publicKey: z.string(), url: z.string() }).nullable(),
+  /** What the device joined, to show on the device. */
+  orgName: z.string(),
+  poolName: z.string(),
 });
 export type EnrollResponsePlain = z.infer<typeof EnrollResponsePlainSchema>;

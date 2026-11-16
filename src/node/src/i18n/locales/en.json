@@ -75,7 +75,14 @@
     "approved": "Enrolled",
     "fingerprint": "Key fingerprint",
     "forget": "Forget enrollment",
-    "forgetNote": "Removes the enrollment from this device only. Revoke the device in the web app too."
+    "forgetNote": "Removes the enrollment from this device only. Revoke the device in the web app too.",
+    "organisation": "Organisation",
+    "pool": "Pool",
+    "device": "Device name",
+    "nodeId": "Device ID",
+    "enrolledAt": "Enrolled",
+    "controlPlane": "Control plane",
+    "gateway": "Gateway"
   },
   "logs": {
     "note": "What the node is doing. Prompts and answers are never logged.",
@@ -101,7 +108,11 @@
       "auto": "Automatic",
       "hint": "Prompt, history and answer together. Larger needs more memory; automatic follows the device's RAM. An administrator can override this from the web app.",
       "invalid": "Enter a whole number from {{min}} to {{max}}, or leave empty for automatic."
-    }
+    },
+    "keepScreenOn": "Keep the screen on",
+    "keepScreenOnHint": "Some Android devices only run the GPU at full speed while the app is open in the foreground with the display on. Turns the display's sleep off while the app is open; keep the app open and the device charging. An admin can override this from the web app.",
+    "enableMtp": "Multi-token prediction (MTP)",
+    "enableMtpHint": "Speeds up generation on models that ship a drafter (such as Gemma 4) by predicting several tokens at once. Ignored for models without one. Reloads the model. An admin can override this from the web app."
   },
   "battery": {
     "title": "Keep running in the background",

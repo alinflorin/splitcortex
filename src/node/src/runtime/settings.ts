@@ -28,18 +28,25 @@ export interface NodeSettings {
   compute: ComputeChoice;
   /** Context window in tokens, 0 = automatic. An admin override from the web app wins. */
   maxContextTokens: number;
+  /** Keep the display on while the app is open (some devices only run the GPU at full speed in the foreground, display on). An admin override wins. */
+  keepScreenOn: boolean;
+  /** Multi-token prediction (speculative decoding with the model's drafter, if it has one). An admin override wins. */
+  enableMtp: boolean;
 }
 export const DEFAULT_SETTINGS: NodeSettings = {
   startAtBoot: true,
   connectOnStart: true,
   compute: 'auto',
   maxContextTokens: 0,
+  keepScreenOn: false,
+  enableMtp: false,
 };
 
 /** The engine preferences these settings stand for (undefined = automatic). */
 export const computePrefs = (s: NodeSettings): ComputePrefs => ({
   backend: s.compute === 'auto' ? undefined : s.compute,
   maxContextTokens: s.maxContextTokens > 0 ? s.maxContextTokens : undefined,
+  enableMtp: s.enableMtp,
 });
 
 export async function loadSettings(): Promise<NodeSettings> {

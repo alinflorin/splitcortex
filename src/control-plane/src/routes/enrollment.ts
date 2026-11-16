@@ -19,7 +19,7 @@ import {
 import { requireOrgRole } from '../access';
 import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db } from '../db/client';
-import { enrollments, nodes, pools } from '../db/schema';
+import { enrollments, nodes, organisations, pools } from '../db/schema';
 import {
   b64,
   fingerprint,
@@ -295,7 +295,7 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
       const fp = fingerprint(publicKey);
       const result = await db.transaction(async (tx) => {
         const [pool] = await tx
-          .select({ requireApproval: pools.requireApproval })
+          .select({ requireApproval: pools.requireApproval, name: pools.name })
           .from(pools)
           .where(eq(pools.id, taken.poolId));
         if (!pool) return { error: 'gone' as const };
@@ -328,7 +328,17 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
           entityId: node!.id,
           orgId: taken.orgId,
         });
-        return { nodeId: node!.id, approved, seq };
+        const [org] = await tx
+          .select({ name: organisations.name })
+          .from(organisations)
+          .where(eq(organisations.id, taken.orgId));
+        return {
+          nodeId: node!.id,
+          approved,
+          seq,
+          orgName: org?.name ?? '',
+          poolName: pool.name,
+        };
       });
       if ('error' in result) {
         if (result.error === 'duplicate') {
@@ -343,6 +353,8 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
         fingerprint: fp,
         approved: result.approved,
         gateway,
+        orgName: result.orgName,
+        poolName: result.poolName,
       });
       return {
         sealed: b64(seal(isk, sid, 'response', new TextEncoder().encode(JSON.stringify(response)))),

@@ -12,6 +12,11 @@ export interface StoredEnrollment {
   /** Pinned gateway identity; null if the platform had none yet at enrollment. */
   /** `nextKeys`: keys the gateway announced for a key rotation (signed by the current one); trusted alongside it. */
   gateway: { publicKey: string; url: string; nextKeys?: string[] } | null;
+  /** What the device joined (from the enrollment response, refreshed from the control plane while approved). */
+  orgName?: string;
+  poolName?: string;
+  /** The device's name in the web app. */
+  deviceName?: string;
   enrolledAt: string;
 }
 

@@ -74,6 +74,32 @@ async function setup(slug: string) {
   return { org, pool, other, node: node!, addModel, auth };
 }
 
+describe('node self', () => {
+  it('tells a device its organisation, pool and name, and rejects bad signatures', async () => {
+    const s = await setup('me');
+    const me = await t.app.inject({
+      method: 'GET',
+      url: '/api/node/me',
+      headers: s.auth('GET', '/api/node/me'),
+    });
+    expect(me.statusCode).toBe(200);
+    expect(me.json()).toMatchObject({
+      nodeId: s.node.id,
+      name: 'phone',
+      orgName: 'me',
+      orgSlug: 'me',
+      poolName: 'edge',
+      approved: true,
+    });
+    const bad = await t.app.inject({
+      method: 'GET',
+      url: '/api/node/me',
+      headers: s.auth('GET', '/api/node/other'),
+    });
+    expect(bad.statusCode).toBe(401);
+  });
+});
+
 describe('node model downloads', () => {
   it('lists and streams the ready models of the node pool, with ranges', async () => {
     const s = await setup('dl');

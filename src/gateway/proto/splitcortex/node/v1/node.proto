@@ -105,6 +105,10 @@ message ModelAssignment {
 message NodeConfig {
   string backend = 1;              // "" | "cpu" | "gpu"
   uint32 max_context_tokens = 2;   // 0 = no override
+  string keep_screen_on = 3;       // "" (no override) | "on" | "off": keep the display on while the app is open
+                                   // (some Android devices only run the GPU at full speed in the foreground, display on)
+  string enable_mtp = 4;           // "" (no override) | "on" | "off": multi-token prediction (speculative decoding with the
+                                   // bundle's drafter; ignored when the model has none)
 }
 
 enum ModelPhase {

@@ -7,13 +7,20 @@ import { Card } from '../components/Card';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
 import { runtime, useRuntime } from '../runtime';
+import { refreshEnrollmentInfo } from '../enrollment/info';
 import { clearEnrollment, useEnrollment } from '../enrollment/store';
 
 export default function Home() {
   const { t } = useTranslation();
   const router = useRouter();
   const { enrollment, reload } = useEnrollment();
-  useFocusEffect(useCallback(reload, [reload]));
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+      // The organisation and pool names (and approval) come from the control plane; best effort.
+      void refreshEnrollmentInfo().then(reload);
+    }, [reload]),
+  );
   const rt = useRuntime();
 
   return (
@@ -24,9 +31,24 @@ export default function Home() {
         {enrollment ? (
           <>
             <Text>{t(enrollment.approved ? 'status.approved' : 'status.pending')}</Text>
-            <Text variant="caption" muted>
-              {t('status.fingerprint')}: {enrollment.fingerprint}
-            </Text>
+            {(
+              [
+                ['organisation', enrollment.orgName],
+                ['pool', enrollment.poolName],
+                ['device', enrollment.deviceName],
+                ['nodeId', enrollment.nodeId],
+                ['fingerprint', enrollment.fingerprint],
+                ['enrolledAt', new Date(enrollment.enrolledAt).toLocaleString()],
+                ['controlPlane', enrollment.enrollmentUrl],
+                ['gateway', enrollment.gateway?.url],
+              ] as const
+            ).map(([k, v]) =>
+              v ? (
+                <Text key={k} variant="caption" muted>
+                  {t(`status.${k}`)}: {v}
+                </Text>
+              ) : null,
+            )}
             <Button
               label={t('status.forget')}
               onPress={() => void clearEnrollment().then(reload)}

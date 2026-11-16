@@ -47,6 +47,8 @@ const node = (over: Partial<Node> = {}): Node => ({
   memoryTotalMb: 8192,
   computeBackend: null,
   maxContextTokens: null,
+  keepScreenOn: null,
+  enableMtp: null,
   createdAt: '2026-01-01T00:00:00.000Z',
   live: {
     connectedSince: '2026-01-01T10:00:00.000Z',
@@ -114,6 +116,27 @@ describe('node view', () => {
       expect(calls.filter((c) => c.key.startsWith('PATCH')).at(-1)?.body).toEqual({
         maxContextTokens: null,
       }),
+    );
+  });
+
+  it('overrides multi-token prediction and keep-screen-on with on, off or the device deciding', async () => {
+    const calls = stubApi({
+      'GET /api/organisations/o1/nodes/n1': node({ enableMtp: true, keepScreenOn: null }),
+      'PATCH /api/organisations/o1/nodes/n1': node(),
+    });
+    const user = userEvent.setup();
+    await inOrg('admin', '/nodes/:nodeId', <NodePage />);
+    const mtp = await screen.findByLabelText(/Multi-token prediction/);
+    expect(mtp).toHaveValue('on');
+    await user.selectOptions(mtp, 'off');
+    await user.selectOptions(screen.getByLabelText('Keep the screen on'), 'on');
+    await user.selectOptions(mtp, '');
+    await waitFor(() =>
+      expect(calls.filter((c) => c.key.startsWith('PATCH')).map((c) => c.body)).toEqual([
+        { enableMtp: false },
+        { keepScreenOn: true },
+        { enableMtp: null },
+      ]),
     );
   });
 

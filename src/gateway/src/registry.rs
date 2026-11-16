@@ -52,7 +52,7 @@ pub struct NodeConn {
     /// The engine's context window in tokens as reported by the node (0 = unknown).
     pub ctx_tokens: AtomicU32,
     /// The `NodeConfig` last sent on this connection (backend override, context override); None = not sent yet.
-    pub config_sent: Mutex<Option<(String, u32)>>,
+    pub config_sent: Mutex<Option<(String, u32, String, String)>>,
     /// The node reconnected while requests of its previous connection wait to be resumed: no new request is sent to it
     /// until it lists what it still holds (or a few seconds pass).
     pub resuming: std::sync::atomic::AtomicBool,

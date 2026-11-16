@@ -251,7 +251,13 @@
     "maxContext": "Maximum context (tokens)",
     "deviceDecides": "Device decides (recommended)",
     "maxContextHint": "Empty lets the device decide (RAM based). Prompt, history and answer together; larger needs more memory.",
-    "maxContextInvalid": "Enter a whole number from {{min}} to {{max}}, or leave empty."
+    "maxContextInvalid": "Enter a whole number from {{min}} to {{max}}, or leave empty.",
+    "enableMtp": "Multi-token prediction (MTP)",
+    "enableMtpHint": "Speculative decoding with the model's drafter; ignored when the model has none. Reloads the model.",
+    "keepScreenOn": "Keep the screen on",
+    "keepScreenOnHint": "Some Android devices only run the GPU at full speed with the app open in the foreground and the display on. The app has to stay open.",
+    "on": "On",
+    "off": "Off"
   },
   "models": {
     "title": "Models",

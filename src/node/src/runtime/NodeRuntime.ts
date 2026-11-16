@@ -96,6 +96,10 @@ export class NodeRuntime {
   private active = new Map<string, AbortController>();
   private outbox = new Map<string, Outbox>();
   private offlineTimer: ReturnType<typeof setTimeout> | null = null;
+  private screen: { local: boolean; admin: boolean | undefined } = {
+    local: false,
+    admin: undefined,
+  };
   private appStateSub: { remove(): void } | null = null;
   private generation = 0; // guards async start() against a stop()/restart() that happened meanwhile
 
@@ -131,7 +135,9 @@ export class NodeRuntime {
       return this.block('no-gateway', 'The platform has not given this device a gateway yet');
     const identity = await getOrCreateIdentity();
     if (gen !== this.generation) return;
-    await this.engine.setPrefs('local', computePrefs(await this.readSettings()));
+    const settings = await this.readSettings();
+    await this.engine.setPrefs('local', computePrefs(settings));
+    this.setLocalScreen(settings.keepScreenOn);
     if (gen !== this.generation) return;
 
     let pinned = enrollment.gateway;
@@ -179,7 +185,10 @@ export class NodeRuntime {
     this.conn.start();
     // Coming back to the foreground is a good moment to retry at once instead of waiting out the backoff.
     this.appStateSub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') this.conn?.reconnectNow();
+      if (s === 'active') {
+        this.conn?.reconnectNow();
+        this.applyScreen();
+      }
     });
     this.telemetry = setInterval(() => void this.sendTelemetry(), 10_000);
   }
@@ -197,6 +206,7 @@ export class NodeRuntime {
     this.telemetry = null;
     this.appStateSub?.remove();
     this.appStateSub = null;
+    void this.service.setKeepScreenOn?.(false);
     if (this.offlineTimer) clearTimeout(this.offlineTimer);
     this.offlineTimer = null;
     this.active.forEach((c) => c.abort());
@@ -306,15 +316,30 @@ export class NodeRuntime {
       );
   }
 
+  /** The app's own "keep the screen on" setting changed. The admin override, if any, wins. */
+  setLocalScreen(on: boolean) {
+    this.screen.local = on;
+    this.applyScreen();
+  }
+
+  private applyScreen() {
+    const on = this.screen.admin ?? this.screen.local;
+    void this.service.setKeepScreenOn?.(on);
+  }
+
   /** Overrides from the web app (through the gateway): empty fields mean "no override". */
   private async applyAdminConfig(c: NodeConfig) {
+    this.screen.admin =
+      c.keepScreenOn === 'on' ? true : c.keepScreenOn === 'off' ? false : undefined;
+    this.applyScreen();
     const backend = c.backend === 'cpu' || c.backend === 'gpu' ? c.backend : undefined;
     const maxContextTokens = c.maxContextTokens > 0 ? c.maxContextTokens : undefined;
+    const enableMtp = c.enableMtp === 'on' ? true : c.enableMtp === 'off' ? false : undefined;
     this.log.info(
-      `Admin settings: backend ${backend ?? 'not set'}, context ${maxContextTokens ?? 'not set'}`,
+      `Admin settings: backend ${backend ?? 'not set'}, context ${maxContextTokens ?? 'not set'}, screen ${c.keepScreenOn || 'not set'}, MTP ${c.enableMtp || 'not set'}`,
     );
     try {
-      await this.engine.setPrefs('admin', { backend, maxContextTokens });
+      await this.engine.setPrefs('admin', { backend, maxContextTokens, enableMtp });
     } catch (e) {
       this.log.error(`Engine reload failed: ${e instanceof Error ? e.message : String(e)}`);
     }

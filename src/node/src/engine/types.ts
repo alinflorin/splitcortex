@@ -22,6 +22,8 @@ export interface ComputePrefs {
   backend?: Backend;
   /** Context window in tokens (prompt + history + output). */
   maxContextTokens?: number;
+  /** Multi-token prediction: speculative decoding with the model bundle's drafter (ignored when it has none). */
+  enableMtp?: boolean;
 }
 
 /** What the device can do. */

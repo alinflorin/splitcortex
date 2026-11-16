@@ -75,7 +75,14 @@
     "approved": "Înrolat",
     "fingerprint": "Amprenta cheii",
     "forget": "Uită înrolarea",
-    "forgetNote": "Elimină înrolarea doar de pe acest dispozitiv. Revocă dispozitivul și în aplicația web."
+    "forgetNote": "Elimină înrolarea doar de pe acest dispozitiv. Revocă dispozitivul și în aplicația web.",
+    "organisation": "Organizație",
+    "pool": "Pool",
+    "device": "Numele dispozitivului",
+    "nodeId": "ID dispozitiv",
+    "enrolledAt": "Înrolat",
+    "controlPlane": "Control plane",
+    "gateway": "Gateway"
   },
   "logs": {
     "note": "Ce face nodul. Prompturile și răspunsurile nu sunt niciodată înregistrate.",
@@ -101,7 +108,11 @@
       "auto": "Automat",
       "hint": "Prompt, istoric și răspuns la un loc. Mai mare înseamnă mai multă memorie; automat urmează RAM-ul dispozitivului. Un administrator poate suprascrie din aplicația web.",
       "invalid": "Introdu un număr întreg între {{min}} și {{max}}, sau lasă gol pentru automat."
-    }
+    },
+    "keepScreenOn": "Ține ecranul pornit",
+    "keepScreenOnHint": "Unele dispozitive Android folosesc GPU-ul la capacitate maximă doar cu aplicația deschisă în prim-plan și ecranul aprins. Oprește stingerea ecranului cât timp aplicația e deschisă; ține aplicația deschisă și dispozitivul la încărcat. Un administrator poate suprascrie din aplicația web.",
+    "enableMtp": "Predicție multi-token (MTP)",
+    "enableMtpHint": "Accelerează generarea pe modelele care includ un drafter (de exemplu Gemma 4), prezicând mai mulți tokeni deodată. Ignorată pentru modelele fără drafter. Reîncarcă modelul. Un administrator poate suprascrie din aplicația web."
   },
   "battery": {
     "title": "Rulează în fundal",

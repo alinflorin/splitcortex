@@ -69,7 +69,11 @@ const approved = {
 function setup() {
   mockSent.length = 0;
   mockOnline = true;
-  const service = { start: jest.fn(async () => undefined), stop: jest.fn(async () => undefined) };
+  const service = {
+    start: jest.fn(async () => undefined),
+    stop: jest.fn(async () => undefined),
+    setKeepScreenOn: jest.fn(async () => undefined),
+  };
   const telemetry = jest.fn(async () => ({
     cpuPercent: 42.5,
     memoryUsedMb: 1234.4,
@@ -82,6 +86,8 @@ function setup() {
     connectOnStart: true,
     compute: 'gpu' as const,
     maxContextTokens: 0,
+    keepScreenOn: true,
+    enableMtp: true,
   });
   return { rt: new NodeRuntime(engine, service, telemetry, settings), service, telemetry };
 }
@@ -123,15 +129,17 @@ describe('NodeRuntime', () => {
     expect(engine.setPrefs).toHaveBeenCalledWith('local', {
       backend: 'gpu',
       maxContextTokens: undefined,
+      enableMtp: true,
     });
     mockOnBody?.({
       case: 'nodeConfig',
-      value: { backend: 'cpu', maxContextTokens: 2048 },
+      value: { backend: 'cpu', maxContextTokens: 2048, enableMtp: 'off' },
     });
     await jest.advanceTimersByTimeAsync(0);
     expect(engine.setPrefs).toHaveBeenCalledWith('admin', {
       backend: 'cpu',
       maxContextTokens: 2048,
+      enableMtp: false,
     });
     // an empty config clears the override
     mockOnBody?.({ case: 'nodeConfig', value: { backend: '', maxContextTokens: 0 } });
@@ -139,11 +147,29 @@ describe('NodeRuntime', () => {
     expect(engine.setPrefs).toHaveBeenLastCalledWith('admin', {
       backend: undefined,
       maxContextTokens: undefined,
+      enableMtp: undefined,
     });
     expect(rt.getSnapshot()).toMatchObject({ backend: 'gpu', maxContextTokens: 4096 });
     const t = mockSent.filter((m) => m.case === 'telemetry').at(-1);
     expect(t?.value).toMatchObject({ backend: 'gpu', maxContextTokens: 4096 });
     await rt.stop();
+  });
+
+  it("keeps the screen on by the app's setting unless the admin overrides it", async () => {
+    mockEnrollment = approved;
+    const { rt, service } = setup();
+    await rt.start();
+    expect(service.setKeepScreenOn).toHaveBeenLastCalledWith(true);
+    mockOnBody?.({ case: 'nodeConfig', value: { keepScreenOn: 'off' } });
+    await jest.advanceTimersByTimeAsync(0);
+    expect(service.setKeepScreenOn).toHaveBeenLastCalledWith(false);
+    mockOnBody?.({ case: 'nodeConfig', value: { keepScreenOn: '' } }); // override removed
+    await jest.advanceTimersByTimeAsync(0);
+    expect(service.setKeepScreenOn).toHaveBeenLastCalledWith(true);
+    rt.setLocalScreen(false);
+    expect(service.setKeepScreenOn).toHaveBeenLastCalledWith(false);
+    await rt.stop();
+    expect(service.setKeepScreenOn).toHaveBeenLastCalledWith(false);
   });
 
   it('reports cpu, memory, battery and temperature every 10 seconds', async () => {

@@ -106,6 +106,10 @@ export const nodes = pgTable(
     computeBackend: text('compute_backend'),
     /** Admin override of the engine's context window in tokens; null = the device decides. */
     maxContextTokens: integer('max_context_tokens'),
+    /** Admin override: keep the device's display on while the app is open (some devices only use the GPU at full speed then); null = the device decides. */
+    keepScreenOn: boolean('keep_screen_on'),
+    /** Admin override: enable multi-token prediction (speculative decoding with the bundle's drafter); null = the device decides. */
+    enableMtp: boolean('enable_mtp'),
     createdAt: createdAt(),
   },
   (t) => [index('nodes_pool_idx').on(t.poolId)],

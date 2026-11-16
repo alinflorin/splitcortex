@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { ErrorSchema, NodeModelParamsSchema, NodeModelSchema } from '../dto';
+import { ErrorSchema, NodeModelParamsSchema, NodeModelSchema, NodeSelfSchema } from '../dto';
 import type { Db } from '../db/client';
-import { models, poolModels } from '../db/schema';
+import { models, nodes, organisations, poolModels, pools } from '../db/schema';
 import type { ModelStorage } from '../storage/types';
 
 type ByteRange = { start: number; end: number };
@@ -51,6 +51,41 @@ export const nodeModelRoutes: FastifyPluginAsyncZod<{
           modelId ? eq(models.id, modelId) : undefined,
         ),
       );
+
+  app.get(
+    '/node/me',
+    {
+      onRequest: app.authenticateNode,
+      schema: {
+        tags: ['node'],
+        summary: 'The calling device: its name, organisation and pool (shown in the node app)',
+        response: { 200: NodeSelfSchema, 401: ErrorSchema },
+      },
+    },
+    async (req) => {
+      const [row] = await db
+        .select({
+          node: nodes,
+          orgName: organisations.name,
+          orgSlug: organisations.slug,
+          poolName: pools.name,
+        })
+        .from(nodes)
+        .innerJoin(organisations, eq(organisations.id, nodes.orgId))
+        .innerJoin(pools, eq(pools.id, nodes.poolId))
+        .where(eq(nodes.id, req.node!.id));
+      if (!row) throw app.httpErrors.unauthorized('Invalid node credentials');
+      return {
+        nodeId: row.node.id,
+        name: row.node.name,
+        orgName: row.orgName,
+        orgSlug: row.orgSlug,
+        poolName: row.poolName,
+        approved: row.node.approved,
+        createdAt: row.node.createdAt.toISOString(),
+      };
+    },
+  );
 
   app.get(
     '/node/models',
