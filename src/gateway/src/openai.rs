@@ -312,6 +312,10 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
             "messages must not be empty",
         ));
     }
+    if app.draining.load(std::sync::atomic::Ordering::Relaxed) {
+        // Shutting down: peers and clients try another instance (503), requests already running finish.
+        return Err(ApiError::unavailable("This instance is shutting down; try again."));
+    }
     if !app.usage.healthy() {
         return Err(ApiError::unavailable("Usage metering is behind; try again shortly."));
     }

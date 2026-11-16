@@ -22,6 +22,10 @@ pub struct Config {
     pub internal_port: u16,
     /// Shared by all instances (derived from the identity key): authenticates forwarded requests.
     pub internal_token: String,
+    /// After SIGTERM: how long the instance keeps serving normally so the load balancer can drop it (readiness is already failing).
+    pub drain_delay_secs: u64,
+    /// After SIGTERM: the longest the instance waits for running requests before it exits anyway.
+    pub drain_timeout_secs: u64,
 }
 
 impl Config {
@@ -59,6 +63,8 @@ impl Config {
             advertise,
             internal_port,
             internal_token,
+            drain_delay_secs: env_or("DRAIN_DELAY_SECONDS", 5),
+            drain_timeout_secs: env_or("DRAIN_TIMEOUT_SECONDS", 3600),
         })
     }
 }

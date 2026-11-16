@@ -11,6 +11,7 @@ mod state;
 mod usage;
 
 use std::collections::HashMap;
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex, RwLock};
 
 use anyhow::Result;
@@ -96,6 +97,7 @@ async fn main() -> Result<()> {
         http: cluster::http_client(),
         changed: changed.clone(),
         cache_ready: ready_rx,
+        draining: Default::default(),
         unknown_keys: Mutex::new(HashMap::new()),
         key_touched: Mutex::new(HashMap::new()),
     });
@@ -134,13 +136,11 @@ async fn main() -> Result<()> {
         .route("/v1/chat/completions", post(openai::chat_completions))
         .with_state(app.clone());
 
+    let (drain_delay, drain_timeout) = (cfg.drain_delay_secs, cfg.drain_timeout_secs);
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", cfg.port)).await?;
     info!(port = cfg.port, "gateway listening");
     axum::serve(listener, router)
-        .with_graceful_shutdown(async {
-            let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).unwrap();
-            tokio::select! { _ = term.recv() => {}, _ = tokio::signal::ctrl_c() => {} }
-        })
+        .with_graceful_shutdown(drain(app.clone(), drain_delay, drain_timeout))
         .await?;
 
     // Flush the usage counters and leave the directory before exiting.
@@ -197,7 +197,41 @@ async fn rotation_status() -> Result<()> {
     Ok(())
 }
 
+/// Graceful shutdown. On SIGTERM: stop being ready and leave the directory (peers stop forwarding here), keep serving
+/// for `delay` seconds while the load balancer drops the pod, then refuse new requests and node connections, release
+/// idle nodes (they reconnect to other instances) and wait until every running request has finished, at most
+/// `timeout` seconds. Only then does the server stop; busy nodes keep their connection until their request is done.
+async fn drain(app: Arc<AppState>, delay: u64, timeout: u64) {
+    let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).unwrap();
+    tokio::select! { _ = term.recv() => {}, _ = tokio::signal::ctrl_c() => {} }
+    info!(delay, timeout, "shutting down: draining");
+    app.draining.store(true, Ordering::Relaxed);
+    cluster::leave_directory(&app).await;
+    tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(timeout);
+    loop {
+        for conn in app.registry.all() {
+            if conn.load() == 0 && app.registry.waiting(conn.node_id) == 0 {
+                let _ = conn.tx.try_send(registry::Outbound::Close);
+            }
+        }
+        let active = app.registry.active_requests();
+        if active == 0 {
+            break;
+        }
+        if tokio::time::Instant::now() >= deadline {
+            tracing::warn!(active, "drain deadline reached, exiting with requests still running");
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
+    info!("drained");
+}
+
 async fn readyz(State(app): State<Arc<AppState>>) -> StatusCode {
+    if app.draining.load(Ordering::Relaxed) {
+        return StatusCode::SERVICE_UNAVAILABLE;
+    }
     if *app.cache_ready.borrow() {
         StatusCode::OK
     } else {

@@ -30,7 +30,9 @@ spec:
         # A key rotation step changes the identity Secrets: restart the pods so they read them (see docs/gateway.md).
         splitcortex.io/gateway-rotation: {{ .Values.gateway.rotation.stage | quote }}
     spec:
-      terminationGracePeriodSeconds: 30
+      # A pod that is replaced stops taking new work and keeps running until its requests finish (docs/gateway.md), at
+      # most gateway.drain.timeoutSeconds, plus the delay and a minute to flush usage.
+      terminationGracePeriodSeconds: {{ add .Values.gateway.drain.timeoutSeconds .Values.gateway.drain.delaySeconds 60 }}
       containers:
         - name: gateway
           image: {{ include "splitcortex.image" (dict "root" . "image" .Values.gateway.image) | quote }}
@@ -63,6 +65,10 @@ spec:
               value: {{ .Values.gateway.logLevel | quote }}
             - name: USAGE_MAX_BUCKETS
               value: {{ .Values.gateway.usage.maxBuckets | quote }}
+            - name: DRAIN_DELAY_SECONDS
+              value: {{ .Values.gateway.drain.delaySeconds | quote }}
+            - name: DRAIN_TIMEOUT_SECONDS
+              value: {{ .Values.gateway.drain.timeoutSeconds | quote }}
             - name: USAGE_MAX_AGE_SECONDS
               value: {{ .Values.gateway.usage.maxAgeSeconds | quote }}
           ports:

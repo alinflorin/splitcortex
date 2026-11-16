@@ -46,6 +46,10 @@ fn env(body: Body) -> Envelope {
 }
 
 pub async fn upgrade(ws: WebSocketUpgrade, State(app): State<Arc<AppState>>) -> Response {
+    if app.draining.load(Ordering::Relaxed) {
+        // Shutting down: the node reconnects (with backoff) and lands on another instance.
+        return axum::response::IntoResponse::into_response(axum::http::StatusCode::SERVICE_UNAVAILABLE);
+    }
     ws.max_message_size(1 << 20).on_upgrade(move |socket| async move {
         if let Err(reason) = serve(app, socket).await {
             // Never says why to the node; the log carries no key material.

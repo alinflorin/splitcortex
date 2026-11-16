@@ -28,6 +28,8 @@ pub struct AppState {
     pub http: crate::cluster::HttpClient,
     pub changed: Arc<Notify>,
     pub cache_ready: watch::Receiver<bool>,
+    /// Set on SIGTERM: no new requests or node connections are accepted, running requests finish (see `main::drain`).
+    pub draining: std::sync::atomic::AtomicBool,
     /// Short negative cache for unknown API key hashes (blunts invalid-key floods).
     pub unknown_keys: Mutex<HashMap<String, Instant>>,
     /// Last time `last_used_at` was written per key (throttle).

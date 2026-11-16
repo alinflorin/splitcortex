@@ -54,6 +54,10 @@ const FORWARD_TIMEOUT: Duration = Duration::from_secs(130);
 pub async fn instance_loop(app: Arc<AppState>) {
     let Some(addr) = app.advertise.clone() else { return };
     loop {
+        if app.draining.load(std::sync::atomic::Ordering::Relaxed) {
+            tokio::time::sleep(HEARTBEAT).await;
+            continue;
+        }
         let _ = sqlx::query(
             "insert into gateway_instances (id, address, updated_at) values ($1, $2, now()) \
              on conflict (id) do update set address = $2, updated_at = now()",
@@ -67,6 +71,14 @@ pub async fn instance_loop(app: Arc<AppState>) {
             .await;
         tokio::time::sleep(HEARTBEAT).await;
     }
+}
+
+/// Removes this instance from the directory so peers stop forwarding requests to it.
+pub async fn leave_directory(app: &AppState) {
+    let _ = sqlx::query("delete from gateway_instances where id = $1")
+        .bind(&app.instance_id)
+        .execute(&app.db)
+        .await;
 }
 
 /// Removes this instance from the directory (graceful shutdown) and marks its nodes as not connected.

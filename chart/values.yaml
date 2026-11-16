@@ -277,6 +277,11 @@ gateway:
   service:
     port: 80
   readOnlyRootFilesystem: true   # Tilt dev sets false (cargo writes build output)
+  # Graceful shutdown: on SIGTERM the instance fails readiness, keeps serving for delaySeconds (the load balancer drops it),
+  # then refuses new work and waits for running requests, at most timeoutSeconds (set it above your longest request).
+  drain:
+    delaySeconds: 5
+    timeoutSeconds: 3600
   # Fail closed (503) when this many usage buckets are unflushed, or the oldest is older than this many seconds.
   usage:
     maxBuckets: 20000

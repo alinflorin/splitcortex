@@ -27,6 +27,9 @@ pub async fn run_loop(app: Arc<AppState>) {
     let busy: Arc<Mutex<HashSet<Uuid>>> = Default::default();
     loop {
         tokio::time::sleep(Duration::from_secs(4)).await;
+        if app.draining.load(std::sync::atomic::Ordering::Relaxed) {
+            continue;
+        }
         let _ = sqlx::query(
             "update benchmark_results set status = 'failed', error = 'The node was not available in time', \
              finished_at = now() where status in ('pending', 'running') \

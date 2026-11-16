@@ -147,6 +147,11 @@ impl Registry {
         true
     }
 
+    /// Requests that are still running (including ones that wait for their node to resume them).
+    pub fn active_requests(&self) -> usize {
+        self.requests.lock().unwrap().len()
+    }
+
     pub fn all(&self) -> Vec<Arc<NodeConn>> {
         self.nodes.read().unwrap().values().cloned().collect()
     }
