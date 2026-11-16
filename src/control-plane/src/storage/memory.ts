@@ -1,24 +1,29 @@
 import { randomUUID } from 'node:crypto';
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 import type { CompletedPart, ModelStorage } from './types';
 
 /** In-memory storage for tests; also records what was asked of it. */
 export function createMemoryStorage(): ModelStorage & {
   objects: Map<string, number>;
   uploads: Map<string, string>;
+  /** When each open upload was started (tests set it to age an upload). */
+  initiated: Map<string, Date>;
   /** Bytes received per part, keyed by uploadId. */
   parts: Map<string, Map<number, number>>;
 } {
   const objects = new Map<string, number>();
   const uploads = new Map<string, string>(); // uploadId -> key
   const parts = new Map<string, Map<number, number>>();
+  const initiated = new Map<string, Date>();
   return {
     objects,
     uploads,
+    initiated,
     parts,
     async createMultipart(key) {
       const uploadId = randomUUID();
       uploads.set(uploadId, key);
+      initiated.set(uploadId, new Date());
       parts.set(uploadId, new Map());
       return { uploadId };
     },
@@ -39,6 +44,8 @@ export function createMemoryStorage(): ModelStorage & {
     },
     async abortMultipart(_key, uploadId) {
       uploads.delete(uploadId);
+      initiated.delete(uploadId);
+      parts.delete(uploadId);
     },
     async head(key) {
       return objects.has(key) ? { size: objects.get(key)! } : null;
@@ -51,6 +58,20 @@ export function createMemoryStorage(): ModelStorage & {
     },
     async delete(key) {
       objects.delete(key);
+    },
+    async get(key, range) {
+      const size = objects.get(key);
+      if (size === undefined) throw new Error('NoSuchKey');
+      const start = range?.start ?? 0;
+      const end = range?.end ?? size - 1;
+      return Readable.from([Buffer.alloc(end - start + 1, 7)]); // content is not kept, only its size
+    },
+    async listMultipart() {
+      return [...uploads].map(([uploadId, key]) => ({
+        key,
+        uploadId,
+        initiated: initiated.get(uploadId) ?? new Date(),
+      }));
     },
   };
 }

@@ -226,6 +226,13 @@ controlPlane:
   migrate:
     enabled: true
     command: [node, dist/db/migrate.js]
+  # CronJob aborting abandoned multipart uploads (uploads older than maxAgeHours that never completed, and open
+  # multipart uploads no model owns). Needs garage.enabled.
+  sweep:
+    enabled: true
+    schedule: "17 3 * * *"   # daily
+    maxAgeHours: 24
+    command: [node, dist/storage/sweep-cli.js]   # Tilt overrides it to use tsx
   ingress:
     enabled: true
     className: traefik   # keep equal to ingress.className

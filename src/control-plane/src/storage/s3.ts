@@ -3,13 +3,16 @@ import {
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
+  ListMultipartUploadsCommand,
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
+import type { Readable } from 'node:stream';
 import type { Config } from '../config';
-import type { ModelStorage } from './types';
+import type { ModelStorage, OpenMultipart } from './types';
 
 export interface S3Settings {
   endpoint: string;
@@ -93,6 +96,32 @@ export function createS3Storage(s: S3Settings): ModelStorage {
     },
     async delete(Key) {
       await client.send(new DeleteObjectCommand({ Bucket, Key }));
+    },
+    async get(Key, range) {
+      const res = await client.send(
+        new GetObjectCommand({
+          Bucket,
+          Key,
+          Range: range ? `bytes=${range.start}-${range.end}` : undefined,
+        }),
+      );
+      return res.Body as Readable; // a Node.js stream outside the browser
+    },
+    async listMultipart() {
+      const open: OpenMultipart[] = [];
+      let KeyMarker: string | undefined;
+      let UploadIdMarker: string | undefined;
+      do {
+        const res = await client.send(
+          new ListMultipartUploadsCommand({ Bucket, KeyMarker, UploadIdMarker }),
+        );
+        for (const u of res.Uploads ?? [])
+          if (u.Key && u.UploadId && u.Initiated)
+            open.push({ key: u.Key, uploadId: u.UploadId, initiated: u.Initiated });
+        KeyMarker = res.IsTruncated ? res.NextKeyMarker : undefined;
+        UploadIdMarker = res.IsTruncated ? res.NextUploadIdMarker : undefined;
+      } while (KeyMarker);
+      return open;
     },
   };
 }

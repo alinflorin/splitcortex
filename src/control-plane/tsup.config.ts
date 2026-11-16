@@ -5,6 +5,7 @@ export default defineConfig({
   entry: {
     main: 'src/main.ts', 'db/migrate': 'src/db/migrate.ts',
     'storage/bootstrap-cli': 'src/storage/bootstrap-cli.ts',
+    'storage/sweep-cli': 'src/storage/sweep-cli.ts',
   },
   format: 'esm',
   target: 'node24',

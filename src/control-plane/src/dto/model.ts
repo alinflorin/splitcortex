@@ -75,3 +75,16 @@ export const PoolModelParamsSchema = z.object({
   poolId: IdSchema,
   modelId: IdSchema,
 });
+
+/** What a node sees of a model of its pool (device-facing API). */
+export const NodeModelSchema = z.object({
+  id: IdSchema,
+  name: z.string(),
+  fileName: z.string(),
+  sizeBytes: z.number().int(),
+  /** Hex sha256 of the file when known (mirrored models); the node verifies the download against it. */
+  sha256: z.string().nullable(),
+});
+export type NodeModelDto = z.infer<typeof NodeModelSchema>;
+
+export const NodeModelParamsSchema = z.object({ modelId: IdSchema });

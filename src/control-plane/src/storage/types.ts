@@ -23,4 +23,14 @@ export interface ModelStorage {
   /** Streams `body` into the bucket, reporting bytes as they go. Resolves with the final size. */
   put(key: string, body: Readable, opts?: { signal?: AbortSignal }): Promise<{ size: number }>;
   delete(key: string): Promise<void>;
+  /** Streams the object, or the inclusive byte range `range`. */
+  get(key: string, range?: { start: number; end: number }): Promise<Readable>;
+  /** Every open multipart upload in the bucket (for the sweeper). */
+  listMultipart(): Promise<OpenMultipart[]>;
+}
+
+export interface OpenMultipart {
+  key: string;
+  uploadId: string;
+  initiated: Date;
 }

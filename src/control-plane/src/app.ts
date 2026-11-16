@@ -11,12 +11,14 @@ import {
 import { sql } from 'drizzle-orm';
 import type { Db } from './db/client';
 import auth, { type VerifyToken } from './plugins/auth';
+import nodeAuth from './plugins/node-auth';
 import { apiKeyRoutes } from './routes/api-keys';
 import { enrollmentRoutes, type GatewayIdentity } from './routes/enrollment';
 import { memberRoutes } from './routes/members';
 import { meRoutes } from './routes/me';
 import { modelRoutes } from './routes/models';
 import type { ModelStorage } from './storage/types';
+import { nodeModelRoutes } from './routes/node-models';
 import { nodeRoutes } from './routes/nodes';
 import { organisationRoutes } from './routes/organisations';
 import { poolRoutes } from './routes/pools';
@@ -90,6 +92,7 @@ export async function buildApp({
     },
   });
   await app.register(auth, { verify });
+  await app.register(nodeAuth, { db });
 
   // Probes (not exposed through the ingress).
   app.get('/healthz', { schema: { hide: true } }, async () => ({ status: 'ok' }));
@@ -106,6 +109,7 @@ export async function buildApp({
       await api.register(poolRoutes, { db });
       await api.register(nodeRoutes, { db });
       await api.register(modelRoutes, { db, storage });
+      await api.register(nodeModelRoutes, { db, storage });
       await api.register(usageRoutes, { db });
       await api.register(apiKeyRoutes, { db });
       await api.register(enrollmentRoutes, { db, gateway });

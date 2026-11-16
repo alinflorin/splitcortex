@@ -63,11 +63,12 @@ k8s_yaml(local(
     'helm template splitcortex chart -n %s %s ' % (NAMESPACE, values_args) +
     '--show-only templates/control-plane-deployment.yaml --show-only templates/control-plane-service.yaml ' +
     '--show-only templates/control-plane-ingress.yaml --show-only templates/control-plane-migrate-job.yaml ' +
-    '--show-only templates/garage-bootstrap-job.yaml ' +
+    '--show-only templates/garage-bootstrap-job.yaml --show-only templates/control-plane-sweep-cronjob.yaml ' +
     '--set controlPlane.readOnlyRootFilesystem=false ' +
     # The dev image has no build output: run the migrator through tsx (cwd is /app).
     "--set 'controlPlane.migrate.command={./node_modules/.bin/tsx,src/db/migrate.ts}' " +
-    "--set 'garage.bootstrap.command={./node_modules/.bin/tsx,src/storage/bootstrap-cli.ts}'",
+    "--set 'garage.bootstrap.command={./node_modules/.bin/tsx,src/storage/bootstrap-cli.ts}' " +
+    "--set 'controlPlane.sweep.command={./node_modules/.bin/tsx,src/storage/sweep-cli.ts}'",
     quiet=True,
 ))
 # The chart runs migrations as a Helm hook (post-install/pre-upgrade); under Tilt it is a plain Job that must
@@ -75,6 +76,8 @@ k8s_yaml(local(
 k8s_resource('control-plane-migrate', resource_deps=['chart'], labels=['apps'])
 # Same for the Garage bootstrap Job (layout, key, bucket): a plain Job under Tilt, run with the control plane image.
 k8s_resource('garage-bootstrap', resource_deps=['chart'], labels=['apps'])
+# The abandoned-upload sweeper CronJob (daily; trigger it manually from the Tilt UI).
+k8s_resource('control-plane-sweep', resource_deps=['chart'], labels=['apps'], auto_init=False)
 k8s_resource('control-plane', resource_deps=['chart', 'control-plane-migrate', 'garage-bootstrap'], labels=['apps'],
              links=['https://app.splitcortex.127.0.0.1.nip.io/api/docs'])
 

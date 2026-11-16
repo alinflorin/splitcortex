@@ -1,0 +1,49 @@
+{{- if and .Values.controlPlane.enabled .Values.garage.enabled .Values.controlPlane.sweep.enabled }}
+{{- /*
+  Abandoned multipart upload sweeper (src/control-plane/src/storage/sweep.ts): removes browser uploads that were never
+  completed and open multipart uploads no model refers to, so their parts do not fill the bucket. Runs with the control
+  plane image and the same environment (database + S3).
+*/ -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: control-plane-sweep
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: control-plane-sweep
+spec:
+  schedule: {{ .Values.controlPlane.sweep.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "control-plane-sweep") | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: sweep
+              image: {{ include "splitcortex.image" (dict "root" . "image" .Values.controlPlane.image) | quote }}
+              imagePullPolicy: {{ .Values.controlPlane.image.pullPolicy }}
+              command:
+                {{- toYaml .Values.controlPlane.sweep.command | nindent 16 }}
+              env:
+                {{- include "splitcortex.controlPlaneEnv" . | nindent 16 }}
+                - name: SWEEP_MAX_AGE_HOURS
+                  value: {{ .Values.controlPlane.sweep.maxAgeHours | quote }}
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: {{ .Values.controlPlane.readOnlyRootFilesystem }}
+                capabilities: {drop: [ALL]}
+              volumeMounts:
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - name: tmp
+              emptyDir: {}
+{{- end }}
