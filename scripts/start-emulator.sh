@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Starts the Android emulator for local development of the node app (src/node). No root needed.
+# Starts the Android emulator for local development of the node app (src/mobile-node). No root needed.
 #
 # - Boots the AVD (any image, Google Play included).
 # - Starts dnsmasq (127.0.0.1:53) and boots the emulator with `-dns-server 127.0.0.1`, so

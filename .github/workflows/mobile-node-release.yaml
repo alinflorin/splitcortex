@@ -1,32 +1,32 @@
-# Mobile app release, tag node-vX.Y.Z (independent of the server vX.Y.Z tags): verify, build the
+# Mobile app release, tag mobile-node-vX.Y.Z (independent of the server vX.Y.Z tags): verify, build the
 # signed release APK and attach it to a GitHub release named after the tag.
-name: Node release
+name: Mobile node release
 
 on:
   push:
-    tags: ["node-v[0-9]+.[0-9]+.[0-9]+"]
+    tags: ["mobile-node-v[0-9]+.[0-9]+.[0-9]+"]
 
 concurrency:
-  group: node-release-${{ github.ref }}
+  group: mobile-node-release-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  node:
-    uses: ./.github/workflows/node.yaml
+  mobile-node:
+    uses: ./.github/workflows/mobile-node.yaml
     secrets: inherit
 
   github-release:
-    needs: node
+    needs: mobile-node
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: splitcortex-node-apk
+          name: splitcortex-mobile-node-apk
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -35,4 +35,4 @@ jobs:
         run: |
           # Not "latest": that badge belongs to the server release.
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag --latest=false
-          gh release upload "$TAG" splitcortex-node-*.apk --clobber
+          gh release upload "$TAG" splitcortex-mobile-node-*.apk --clobber

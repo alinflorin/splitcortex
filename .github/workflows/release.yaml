@@ -1,7 +1,7 @@
 # Server release, tag vX.Y.Z: validate and publish the chart, build all images (chart version,
 # appVersion and image tags all equal X.Y.Z), publish the GitHub release, then deploy to stg.
 # prd is promoted by hand (deploy.yaml) with the same version, nothing is rebuilt.
-# The mobile app has its own tag stream, node-vX.Y.Z (node-release.yaml).
+# The mobile app has its own tag stream, mobile-node-vX.Y.Z (mobile-node-release.yaml).
 name: Release
 
 on:

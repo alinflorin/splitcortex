@@ -1,41 +1,41 @@
-name: Node app
+name: Mobile node app
 
 on:
   push:
     branches: [main]
-    paths: ["src/node/**", ".github/workflows/node.yaml"]
+    paths: ["src/mobile-node/**", ".github/workflows/mobile-node.yaml"]
   pull_request:
-    paths: ["src/node/**", ".github/workflows/node.yaml"]
+    paths: ["src/mobile-node/**", ".github/workflows/mobile-node.yaml"]
   workflow_dispatch:
-  # Tags (node-vX.Y.Z) are handled by node-release.yaml, which calls this workflow.
+  # Tags (mobile-node-vX.Y.Z) are handled by mobile-node-release.yaml, which calls this workflow.
   workflow_call:
 
 concurrency:
-  group: node-${{ github.ref }}
+  group: mobile-node-${{ github.ref }}
   cancel-in-progress: ${{ github.ref_type != 'tag' }}
 
 permissions:
   contents: read
 
 # The app is built locally on devices (no EAS, no image, no deploy), so this workflow only
-# verifies it and produces a debug APK artifact; node-release.yaml calls it on a node-vX.Y.Z tag, which builds a signed release APK
+# verifies it and produces a debug APK artifact; mobile-node-release.yaml calls it on a mobile-node-vX.Y.Z tag, which builds a signed release APK
 # (secrets ANDROID_KEYSTORE_*) and attaches it to the GitHub release.
 jobs:
   verify:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: src/node
+        working-directory: src/mobile-node
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with:
-          package_json_file: src/node/package.json
+          package_json_file: src/mobile-node/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: src/node/pnpm-lock.yaml
+          cache-dependency-path: src/mobile-node/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm format:check
@@ -48,17 +48,17 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: src/node
+        working-directory: src/mobile-node
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with:
-          package_json_file: src/node/package.json
+          package_json_file: src/mobile-node/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: src/node/pnpm-lock.yaml
+          cache-dependency-path: src/mobile-node/pnpm-lock.yaml
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -75,11 +75,11 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
-            [ -n "${!v}" ] || { echo "::error::secret ANDROID_$v is not set (see src/node/scripts/create-keystore.sh)"; exit 1; }
+            [ -n "${!v}" ] || { echo "::error::secret ANDROID_$v is not set (see src/mobile-node/scripts/create-keystore.sh)"; exit 1; }
           done
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           {
-            echo "APP_VERSION=${GITHUB_REF_NAME#node-v}"
+            echo "APP_VERSION=${GITHUB_REF_NAME#mobile-node-v}"
             echo "SC_KEYSTORE_FILE=$RUNNER_TEMP/release.jks"
             echo "SC_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
             echo "SC_KEY_ALIAS=$KEY_ALIAS"
@@ -88,19 +88,19 @@ jobs:
       # Generates the native android/ project (git-ignored, never committed).
       - run: pnpm exec expo prebuild --platform android --no-install
       - name: Build APK
-        working-directory: src/node/android
+        working-directory: src/mobile-node/android
         run: ./gradlew ${{ github.ref_type == 'tag' && 'assembleRelease' || 'assembleDebug' }}
-      # Tag builds are named after the version (splitcortex-node-vX.Y.Z.apk), others after the commit.
+      # Tag builds are named after the version (splitcortex-mobile-node-vX.Y.Z.apk), others after the commit.
       - name: Name the APK
         run: |
           if [ "$GITHUB_REF_TYPE" = tag ]; then
-            cp android/app/build/outputs/apk/release/app-release.apk "splitcortex-node-v${GITHUB_REF_NAME#node-v}.apk"
+            cp android/app/build/outputs/apk/release/app-release.apk "splitcortex-mobile-node-v${GITHUB_REF_NAME#mobile-node-v}.apk"
           else
-            cp android/app/build/outputs/apk/debug/app-debug.apk "splitcortex-node-$GITHUB_SHA.apk"
+            cp android/app/build/outputs/apk/debug/app-debug.apk "splitcortex-mobile-node-$GITHUB_SHA.apk"
           fi
       - uses: actions/upload-artifact@v7
         with:
-          name: splitcortex-node-apk
-          path: src/node/splitcortex-node-*.apk
+          name: splitcortex-mobile-node-apk
+          path: src/mobile-node/splitcortex-mobile-node-*.apk
           if-no-files-found: error
           retention-days: 14
