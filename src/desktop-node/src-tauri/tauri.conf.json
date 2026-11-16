@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SplitCortex Node",
+  "version": "0.0.0",
+  "identifier": "com.splitcortex.node",
+  "build": {
+    "beforeDevCommand": "pnpm litert:fetch && pnpm dev",
+    "devUrl": "http://127.0.0.1:5175",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "SplitCortex Node",
+        "width": 960,
+        "height": 800,
+        "minWidth": 420,
+        "minHeight": 560,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost https: wss:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "createUpdaterArtifacts": true,
+    "resources": {
+      "resources/litert/": "litert/"
+    },
+    "publisher": "SplitCortex",
+    "shortDescription": "Serve AI inference for your SplitCortex pool from this computer"
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERENTA5QkVFODEzNEM1OEIKUldTTHhUU0I3cHRRM2Y5ZkcybHlWd3ltYkxwcWZyTXBFNkpRbnlmeDRZVmpYc3pyUllqOVk4Ly8K",
+      "endpoints": [
+        "https://github.com/alinflorin/splitcortex/releases/download/desktop-node-updater/latest.json"
+      ]
+    }
+  }
+}

@@ -29,11 +29,29 @@
     "ro": "Română"
   },
   "apps": {
-    "title": "Descarcă aplicația pentru noduri",
-    "body": "Instalează aplicația pe dispozitivul pe care vrei să îl transformi într-un nod.",
-    "apk": "Descarcă APK-ul din GitHub Releases",
-    "play": "Disponibil pe Google Play",
-    "ios": "Descarcă din App Store"
+    "title": "Rulează un nod",
+    "body": "Alege unde rulezi un nod: instalează o aplicație sau deschide nodul web într-un browser. Fiecare se alătură unui grup cu un cod din Adaugă dispozitiv.",
+    "mobile": {
+      "title": "Aplicația mobilă",
+      "body": "Transformă un telefon Android într-un nod mereu pornit. Continuă să servească și cu ecranul stins.",
+      "apk": "Descarcă APK-ul din GitHub Releases",
+      "play": "Disponibil pe Google Play",
+      "ios": "Descarcă din App Store"
+    },
+    "desktop": {
+      "title": "Aplicația desktop",
+      "body": "Servește de pe un computer Linux, macOS (Apple silicon) sau Windows. Rulează în bara de sistem și se actualizează singură.",
+      "download": "Descarcă pentru desktop"
+    },
+    "web": {
+      "title": "Nod web",
+      "body": "Fără instalare: deschide nodul web într-o filă de browser și alătură-te cu un cod. Servește doar cât timp fila rămâne deschisă.",
+      "open": "Deschide nodul web",
+      "share": "Distribuie linkul",
+      "shareTitle": "Nodul web SplitCortex",
+      "copied": "Linkul nodului web a fost copiat",
+      "shareFailed": "Nu am putut distribui linkul"
+    }
   },
   "home": {
     "title": "Pune dispozitivele nefolosite la treabă",
@@ -361,8 +379,6 @@
     "expires": "Valabil încă {{time}}",
     "expired": "Codul a expirat. Creează unul nou.",
     "approvalNote": "Acest pool necesită aprobare: dispozitivul va aștepta aprobarea unui administrator.",
-    "addWebNode": "Adaugă nod web",
-    "webNodeOpened": "Nodul web s-a deschis într-o filă nouă. Alătură-te cu codul deja completat.",
     "done": "{{name}} a fost adăugat."
   },
   "limits": {

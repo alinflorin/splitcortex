@@ -7,11 +7,3 @@ export function getWebNodeUrl(location: Pick<Location, 'hostname'> = window.loca
   const origin = override || `https://${location.hostname.replace(/^app\./, 'web-node.')}`;
   return origin.replace(/\/+$/, '');
 }
-
-/**
- * The link that opens the web node with the join code filled in. The code is in the fragment (`#code=`), which a
- * browser never sends to a server, so it stays out of access logs and `Referer` headers.
- */
-export function webNodeJoinUrl(base: string, code: string): string {
-  return `${base.replace(/\/+$/, '')}/#code=${encodeURIComponent(code)}`;
-}

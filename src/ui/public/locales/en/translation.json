@@ -29,11 +29,29 @@
     "ro": "Română"
   },
   "apps": {
-    "title": "Get the node app",
-    "body": "Install the app on the device you want to turn into a node.",
-    "apk": "Download the APK from GitHub Releases",
-    "play": "Get it on Google Play",
-    "ios": "Download on the App Store"
+    "title": "Run a node",
+    "body": "Pick where to run a node: install an app, or open the web node in a browser. Each one joins a pool with a code from Add device.",
+    "mobile": {
+      "title": "Mobile app",
+      "body": "Turn an Android phone into an always-on node. It keeps serving with the screen off.",
+      "apk": "Download the APK from GitHub Releases",
+      "play": "Get it on Google Play",
+      "ios": "Download on the App Store"
+    },
+    "desktop": {
+      "title": "Desktop app",
+      "body": "Serve from a Linux, macOS (Apple silicon) or Windows computer. It runs in the system tray and updates itself.",
+      "download": "Download for desktop"
+    },
+    "web": {
+      "title": "Web node",
+      "body": "No install: open the web node in a browser tab and join with a code. It only serves while the tab stays open.",
+      "open": "Open web node",
+      "share": "Share link",
+      "shareTitle": "SplitCortex web node",
+      "copied": "Web node link copied",
+      "shareFailed": "Could not share the link"
+    }
   },
   "home": {
     "title": "Put idle devices to work",
@@ -361,8 +379,6 @@
     "expires": "Valid for {{time}}",
     "expired": "This code has expired. Create a new one.",
     "approvalNote": "This pool requires approval: the device will wait for an admin to approve it.",
-    "addWebNode": "Add web node",
-    "webNodeOpened": "Opened the web node in a new tab. Join with the code that is already filled in.",
     "done": "{{name}} was added."
   },
   "limits": {

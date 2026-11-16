@@ -1,0 +1,39 @@
+[package]
+name = "splitcortex-desktop-node"
+version = "0.0.0"
+description = "SplitCortex desktop node"
+authors = ["SplitCortex"]
+edition = "2024"
+
+[lib]
+# The `_lib` suffix keeps the library name from clashing with the binary name on Windows
+# (https://github.com/rust-lang/cargo/issues/8519).
+name = "splitcortex_desktop_node_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-http = { version = "2", features = ["stream"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+libloading = "0.8"
+sysinfo = { version = "0.37", default-features = false, features = ["system"] }
+keepawake = "0.6"
+log = "0.4"
+tauri-plugin-log = "2"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-autostart = "2"
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

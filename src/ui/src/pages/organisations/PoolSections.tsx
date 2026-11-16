@@ -25,7 +25,6 @@ import { CardList, ItemCard } from '../../components/cards/cards';
 import { useToast } from '../../components/feedback/useToast';
 import { NodeStatusBadge } from '../../components/status/StatusBadge';
 import { formatAgo } from '../../lib/format';
-import { AddWebNodeButton } from './AddWebNodeButton';
 import { EnrollDeviceDialog } from './EnrollDeviceDialog';
 import { ModelCard } from './ModelCard';
 
@@ -57,7 +56,6 @@ export function PoolNodes({ pool, admin = false }: { pool: Pool; admin?: boolean
           <Button icon={<Add20Regular />} onClick={() => setEnrolling(true)}>
             {t('enroll.add')}
           </Button>
-          <AddWebNodeButton pool={pool} />
           <EnrollDeviceDialog pool={pool} open={enrolling} onClose={() => setEnrolling(false)} />
         </div>
       )}
