@@ -3,6 +3,9 @@
 ClusterIssuers are Helm post-install/post-upgrade hooks: their CRDs and the cert-manager webhook
 come from the same release, so they must be applied after those are up (use `helm --wait`).
 Hooks are not removed on `helm uninstall`.
+The weights (10+) are deliberate: cert-manager's own post-install hook Job `startupapicheck` (weight 1) waits until
+the webhook really answers (its CA bundle is injected by the cainjector some time after the webhook pod is ready;
+applying an issuer before that fails with "x509: certificate signed by unknown authority"), so ours must run after it.
 */ -}}
 {{- $hook := dict "helm.sh/hook" "post-install,post-upgrade" "helm.sh/hook-delete-policy" "before-hook-creation" }}
 apiVersion: cert-manager.io/v1
@@ -10,7 +13,7 @@ kind: ClusterIssuer
 metadata:
   name: selfsigned-issuer
   labels: {{- include "splitcortex.labels" . | nindent 4 }}
-  annotations: {{- merge (dict "helm.sh/hook-weight" "0") $hook | toYaml | nindent 4 }}
+  annotations: {{- merge (dict "helm.sh/hook-weight" "10") $hook | toYaml | nindent 4 }}
 spec:
   selfSigned: {}
 ---
@@ -20,7 +23,7 @@ metadata:
   name: root-ca-issuer
   namespace: {{ .Release.Namespace }}
   labels: {{- include "splitcortex.labels" . | nindent 4 }}
-  annotations: {{- merge (dict "helm.sh/hook-weight" "1") $hook | toYaml | nindent 4 }}
+  annotations: {{- merge (dict "helm.sh/hook-weight" "11") $hook | toYaml | nindent 4 }}
 spec:
   isCA: true
   commonName: splitcortex-root-ca
@@ -39,7 +42,7 @@ kind: ClusterIssuer
 metadata:
   name: root-ca-issuer
   labels: {{- include "splitcortex.labels" . | nindent 4 }}
-  annotations: {{- merge (dict "helm.sh/hook-weight" "2") $hook | toYaml | nindent 4 }}
+  annotations: {{- merge (dict "helm.sh/hook-weight" "12") $hook | toYaml | nindent 4 }}
 spec:
   ca:
     secretName: root-ca-issuer
@@ -52,7 +55,7 @@ kind: ClusterIssuer
 metadata:
   name: letsencrypt
   labels: {{- include "splitcortex.labels" $ | nindent 4 }}
-  annotations: {{- merge (dict "helm.sh/hook-weight" "0") $hook | toYaml | nindent 4 }}
+  annotations: {{- merge (dict "helm.sh/hook-weight" "10") $hook | toYaml | nindent 4 }}
 spec:
   acme:
     email: {{ . | quote }}
