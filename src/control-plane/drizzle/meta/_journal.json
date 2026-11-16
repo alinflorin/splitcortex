@@ -43,6 +43,13 @@
       "when": 1794806996592,
       "tag": "0005_chubby_slapstick",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794813708166,
+      "tag": "0006_yellow_menace",
+      "breakpoints": true
     }
   ]
 }

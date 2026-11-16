@@ -129,6 +129,44 @@ describe('nodes', () => {
     expect((await call('GET', url, 'own@n.io')).statusCode).toBe(404);
   });
 
+  it('sets, validates and clears the compute overrides, and reports what the node runs on', async () => {
+    const { orgId, poolId, member } = await setup('own@c.io', 'compute-org');
+    const [node] = await t.db
+      .insert(nodes)
+      .values({ orgId, poolId, name: 'n', publicKey: 'cmp', fingerprint: 'F' })
+      .returning();
+    await t.db
+      .insert(nodeStatus)
+      .values({ nodeId: node!.id, connected: true, backend: 'gpu', maxContextTokens: 4096 });
+    const url = `/organisations/${orgId}/nodes/${node!.id}`;
+    const fresh = (await call('GET', url, member)).json();
+    expect(fresh).toMatchObject({ computeBackend: null, maxContextTokens: null });
+    expect(fresh.live).toMatchObject({ backend: 'gpu', maxContextTokens: 4096 });
+
+    expect((await call('PATCH', url, member, { computeBackend: 'cpu' })).statusCode).toBe(403);
+    const set = await call('PATCH', url, 'own@c.io', {
+      computeBackend: 'cpu',
+      maxContextTokens: 2048,
+    });
+    expect(set.json()).toMatchObject({ computeBackend: 'cpu', maxContextTokens: 2048 });
+    // a partial update keeps the other override
+    expect((await call('PATCH', url, 'own@c.io', { name: 'x' })).json()).toMatchObject({
+      computeBackend: 'cpu',
+      maxContextTokens: 2048,
+    });
+    for (const bad of [
+      { computeBackend: 'npu' },
+      { maxContextTokens: 10 },
+      { maxContextTokens: 1e9 },
+    ])
+      expect((await call('PATCH', url, 'own@c.io', bad)).statusCode).toBe(400);
+    const cleared = await call('PATCH', url, 'own@c.io', {
+      computeBackend: null,
+      maxContextTokens: null,
+    });
+    expect(cleared.json()).toMatchObject({ computeBackend: null, maxContextTokens: null });
+  });
+
   it('is invisible to other organisations', async () => {
     const a = await setup('a@n.io', 'iso-a');
     const b = await setup('b@n.io', 'iso-b');

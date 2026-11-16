@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import {
+  ComputeBackendSchema,
   ErrorSchema,
   NodeParamsSchema,
   NodeSchema,
@@ -19,6 +20,11 @@ export const LIVE_STALENESS_MS = 60_000;
 
 type Row = { node: typeof nodes.$inferSelect; live: typeof nodeStatus.$inferSelect | null };
 
+const parseBackend = (v: string | null) => {
+  const r = ComputeBackendSchema.safeParse(v);
+  return r.success ? r.data : null;
+};
+
 export function toNodeDto({ node, live }: Row, now = Date.now()): NodeDto {
   const fresh = live !== null && now - live.updatedAt.getTime() <= LIVE_STALENESS_MS;
   return {
@@ -35,6 +41,8 @@ export function toNodeDto({ node, live }: Row, now = Date.now()): NodeDto {
     appVersion: node.appVersion,
     cpuCores: node.cpuCores,
     memoryTotalMb: node.memoryTotalMb,
+    computeBackend: parseBackend(node.computeBackend),
+    maxContextTokens: node.maxContextTokens,
     createdAt: node.createdAt.toISOString(),
     // Telemetry of a node that stopped reporting is stale; do not present it as current.
     live:
@@ -49,6 +57,8 @@ export function toNodeDto({ node, live }: Row, now = Date.now()): NodeDto {
             temperatureC: live.temperatureC,
             inFlight: live.inFlight,
             tokensPerSec: live.tokensPerSec,
+            backend: parseBackend(live.backend),
+            maxContextTokens: live.maxContextTokens,
           }
         : null,
   };
@@ -115,7 +125,8 @@ export const nodeRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
       onRequest: app.authenticate,
       schema: {
         tags: ['nodes'],
-        summary: 'Rename a node or approve it (admin or owner)',
+        summary:
+          'Rename a node, approve it or set its compute backend / context window override (admin or owner)',
         security: [{ dex: [] }, { bearer: [] }],
         params: NodeParamsSchema,
         body: UpdateNodeSchema,

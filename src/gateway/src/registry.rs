@@ -49,6 +49,10 @@ pub struct NodeConn {
     pub tps_bits: AtomicU64,
     /// Whether a `ModelAssignment` was sent on this connection yet (the first one is always sent, even when empty).
     pub assignment_sent: std::sync::atomic::AtomicBool,
+    /// The engine's context window in tokens as reported by the node (0 = unknown).
+    pub ctx_tokens: AtomicU32,
+    /// The `NodeConfig` last sent on this connection (backend override, context override); None = not sent yet.
+    pub config_sent: Mutex<Option<(String, u32)>>,
 }
 
 impl NodeConn {
@@ -106,23 +110,46 @@ impl Registry {
     }
 
     /// (eligible node count, in-flight sum) of a pool for `model`; used to choose between pools.
-    pub fn pool_load(&self, org: Uuid, pool: Uuid, model: Uuid) -> (usize, u32) {
+    pub fn pool_load(&self, org: Uuid, pool: Uuid, model: Uuid, need: u32) -> (usize, u32) {
         let nodes = self.nodes.read().unwrap();
         let mut n = 0;
         let mut load = 0;
-        for c in nodes.values().filter(|c| eligible(c, org, pool, model)) {
+        for c in nodes.values().filter(|c| eligible(c, org, pool, model, need)) {
             n += 1;
             load += c.load();
         }
         (n, load)
     }
 
+    /// (smallest, largest) known context window among the nodes that have `model` ready, busy or not; None when no
+    /// ready node reports one. A node that reports nothing is not counted.
+    pub fn context_range(&self, org: Uuid, pool: Uuid, model: Uuid) -> Option<(u32, u32)> {
+        let nodes = self.nodes.read().unwrap();
+        let mut range: Option<(u32, u32)> = None;
+        for c in nodes.values() {
+            let ctx = c.ctx_tokens.load(Ordering::Relaxed);
+            if c.org_id != org || c.pool_id != pool || ctx == 0 || *c.ready_model.lock().unwrap() != Some(model) {
+                continue;
+            }
+            range = Some(range.map_or((ctx, ctx), |(lo, hi)| (lo.min(ctx), hi.max(ctx))));
+        }
+        range
+    }
+
     /// Picks an eligible node and reserves one in-flight slot on it.
-    pub fn pick(&self, org: Uuid, pool: Uuid, model: Uuid, balancing: &str, exclude: &[Uuid]) -> Option<Arc<NodeConn>> {
+    pub fn pick(
+        &self,
+        org: Uuid,
+        pool: Uuid,
+        model: Uuid,
+        need: u32,
+        balancing: &str,
+        exclude: &[Uuid],
+    ) -> Option<Arc<NodeConn>> {
         let nodes = self.nodes.read().unwrap();
         let cands: Vec<&Arc<NodeConn>> = nodes
             .values()
-            .filter(|c| eligible(c, org, pool, model) && !exclude.contains(&c.node_id))
+            .filter(|c| eligible(c, org, pool, model, need) && !exclude.contains(&c.node_id))
             .collect();
         if cands.is_empty() {
             return None;
@@ -196,8 +223,18 @@ impl Registry {
     }
 }
 
-fn eligible(c: &NodeConn, org: Uuid, pool: Uuid, model: Uuid) -> bool {
-    c.org_id == org && c.pool_id == pool && c.load() < c.capacity && *c.ready_model.lock().unwrap() == Some(model)
+/// Whether `ctx` tokens of context fit the node (an unknown window, 0, is assumed to fit).
+fn fits(c: &NodeConn, need: u32) -> bool {
+    let ctx = c.ctx_tokens.load(Ordering::Relaxed);
+    ctx == 0 || ctx >= need
+}
+
+fn eligible(c: &NodeConn, org: Uuid, pool: Uuid, model: Uuid, need: u32) -> bool {
+    c.org_id == org
+        && c.pool_id == pool
+        && c.load() < c.capacity
+        && *c.ready_model.lock().unwrap() == Some(model)
+        && fits(c, need)
 }
 
 fn score(c: &NodeConn) -> f64 {
@@ -223,6 +260,8 @@ mod tests {
             assigned: Mutex::new(model),
             tps_bits: Default::default(),
             assignment_sent: Default::default(),
+            ctx_tokens: Default::default(),
+            config_sent: Default::default(),
         })
     }
 
@@ -236,15 +275,38 @@ mod tests {
         reg.register(conn(Uuid::new_v4(), pool, Some(model))); // another org (tenant isolation)
         reg.register(conn(org, Uuid::new_v4(), Some(model))); // another pool
 
-        let got = reg.pick(org, pool, model, "weighted_p2c", &[]).expect("a node");
+        let got = reg.pick(org, pool, model, 0, "weighted_p2c", &[]).expect("a node");
         assert_eq!(got.node_id, ready.node_id);
         // capacity 1: the slot is taken now
-        assert!(reg.pick(org, pool, model, "weighted_p2c", &[]).is_none());
+        assert!(reg.pick(org, pool, model, 0, "weighted_p2c", &[]).is_none());
         got.in_flight.fetch_sub(1, Ordering::AcqRel);
         // an excluded node is never picked (retry on another node)
         assert!(reg
-            .pick(org, pool, model, "least_in_flight", &[ready.node_id])
+            .pick(org, pool, model, 0, "least_in_flight", &[ready.node_id])
             .is_none());
+    }
+
+    #[test]
+    fn skips_nodes_whose_context_is_too_small() {
+        let (org, pool, model) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let reg = Registry::default();
+        let small = conn(org, pool, Some(model));
+        small.ctx_tokens.store(2048, Ordering::Relaxed);
+        reg.register(small.clone());
+        assert_eq!(reg.context_range(org, pool, model), Some((2048, 2048)));
+        assert!(reg.pick(org, pool, model, 4000, "weighted_p2c", &[]).is_none());
+        assert_eq!(reg.pool_load(org, pool, model, 4000).0, 0);
+        let big = conn(org, pool, Some(model));
+        big.ctx_tokens.store(8192, Ordering::Relaxed);
+        reg.register(big.clone());
+        assert_eq!(reg.context_range(org, pool, model), Some((2048, 8192)));
+        let got = reg.pick(org, pool, model, 4000, "random", &[]).expect("the big node");
+        assert_eq!(got.node_id, big.node_id);
+        // a node that has not reported a window is assumed to fit
+        let unknown = conn(org, pool, Some(model));
+        assert_eq!(reg.context_range(Uuid::new_v4(), pool, model), None);
+        reg.register(unknown.clone());
+        assert!(reg.pool_load(org, pool, model, 1_000_000).0 >= 1);
     }
 
     #[test]

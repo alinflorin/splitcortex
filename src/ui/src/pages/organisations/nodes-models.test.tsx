@@ -44,6 +44,8 @@ const node = (over: Partial<Node> = {}): Node => ({
   appVersion: '0.1.0',
   cpuCores: 8,
   memoryTotalMb: 8192,
+  computeBackend: null,
+  maxContextTokens: null,
   createdAt: '2026-01-01T00:00:00.000Z',
   live: {
     connectedSince: '2026-01-01T10:00:00.000Z',
@@ -55,6 +57,8 @@ const node = (over: Partial<Node> = {}): Node => ({
     temperatureC: 38.2,
     inFlight: 2,
     tokensPerSec: 21.5,
+    backend: 'gpu',
+    maxContextTokens: 4096,
   },
   ...over,
 });
@@ -70,6 +74,37 @@ describe('node view', () => {
     expect(screen.getByText(/80% · charging/)).toBeInTheDocument();
     expect(screen.getByText('AB12-CD34')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
+  });
+
+  it('shows what the engine runs on and lets an admin override backend and context, or clear them', async () => {
+    const calls = stubApi({
+      'GET /api/organisations/o1/nodes/n1': node({ computeBackend: 'cpu', maxContextTokens: 2048 }),
+      'PATCH /api/organisations/o1/nodes/n1': node(),
+    });
+    const user = userEvent.setup();
+    await inOrg('admin', '/nodes/:nodeId', <NodePage />);
+    expect(await screen.findByText('Running on')).toBeInTheDocument();
+    expect(screen.getAllByText('4096').length).toBeGreaterThan(1); // the stat and the option
+    const backend = screen.getByLabelText('Compute backend');
+    expect(backend).toHaveValue('cpu');
+    await user.selectOptions(backend, 'gpu');
+    await waitFor(() =>
+      expect(calls.find((c) => c.key === 'PATCH /api/organisations/o1/nodes/n1')?.body).toEqual({
+        computeBackend: 'gpu',
+      }),
+    );
+    await user.selectOptions(screen.getByLabelText('Maximum context (tokens)'), '');
+    await waitFor(() =>
+      expect(calls.filter((c) => c.key.startsWith('PATCH')).at(-1)?.body).toEqual({
+        maxContextTokens: null,
+      }),
+    );
+  });
+
+  it('shows the engine settings read-only to plain members', async () => {
+    stubApi({ 'GET /api/organisations/o1/nodes/n1': node() });
+    await inOrg('member', '/nodes/:nodeId', <NodePage />);
+    expect(await screen.findByLabelText('Compute backend')).toBeDisabled();
   });
 
   it('lets an admin approve a pending node, which has no live data', async () => {

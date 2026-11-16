@@ -98,6 +98,10 @@ export const nodes = pgTable(
     appVersion: text('app_version'),
     cpuCores: integer('cpu_cores'),
     memoryTotalMb: integer('memory_total_mb'),
+    /** Admin override of the compute backend (`cpu` | `gpu`); null = the device decides (its own setting, else the fastest). */
+    computeBackend: text('compute_backend'),
+    /** Admin override of the engine's context window in tokens; null = the device decides. */
+    maxContextTokens: integer('max_context_tokens'),
     createdAt: createdAt(),
   },
   (t) => [index('nodes_pool_idx').on(t.poolId)],
@@ -148,6 +152,9 @@ export const nodeStatus = pgTable('node_status', {
   temperatureC: doublePrecision('temperature_c'),
   inFlight: integer('in_flight').notNull().default(0),
   tokensPerSec: doublePrecision('tokens_per_sec'),
+  /** What the engine actually runs on (`cpu` | `gpu`) and its context window, as reported by the node. */
+  backend: text('backend'),
+  maxContextTokens: integer('max_context_tokens'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

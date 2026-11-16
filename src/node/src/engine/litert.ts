@@ -1,4 +1,11 @@
-import type { Engine, GenerateRequest, GenerateResult } from './types';
+import type {
+  Backend,
+  ComputePrefs,
+  DeviceCaps,
+  Engine,
+  GenerateRequest,
+  GenerateResult,
+} from './types';
 
 /**
  * Adapter over the community `react-native-litert-lm` module (Nitro, third party, not Google's; evaluate it on a real
@@ -16,7 +23,13 @@ interface LiteLlm {
 }
 interface LiteModule {
   createLLM(): LiteLlm;
+  getDeviceInfo?(): { gpuAvailable: boolean; isEmulator: boolean; totalMemoryBytes: number };
 }
+
+/** Library default context window (KV cache) when none is asked for. */
+export const DEFAULT_CONTEXT = 4096;
+const BENCH_PROMPT = 'Count from one to one hundred in words.';
+const BENCH_TOKENS = 40;
 
 function native(): LiteModule {
   try {
@@ -49,23 +62,86 @@ export class LiteRtEngine implements Engine {
   private llm: LiteLlm | null = null;
   private path: string | null = null;
   private busy = false;
+  /** Load-time settings every (re)load keeps. */
+  private base: Record<string, unknown> = {};
+  private active: { backend: Backend; ctx: number } | null = null;
 
   get loaded() {
     return this.llm !== null;
   }
+  get backend() {
+    return this.active?.backend ?? null;
+  }
+  get maxContextTokens() {
+    return this.active?.ctx ?? 0;
+  }
 
-  async load(path: string) {
+  capabilities(): DeviceCaps {
+    try {
+      const d = native().getDeviceInfo?.();
+      if (d)
+        return {
+          gpuAvailable: d.gpuAvailable,
+          emulator: d.isEmulator,
+          totalMemoryMb: Math.round(d.totalMemoryBytes / 1024 ** 2),
+        };
+    } catch {
+      // fall through: unknown device, assume the safe thing
+    }
+    return { gpuAvailable: false, emulator: false, totalMemoryMb: 0 };
+  }
+
+  async load(path: string, opts: ComputePrefs = {}) {
     await this.unload();
     const llm = native().createLLM();
-    await llm.loadModel(path, {});
+    const base: Record<string, unknown> = {};
+    if (opts.backend) base.backend = opts.backend;
+    if (opts.maxContextTokens) base.maxContextTokens = opts.maxContextTokens;
+    await llm.loadModel(path, base);
     this.llm = llm;
     this.path = path;
+    this.base = base;
+    this.lastConfig = '{}';
+    this.active = {
+      backend: opts.backend ?? 'cpu',
+      ctx: opts.maxContextTokens ?? DEFAULT_CONTEXT,
+    };
   }
 
   async unload() {
     this.llm?.unload();
     this.llm = null;
     this.path = null;
+    this.active = null;
+    this.base = {};
+  }
+
+  async benchmark(): Promise<number> {
+    const llm = this.llm;
+    if (!llm || this.busy) return 0;
+    this.busy = true;
+    try {
+      llm.resetConversation();
+      let n = 0;
+      let first = 0;
+      let last = 0;
+      let stopped = false;
+      await llm.execute([{ type: 'text', text: BENCH_PROMPT }], (token) => {
+        if (stopped || !token) return;
+        n += 1;
+        last = Date.now();
+        if (n === 1) first = last;
+        if (n >= BENCH_TOKENS) {
+          stopped = true;
+          llm.resetConversation(); // cancels the rest of the reply
+        }
+      });
+      llm.resetConversation();
+      // Decode speed only: the time to the first token (prefill, warm-up) is not counted.
+      return n > 1 && last > first ? ((n - 1) * 1000) / (last - first) : 0;
+    } finally {
+      this.busy = false;
+    }
   }
 
   async generate(
@@ -113,7 +189,7 @@ export class LiteRtEngine implements Engine {
     if (req.topP > 0) config.topP = req.topP;
     const key = JSON.stringify(config);
     if (key === this.lastConfig || !this.llm || !this.path) return;
-    await this.llm.loadModel(this.path, config);
+    await this.llm.loadModel(this.path, { ...this.base, ...config });
     this.lastConfig = key;
   }
 }

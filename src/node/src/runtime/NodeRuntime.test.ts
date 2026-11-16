@@ -1,6 +1,7 @@
-import type { Engine } from '../engine/types';
+import type { TunableEngine } from '../engine/types';
 import { NodeRuntime } from './NodeRuntime';
 
+let mockOnBody: ((b: { case?: string; value?: unknown }) => void) | undefined;
 const mockSent: { case?: string; value?: Record<string, unknown> }[] = [];
 let mockEnrollment: unknown = null;
 
@@ -21,6 +22,9 @@ jest.mock('../models/manager', () => ({
 }));
 jest.mock('../protocol/connection', () => ({
   GatewayConnection: class {
+    constructor(o: { onBody: typeof mockOnBody }) {
+      mockOnBody = o.onBody;
+    }
     start = jest.fn();
     stop = jest.fn();
     send = (b: { case?: string; value?: Record<string, unknown> }) => {
@@ -30,8 +34,13 @@ jest.mock('../protocol/connection', () => ({
   },
 }));
 
-const engine: Engine = {
-  loaded: false,
+const engine: TunableEngine = {
+  loaded: true,
+  backend: 'gpu',
+  maxContextTokens: 4096,
+  capabilities: () => ({ gpuAvailable: true, emulator: false, totalMemoryMb: 8000 }),
+  benchmark: async () => 0,
+  setPrefs: jest.fn(async () => undefined),
   load: jest.fn(),
   unload: jest.fn(async () => undefined),
   generate: jest.fn(),
@@ -55,7 +64,13 @@ function setup() {
     charging: true,
     temperatureC: 31.5,
   }));
-  return { rt: new NodeRuntime(engine, service, telemetry), service, telemetry };
+  const settings = async () => ({
+    startAtBoot: true,
+    connectOnStart: true,
+    compute: 'gpu' as const,
+    maxContextTokens: 0,
+  });
+  return { rt: new NodeRuntime(engine, service, telemetry, settings), service, telemetry };
 }
 
 describe('NodeRuntime', () => {
@@ -85,6 +100,37 @@ describe('NodeRuntime', () => {
       expect(rt.getSnapshot()).toMatchObject({ running: false, blocked: why });
       expect(service.start).not.toHaveBeenCalled();
     }
+  });
+
+  it('applies its own compute settings, then the admin override on top, and reports what it runs on', async () => {
+    mockEnrollment = approved;
+    const { rt } = setup();
+    jest.mocked(engine.setPrefs).mockClear();
+    await rt.start();
+    expect(engine.setPrefs).toHaveBeenCalledWith('local', {
+      backend: 'gpu',
+      maxContextTokens: undefined,
+    });
+    mockOnBody?.({
+      case: 'nodeConfig',
+      value: { backend: 'cpu', maxContextTokens: 2048 },
+    });
+    await jest.advanceTimersByTimeAsync(0);
+    expect(engine.setPrefs).toHaveBeenCalledWith('admin', {
+      backend: 'cpu',
+      maxContextTokens: 2048,
+    });
+    // an empty config clears the override
+    mockOnBody?.({ case: 'nodeConfig', value: { backend: '', maxContextTokens: 0 } });
+    await jest.advanceTimersByTimeAsync(0);
+    expect(engine.setPrefs).toHaveBeenLastCalledWith('admin', {
+      backend: undefined,
+      maxContextTokens: undefined,
+    });
+    expect(rt.getSnapshot()).toMatchObject({ backend: 'gpu', maxContextTokens: 4096 });
+    const t = mockSent.filter((m) => m.case === 'telemetry').at(-1);
+    expect(t?.value).toMatchObject({ backend: 'gpu', maxContextTokens: 4096 });
+    await rt.stop();
   });
 
   it('reports cpu, memory, battery and temperature every 10 seconds', async () => {

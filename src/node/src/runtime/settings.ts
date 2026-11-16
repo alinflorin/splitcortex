@@ -1,16 +1,36 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
+import type { ComputePrefs } from '../engine/types';
 import { nodeService } from '../native/nodeService';
 
 const KEY = 'sc-node-settings';
+
+export type ComputeChoice = 'auto' | 'cpu' | 'gpu';
+/** Context windows offered in the settings (tokens); 0 = automatic from the device's RAM. */
+export const CONTEXT_CHOICES = [0, 2048, 4096, 8192, 16384] as const;
 
 export interface NodeSettings {
   /** Start the background service (gateway connection, model, inference) when the device boots. Android only. */
   startAtBoot: boolean;
   /** Connect to the gateway and load the model whenever the app starts (including after a boot start). */
   connectOnStart: boolean;
+  /** Compute backend. `auto` measures CPU against GPU once per model and takes the faster. An admin override from the web app wins. */
+  compute: ComputeChoice;
+  /** Context window in tokens, 0 = automatic. An admin override from the web app wins. */
+  maxContextTokens: number;
 }
-export const DEFAULT_SETTINGS: NodeSettings = { startAtBoot: true, connectOnStart: true };
+export const DEFAULT_SETTINGS: NodeSettings = {
+  startAtBoot: true,
+  connectOnStart: true,
+  compute: 'auto',
+  maxContextTokens: 0,
+};
+
+/** The engine preferences these settings stand for (undefined = automatic). */
+export const computePrefs = (s: NodeSettings): ComputePrefs => ({
+  backend: s.compute === 'auto' ? undefined : s.compute,
+  maxContextTokens: s.maxContextTokens > 0 ? s.maxContextTokens : undefined,
+});
 
 export async function loadSettings(): Promise<NodeSettings> {
   const raw = await AsyncStorage.getItem(KEY);

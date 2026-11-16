@@ -121,6 +121,8 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
         assigned: Mutex::new(None),
         tps_bits: Default::default(),
         assignment_sent: Default::default(),
+        ctx_tokens: Default::default(),
+        config_sent: Default::default(),
     });
     app.registry.register(conn.clone());
     set_connected(&app, node_id, true).await;
@@ -151,6 +153,7 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
         }))))
         .await;
     sync_assignment(&app, &conn);
+    sync_config(&app, &conn);
 
     let mut ping = tokio::time::interval(PING_EVERY);
     let mut last_seen = tokio::time::Instant::now();
@@ -216,11 +219,15 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
         }
         Some(Body::Telemetry(t)) => {
             conn.tps_bits.store(t.tokens_per_sec.to_bits(), Ordering::Relaxed);
+            conn.ctx_tokens.store(t.max_context_tokens, Ordering::Relaxed);
+            let backend = (t.backend == "cpu" || t.backend == "gpu").then_some(t.backend.clone());
             let _ = sqlx::query(
                 "insert into node_status (node_id, connected, cpu_percent, memory_used_mb, battery_percent, charging, \
-                 temperature_c, in_flight, tokens_per_sec, updated_at) values ($1, true, $2, $3, $4, $5, $6, $7, $8, now()) \
+                 temperature_c, in_flight, tokens_per_sec, backend, max_context_tokens, updated_at) \
+                 values ($1, true, $2, $3, $4, $5, $6, $7, $8, $9, $10, now()) \
                  on conflict (node_id) do update set cpu_percent = $2, memory_used_mb = $3, battery_percent = $4, \
-                 charging = $5, temperature_c = $6, in_flight = $7, tokens_per_sec = $8, updated_at = now()",
+                 charging = $5, temperature_c = $6, in_flight = $7, tokens_per_sec = $8, backend = $9, \
+                 max_context_tokens = $10, updated_at = now()",
             )
             .bind(node)
             .bind((t.cpu_percent >= 0.0).then_some(t.cpu_percent))
@@ -230,6 +237,8 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
             .bind((t.temperature_c > -100.0).then_some(t.temperature_c))
             .bind(conn.load() as i32)
             .bind(t.tokens_per_sec)
+            .bind(backend)
+            .bind((t.max_context_tokens > 0).then_some(t.max_context_tokens as i32))
             .execute(&app.db)
             .await;
         }
@@ -300,6 +309,33 @@ pub fn sync_assignment(app: &AppState, conn: &NodeConn) {
     let _ = conn.tx.try_send(Outbound::Send(env(Body::ModelAssignment(msg))));
 }
 
+/// Tells the node its admin overrides (compute backend, context window) on connect and whenever they change.
+pub fn sync_config(app: &AppState, conn: &NodeConn) {
+    let want = app
+        .cache
+        .read()
+        .unwrap()
+        .nodes
+        .get(&conn.node_id)
+        .map(|n| {
+            (
+                n.compute_backend.clone().unwrap_or_default(),
+                n.max_context_tokens.unwrap_or(0),
+            )
+        })
+        .unwrap_or_default();
+    let mut sent = conn.config_sent.lock().unwrap();
+    if sent.as_ref() == Some(&want) {
+        return;
+    }
+    let msg = proto::NodeConfig {
+        backend: want.0.clone(),
+        max_context_tokens: want.1,
+    };
+    *sent = Some(want);
+    let _ = conn.tx.try_send(Outbound::Send(env(Body::NodeConfig(msg))));
+}
+
 /// Applies config changes to live connections: revoked, unapproved or moved nodes are closed at once, and pool model
 /// changes are pushed to the nodes.
 pub async fn reconcile_loop(app: Arc<AppState>) {
@@ -310,7 +346,8 @@ pub async fn reconcile_loop(app: Arc<AppState>) {
             let rec = app.cache.read().unwrap().nodes.get(&conn.node_id).cloned();
             match rec {
                 Some(r) if r.approved && r.pool_id == conn.pool_id && r.org_id == conn.org_id => {
-                    sync_assignment(&app, &conn)
+                    sync_assignment(&app, &conn);
+                    sync_config(&app, &conn);
                 }
                 _ => {
                     let _ = conn.tx.try_send(Outbound::Close);

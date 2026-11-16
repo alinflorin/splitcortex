@@ -86,6 +86,10 @@ function setup(fileBytes: Uint8Array = FILE) {
   mockDisk.clear();
   const statuses: ModelStatus[] = [];
   const engine: Engine = {
+    backend: null,
+    maxContextTokens: 0,
+    capabilities: () => ({ gpuAvailable: false, emulator: false, totalMemoryMb: 0 }),
+    benchmark: async () => 0,
     loaded: false,
     load: jest.fn(async () => {
       (engine as { loaded: boolean }).loaded = true;

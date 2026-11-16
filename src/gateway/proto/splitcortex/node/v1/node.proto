@@ -29,6 +29,7 @@ message Envelope {
     InferenceDone inference_done = 12;
     InferenceError inference_error = 13;
     Cancel cancel = 14;
+    NodeConfig node_config = 15;
   }
 }
 
@@ -66,6 +67,14 @@ message ModelAssignment {
   string sha256 = 5; // hex, may be empty when unknown
 }
 
+// Admin overrides for this device (gateway -> node). Sent after Ready and whenever they change; the node applies
+// them over its own settings and reloads the engine if the effective values changed. Zero values mean "no override":
+// the node uses its own setting, which is `auto` by default (it measures and picks the fastest backend).
+message NodeConfig {
+  string backend = 1;              // "" | "cpu" | "gpu"
+  uint32 max_context_tokens = 2;   // 0 = no override
+}
+
 enum ModelPhase {
   MODEL_PHASE_UNSPECIFIED = 0;
   MODEL_PHASE_NONE = 1;
@@ -92,6 +101,9 @@ message Telemetry {
   bool charging = 4;
   double temperature_c = 5;   // battery temperature
   double tokens_per_sec = 6;
+  string backend = 7;             // what the engine actually runs on: "cpu" | "gpu" ("" = unknown / no model loaded)
+  uint32 max_context_tokens = 8;  // the engine's context window in tokens (0 = unknown). The gateway only routes a
+                                  // request here when its estimated prompt + output fits.
 }
 
 message Ping {

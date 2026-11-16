@@ -62,6 +62,14 @@ export default function Home() {
                 }${rt.model.error ? ` (${rt.model.error})` : ''}`
               : t('home.modelNone')}
           </Text>
+          {rt.backend ? (
+            <Text variant="caption" muted>
+              {t('home.engine', {
+                backend: rt.backend.toUpperCase(),
+                tokens: rt.maxContextTokens,
+              })}
+            </Text>
+          ) : null}
           <Text variant="caption" muted>
             {t('home.served', { requests: rt.requestsServed, tokens: rt.tokensServed })}
           </Text>

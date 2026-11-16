@@ -1,6 +1,8 @@
 import {
   Button,
+  Field,
   ProgressBar,
+  Select,
   Subtitle1,
   Title2,
   makeStyles,
@@ -35,6 +37,63 @@ const useStyles = makeStyles({
   meter: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXS, width: '100%' },
   muted: { color: tokens.colorNeutralForeground3 },
 });
+
+const CONTEXT_OPTIONS = [2048, 4096, 8192, 16384, 32768];
+
+/** Admin overrides for the device's engine. `null` = the device decides (its own setting, else it measures and takes the fastest). */
+function ComputeSettings({ node, admin }: { node: Node; admin: boolean }) {
+  const { t } = useTranslation();
+  const org = useOrganisationContext();
+  const update = useUpdateNode(org.id, node.id);
+  const toast = useToast();
+  const save = (body: {
+    computeBackend?: 'cpu' | 'gpu' | null;
+    maxContextTokens?: number | null;
+  }) => update.mutate(body, { onSuccess: () => toast.success(t('nodes.computeSaved')) });
+  const contexts = CONTEXT_OPTIONS.includes(node.maxContextTokens ?? 0)
+    ? CONTEXT_OPTIONS
+    : [...CONTEXT_OPTIONS, node.maxContextTokens]
+        .filter((v): v is number => v != null)
+        .sort((a, b) => a - b);
+  const live = node.live;
+  return (
+    <ItemCard title={t('nodes.computeTitle')} subtitle={t('nodes.computeHint')}>
+      {live?.backend && (
+        <StatRow>
+          <Stat label={t('nodes.runningOn')} value={live.backend.toUpperCase()} />
+          <Stat label={t('nodes.contextWindow')} value={live.maxContextTokens ?? '—'} />
+        </StatRow>
+      )}
+      <Field label={t('nodes.backend')}>
+        <Select
+          value={node.computeBackend ?? ''}
+          disabled={!admin || update.isPending}
+          onChange={(_, d) =>
+            save({ computeBackend: d.value === '' ? null : (d.value as 'cpu' | 'gpu') })
+          }
+        >
+          <option value="">{t('nodes.deviceDecides')}</option>
+          <option value="cpu">CPU</option>
+          <option value="gpu">GPU</option>
+        </Select>
+      </Field>
+      <Field label={t('nodes.maxContext')}>
+        <Select
+          value={node.maxContextTokens?.toString() ?? ''}
+          disabled={!admin || update.isPending}
+          onChange={(_, d) => save({ maxContextTokens: d.value === '' ? null : Number(d.value) })}
+        >
+          <option value="">{t('nodes.deviceDecides')}</option>
+          {contexts.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </Select>
+      </Field>
+    </ItemCard>
+  );
+}
 
 /** A metric with an optional bar, e.g. "CPU 42%". */
 function Meter({ label, value, percent }: { label: string; value: string; percent?: number }) {
@@ -207,6 +266,11 @@ export function NodePage() {
                     />
                   </CardList>
                 )}
+              </section>
+
+              <section className={styles.section}>
+                <Subtitle1>{t('nodes.compute')}</Subtitle1>
+                <ComputeSettings node={node} admin={admin} />
               </section>
 
               <section className={styles.section}>

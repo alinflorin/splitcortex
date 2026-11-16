@@ -5,6 +5,12 @@ import { IdSchema, NameSchema } from './common';
 export const NodeStatusSchema = z.enum(['pending', 'online', 'offline']);
 export type NodeStatus = z.infer<typeof NodeStatusSchema>;
 
+export const ComputeBackendSchema = z.enum(['cpu', 'gpu']);
+export type ComputeBackend = z.infer<typeof ComputeBackendSchema>;
+/** Bounds of the context window an admin may force (tokens). */
+export const MAX_CONTEXT_MIN = 512;
+export const MAX_CONTEXT_MAX = 131072;
+
 /** Live telemetry reported by the node through the gateway. All values are best effort. */
 export const NodeLiveSchema = z.object({
   connectedSince: z.iso.datetime().nullable(),
@@ -17,6 +23,9 @@ export const NodeLiveSchema = z.object({
   temperatureC: z.number().nullable(),
   inFlight: z.number().int(),
   tokensPerSec: z.number().nullable(),
+  /** What the engine actually runs on and its context window (the device's choice, or the override below). */
+  backend: ComputeBackendSchema.nullable(),
+  maxContextTokens: z.number().int().nullable(),
 });
 export type NodeLiveDto = z.infer<typeof NodeLiveSchema>;
 
@@ -34,6 +43,9 @@ export const NodeSchema = z.object({
   appVersion: z.string().nullable(),
   cpuCores: z.number().int().nullable(),
   memoryTotalMb: z.number().int().nullable(),
+  /** Admin overrides; null = the device decides (its own setting, else it measures and picks the fastest). */
+  computeBackend: ComputeBackendSchema.nullable(),
+  maxContextTokens: z.number().int().nullable(),
   createdAt: z.iso.datetime(),
   live: NodeLiveSchema.nullable(),
 });
@@ -43,6 +55,18 @@ export const NodeParamsSchema = z.object({ orgId: IdSchema, nodeId: IdSchema });
 export const PoolNodesParamsSchema = z.object({ orgId: IdSchema, poolId: IdSchema });
 
 export const UpdateNodeSchema = z
-  .object({ name: NameSchema.optional(), approved: z.literal(true).optional() })
-  .refine((v) => v.name !== undefined || v.approved !== undefined, 'validation.required');
+  .object({
+    name: NameSchema.optional(),
+    approved: z.literal(true).optional(),
+    /** null clears the override. */
+    computeBackend: ComputeBackendSchema.nullable().optional(),
+    maxContextTokens: z
+      .number()
+      .int()
+      .min(MAX_CONTEXT_MIN)
+      .max(MAX_CONTEXT_MAX)
+      .nullable()
+      .optional(),
+  })
+  .refine((v) => Object.values(v).some((x) => x !== undefined), 'validation.required');
 export type UpdateNodeDto = z.infer<typeof UpdateNodeSchema>;

@@ -246,8 +246,13 @@ export function useUpdateNode(orgId: string, nodeId: string) {
   const req = useRequest();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name?: string; approved?: true }) =>
-      req('PATCH', `/organisations/${orgId}/nodes/${nodeId}`, nodeSchema, body),
+    mutationFn: (body: {
+      name?: string;
+      approved?: true;
+      /** null clears the override (the device decides). */
+      computeBackend?: 'cpu' | 'gpu' | null;
+      maxContextTokens?: number | null;
+    }) => req('PATCH', `/organisations/${orgId}/nodes/${nodeId}`, nodeSchema, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['organisations', orgId] }),
   });
 }

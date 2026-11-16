@@ -22,6 +22,9 @@ pub struct NodeRec {
     pub pool_id: Uuid,
     pub public_key: VerifyingKey,
     pub approved: bool,
+    /// Admin overrides for the device (`cpu` | `gpu`, context window in tokens); None = the device decides.
+    pub compute_backend: Option<String>,
+    pub max_context_tokens: Option<u32>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -62,7 +65,8 @@ pub struct Cache {
 
 pub type SharedCache = Arc<RwLock<Cache>>;
 
-const NODE_SQL: &str = "select id, org_id, pool_id, public_key, approved from nodes";
+const NODE_SQL: &str =
+    "select id, org_id, pool_id, public_key, approved, compute_backend, max_context_tokens from nodes";
 const POOL_SQL: &str = "select p.id, p.org_id, p.balancing_type::text as balancing, m.id as model_id, m.name, \
      m.file_name, m.size_bytes, m.sha256 from pools p \
      left join pool_models pm on pm.pool_id = p.id \
@@ -79,6 +83,13 @@ fn node_from(r: &sqlx::postgres::PgRow) -> Option<NodeRec> {
         pool_id: r.get("pool_id"),
         public_key: key,
         approved: r.get("approved"),
+        compute_backend: r
+            .get::<Option<String>, _>("compute_backend")
+            .filter(|b| b == "cpu" || b == "gpu"),
+        max_context_tokens: r
+            .get::<Option<i32>, _>("max_context_tokens")
+            .and_then(|v| u32::try_from(v).ok())
+            .filter(|v| *v > 0),
     })
 }
 

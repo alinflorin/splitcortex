@@ -240,7 +240,16 @@
     "app": "App version",
     "cores": "CPU cores",
     "memoryTotal": "Memory",
-    "fingerprint": "Key fingerprint"
+    "fingerprint": "Key fingerprint",
+    "compute": "Compute",
+    "computeTitle": "Engine settings",
+    "computeHint": "Overrides for this device only. Leave on \"Device decides\" and the node measures CPU and GPU once for each model and uses the faster one; its own app settings apply. A change reloads the model on the device.",
+    "computeSaved": "Saved. The device applies it within seconds.",
+    "runningOn": "Running on",
+    "contextWindow": "Context window (tokens)",
+    "backend": "Compute backend",
+    "maxContext": "Maximum context (tokens)",
+    "deviceDecides": "Device decides (recommended)"
   },
   "models": {
     "title": "Models",

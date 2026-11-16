@@ -152,15 +152,26 @@ fn key_pools(app: &AppState, key: &KeyRec) -> Vec<PoolRec> {
 
 pub async fn models(State(app): State<Arc<AppState>>, headers: HeaderMap) -> Result<Json<Value>, ApiError> {
     let key = authenticate(&app, &headers).await?;
-    let mut names: Vec<String> = key_pools(&app, &key)
+    // name -> the smallest context window among its ready nodes (the size every request is safe to use), if any reports one.
+    let mut models: std::collections::BTreeMap<String, Option<u32>> = Default::default();
+    for p in key_pools(&app, &key) {
+        let Some(m) = p.model else { continue };
+        let ctx = app.registry.context_range(p.org_id, p.id, m.id).map(|(lo, _)| lo);
+        let e = models.entry(m.name).or_insert(ctx);
+        *e = match (*e, ctx) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (a, b) => a.or(b),
+        };
+    }
+    let data: Vec<Value> = models
         .into_iter()
-        .filter_map(|p| p.model.map(|m| m.name))
-        .collect();
-    names.sort();
-    names.dedup();
-    let data: Vec<Value> = names
-        .into_iter()
-        .map(|n| json!({ "id": n, "object": "model", "created": 0, "owned_by": key.org_id }))
+        .map(|(n, ctx)| {
+            let mut v = json!({ "id": n, "object": "model", "created": 0, "owned_by": key.org_id });
+            if let Some(c) = ctx {
+                v["context_length"] = json!(c);
+            }
+            v
+        })
         .collect();
     Ok(Json(json!({ "object": "list", "data": data })))
 }
@@ -293,6 +304,25 @@ pub async fn chat_completions(
         .collect();
     let tokens_in = (messages.iter().map(|m| m.content.chars().count()).sum::<usize>() as u32).div_ceil(4);
 
+    // Prompt + output must fit a node's context window. Output is unknown without `max_tokens`, so one token is assumed.
+    let need = tokens_in.saturating_add(req.max_completion_tokens.or(req.max_tokens).unwrap_or(1));
+    let largest = holders
+        .iter()
+        .filter_map(|(p, m)| app.registry.context_range(p.org_id, p.id, m.id))
+        .map(|(_, hi)| hi)
+        .max();
+    if largest.is_some_and(|hi| need > hi) {
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_request_error",
+            "context_length_exceeded",
+            format!(
+                "This model's maximum context length is {} tokens, but the request needs about {need} (prompt plus requested output).",
+                largest.unwrap_or(0)
+            ),
+        ));
+    }
+
     let mut tried: Vec<Uuid> = Vec::new();
     let mut last = ApiError::unavailable("No node is available for this model right now.");
     for _ in 0..2 {
@@ -300,14 +330,14 @@ pub async fn chat_completions(
         let target = holders
             .iter()
             .filter_map(|(p, m)| {
-                let (n, load) = app.registry.pool_load(p.org_id, p.id, m.id);
+                let (n, load) = app.registry.pool_load(p.org_id, p.id, m.id, need);
                 (n > 0).then(|| (p, m, load as f64 / n as f64))
             })
             .min_by(|a, b| a.2.total_cmp(&b.2));
         let Some((pool, model, _)) = target else { break };
         let Some(node) = app
             .registry
-            .pick(pool.org_id, pool.id, model.id, &pool.balancing, &tried)
+            .pick(pool.org_id, pool.id, model.id, need, &pool.balancing, &tried)
         else {
             break;
         };

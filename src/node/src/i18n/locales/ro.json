@@ -38,7 +38,8 @@
       "not-enrolled": "Înrolează acest dispozitiv pentru a începe.",
       "not-approved": "Se așteaptă aprobarea unui administrator.",
       "no-gateway": "Platforma nu a dat încă un gateway acestui dispozitiv."
-    }
+    },
+    "engine": "Motor: {{backend}}, context {{tokens}} tokeni"
   },
   "theme": {
     "label": "Temă",
@@ -87,6 +88,18 @@
     "startAtBoot": "Pornește la boot",
     "startAtBootHint": "Doar Android. Serviciul din fundal pornește după boot fără să deschizi aplicația și servește și cu ecranul stins.",
     "connectOnStart": "Conectează și încarcă modelul la pornire",
-    "connectOnStartHint": "La pornirea aplicației, se conectează la gateway și încarcă automat modelul pool-ului."
+    "connectOnStartHint": "La pornirea aplicației, se conectează la gateway și încarcă automat modelul pool-ului.",
+    "compute": {
+      "label": "Calcul",
+      "auto": "Automat (cel mai rapid)",
+      "cpu": "CPU",
+      "gpu": "GPU",
+      "hint": "Automat măsoară o dată CPU și GPU pentru fiecare model și îl alege pe cel mai rapid. Un administrator poate suprascrie asta per dispozitiv din aplicația web."
+    },
+    "context": {
+      "label": "Fereastra de context (tokeni)",
+      "auto": "Automat",
+      "hint": "Prompt, istoric și răspuns la un loc. Mai mare înseamnă mai multă memorie; automat urmează RAM-ul dispozitivului. Un administrator poate suprascrie din aplicația web."
+    }
   }
 }

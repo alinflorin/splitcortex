@@ -111,6 +111,9 @@ export const nodeSchema = z.object({
   appVersion: z.string().nullable(),
   cpuCores: z.number().nullable(),
   memoryTotalMb: z.number().nullable(),
+  /** Admin overrides; null = the device decides. */
+  computeBackend: z.enum(['cpu', 'gpu']).nullable(),
+  maxContextTokens: z.number().nullable(),
   createdAt: z.string(),
   live: z
     .object({
@@ -123,6 +126,9 @@ export const nodeSchema = z.object({
       temperatureC: z.number().nullable(),
       inFlight: z.number(),
       tokensPerSec: z.number().nullable(),
+      /** What the engine actually runs on and its context window. */
+      backend: z.enum(['cpu', 'gpu']).nullable(),
+      maxContextTokens: z.number().nullable(),
     })
     .nullable(),
 });

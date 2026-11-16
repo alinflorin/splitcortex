@@ -38,7 +38,8 @@
       "not-enrolled": "Enroll this device to start serving.",
       "not-approved": "Waiting for an admin to approve this device.",
       "no-gateway": "The platform has not given this device a gateway yet."
-    }
+    },
+    "engine": "Engine: {{backend}}, context {{tokens}} tokens"
   },
   "theme": {
     "label": "Theme",
@@ -87,6 +88,18 @@
     "startAtBoot": "Start when the device boots",
     "startAtBootHint": "Android only. The background service starts after boot with no need to open the app, and keeps serving with the screen off.",
     "connectOnStart": "Connect and load the model on start",
-    "connectOnStartHint": "When the app starts, connect to the gateway and load the pool's model automatically."
+    "connectOnStartHint": "When the app starts, connect to the gateway and load the pool's model automatically.",
+    "compute": {
+      "label": "Compute",
+      "auto": "Automatic (fastest)",
+      "cpu": "CPU",
+      "gpu": "GPU",
+      "hint": "Automatic measures CPU and GPU once for each model and picks the faster. An administrator can override this per device from the web app."
+    },
+    "context": {
+      "label": "Context window (tokens)",
+      "auto": "Automatic",
+      "hint": "Prompt, history and answer together. Larger needs more memory; automatic follows the device's RAM. An administrator can override this from the web app."
+    }
   }
 }

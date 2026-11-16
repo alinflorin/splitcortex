@@ -240,7 +240,16 @@
     "app": "Versiune aplicație",
     "cores": "Nuclee CPU",
     "memoryTotal": "Memorie",
-    "fingerprint": "Amprenta cheii"
+    "fingerprint": "Amprenta cheii",
+    "compute": "Calcul",
+    "computeTitle": "Setări motor",
+    "computeHint": "Suprascrieri doar pentru acest dispozitiv. Lasă „Decide dispozitivul” și nodul măsoară o dată CPU și GPU pentru fiecare model și îl folosește pe cel mai rapid; se aplică setările din aplicația lui. O schimbare reîncarcă modelul pe dispozitiv.",
+    "computeSaved": "Salvat. Dispozitivul aplică în câteva secunde.",
+    "runningOn": "Rulează pe",
+    "contextWindow": "Fereastra de context (tokeni)",
+    "backend": "Backend de calcul",
+    "maxContext": "Context maxim (tokeni)",
+    "deviceDecides": "Decide dispozitivul (recomandat)"
   },
   "models": {
     "title": "Modele",

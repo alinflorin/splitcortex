@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 import { fromB64 } from '../enrollment/crypto';
 import { getOrCreateIdentity } from '../enrollment/identity';
 import { loadEnrollment } from '../enrollment/store';
-import type { Engine } from '../engine/types';
+import type { ComputePrefs, TunableEngine } from '../engine/types';
 import {
   nodeService,
   UNKNOWN_TELEMETRY,
@@ -18,10 +18,12 @@ import {
   InferenceErrorSchema,
   ModelPhase,
   ModelStateSchema,
+  type NodeConfig,
   TelemetrySchema,
   type InferenceRequest,
 } from '../protocol/gen/splitcortex/node/v1/node_pb';
 import { LogBuffer } from './log';
+import { computePrefs, loadSettings, type NodeSettings } from './settings';
 
 export interface RuntimeState {
   /** The service is switched on (it may still be waiting for the network). */
@@ -32,6 +34,9 @@ export interface RuntimeState {
   requestsServed: number;
   tokensServed: number;
   tokensPerSec: number;
+  /** What the engine runs on and its context window (null / 0 while no model is loaded). */
+  backend: 'cpu' | 'gpu' | null;
+  maxContextTokens: number;
   /** Why it cannot run (not enrolled, waiting for approval, no gateway pinned). */
   blocked: 'not-enrolled' | 'not-approved' | 'no-gateway' | null;
 }
@@ -44,6 +49,8 @@ const INITIAL: RuntimeState = {
   requestsServed: 0,
   tokensServed: 0,
   tokensPerSec: 0,
+  backend: null,
+  maxContextTokens: 0,
   blocked: null,
 };
 
@@ -71,10 +78,13 @@ export class NodeRuntime {
   private generation = 0; // guards async start() against a stop()/restart() that happened meanwhile
 
   constructor(
-    private readonly engine: Engine,
+    private readonly engine: TunableEngine,
     private readonly service: ServiceControl = nodeService,
     private readonly readTelemetry: () => Promise<DeviceTelemetry> = () => nodeService.telemetry(),
-  ) {}
+    private readonly readSettings: () => Promise<NodeSettings> = loadSettings,
+  ) {
+    engine.onLog = (m) => this.log.info(m);
+  }
 
   getSnapshot = () => this.state;
   subscribe = (l: () => void) => {
@@ -99,6 +109,8 @@ export class NodeRuntime {
       return this.block('no-gateway', 'The platform has not given this device a gateway yet');
     const identity = await getOrCreateIdentity();
     if (gen !== this.generation) return;
+    await this.engine.setPrefs('local', computePrefs(await this.readSettings()));
+    if (gen !== this.generation) return;
 
     const gatewayKey = fromB64(enrollment.gateway.publicKey);
     this.models = new ModelManager({
@@ -110,6 +122,7 @@ export class NodeRuntime {
       onStatus: (model) => {
         this.set({ model });
         this.reportModel(model);
+        if (model.phase === 'ready') this.reportCompute();
       },
     });
     this.conn = new GatewayConnection({
@@ -181,6 +194,9 @@ export class NodeRuntime {
         });
         break;
       }
+      case 'nodeConfig':
+        void this.applyAdminConfig(b.value);
+        break;
       case 'inferenceRequest':
         void this.serve(b.value);
         break;
@@ -190,6 +206,37 @@ export class NodeRuntime {
       default:
         break;
     }
+  }
+
+  /** The app's own compute settings changed (settings screen). The admin override, if any, still wins. */
+  setLocalCompute(prefs: ComputePrefs) {
+    void this.engine
+      .setPrefs('local', prefs)
+      .then(() => this.reportCompute())
+      .catch((e) =>
+        this.log.error(`Engine reload failed: ${e instanceof Error ? e.message : String(e)}`),
+      );
+  }
+
+  /** Overrides from the web app (through the gateway): empty fields mean "no override". */
+  private async applyAdminConfig(c: NodeConfig) {
+    const backend = c.backend === 'cpu' || c.backend === 'gpu' ? c.backend : undefined;
+    const maxContextTokens = c.maxContextTokens > 0 ? c.maxContextTokens : undefined;
+    this.log.info(
+      `Admin settings: backend ${backend ?? 'not set'}, context ${maxContextTokens ?? 'not set'}`,
+    );
+    try {
+      await this.engine.setPrefs('admin', { backend, maxContextTokens });
+    } catch (e) {
+      this.log.error(`Engine reload failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    this.reportCompute();
+  }
+
+  /** Publishes what the engine runs on (UI state, and the gateway through telemetry right away: it routes by context size). */
+  private reportCompute() {
+    this.set({ backend: this.engine.backend, maxContextTokens: this.engine.maxContextTokens });
+    void this.sendTelemetry();
   }
 
   private reportModel(m: ModelStatus) {
@@ -277,6 +324,8 @@ export class NodeRuntime {
         charging: d.charging,
         temperatureC: d.temperatureC,
         tokensPerSec: this.state.tokensPerSec,
+        backend: this.engine.backend ?? '',
+        maxContextTokens: this.engine.maxContextTokens,
       }),
     });
   }

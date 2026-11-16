@@ -24,7 +24,7 @@ import type { Message } from '@bufbuild/protobuf';
 export const file_splitcortex_node_v1_node: GenFile =
   /*@__PURE__*/
   fileDesc(
-    'Ch5zcGxpdGNvcnRleC9ub2RlL3YxL25vZGUucHJvdG8SE3NwbGl0Y29ydGV4Lm5vZGUudjEioQYKCEVudmVsb3BlEjgKDGNsaWVudF9oZWxsbxgBIAEoCzIgLnNwbGl0Y29ydGV4Lm5vZGUudjEuQ2xpZW50SGVsbG9IABI4CgxzZXJ2ZXJfaGVsbG8YAiABKAsyIC5zcGxpdGNvcnRleC5ub2RlLnYxLlNlcnZlckhlbGxvSAASNgoLY2xpZW50X2F1dGgYAyABKAsyHy5zcGxpdGNvcnRleC5ub2RlLnYxLkNsaWVudEF1dGhIABIrCgVyZWFkeRgEIAEoCzIaLnNwbGl0Y29ydGV4Lm5vZGUudjEuUmVhZHlIABJAChBtb2RlbF9hc3NpZ25tZW50GAUgASgLMiQuc3BsaXRjb3J0ZXgubm9kZS52MS5Nb2RlbEFzc2lnbm1lbnRIABI2Cgttb2RlbF9zdGF0ZRgGIAEoCzIfLnNwbGl0Y29ydGV4Lm5vZGUudjEuTW9kZWxTdGF0ZUgAEjMKCXRlbGVtZXRyeRgHIAEoCzIeLnNwbGl0Y29ydGV4Lm5vZGUudjEuVGVsZW1ldHJ5SAASKQoEcGluZxgIIAEoCzIZLnNwbGl0Y29ydGV4Lm5vZGUudjEuUGluZ0gAEikKBHBvbmcYCSABKAsyGS5zcGxpdGNvcnRleC5ub2RlLnYxLlBvbmdIABJCChFpbmZlcmVuY2VfcmVxdWVzdBgKIAEoCzIlLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlUmVxdWVzdEgAEj4KD2luZmVyZW5jZV9jaHVuaxgLIAEoCzIjLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlQ2h1bmtIABI8Cg5pbmZlcmVuY2VfZG9uZRgMIAEoCzIiLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlRG9uZUgAEj4KD2luZmVyZW5jZV9lcnJvchgNIAEoCzIjLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlRXJyb3JIABItCgZjYW5jZWwYDiABKAsyGy5zcGxpdGNvcnRleC5ub2RlLnYxLkNhbmNlbEgAQgYKBGJvZHkiXAoLQ2xpZW50SGVsbG8SGAoQcHJvdG9jb2xfdmVyc2lvbhgBIAEoDRIPCgdub2RlX2lkGAIgASgJEg0KBW5vbmNlGAMgASgMEhMKC2FwcF92ZXJzaW9uGAQgASgJIi8KC1NlcnZlckhlbGxvEg0KBW5vbmNlGAEgASgMEhEKCXNpZ25hdHVyZRgCIAEoDCIfCgpDbGllbnRBdXRoEhEKCXNpZ25hdHVyZRgBIAEoDCI9CgVSZWFkeRIVCg1tYXhfaW5fZmxpZ2h0GAEgASgNEh0KFXBpbmdfaW50ZXJ2YWxfc2Vjb25kcxgCIAEoDSJoCg9Nb2RlbEFzc2lnbm1lbnQSEAoIbW9kZWxfaWQYASABKAkSDAoEbmFtZRgCIAEoCRIRCglmaWxlX25hbWUYAyABKAkSEgoKc2l6ZV9ieXRlcxgEIAEoBBIOCgZzaGEyNTYYBSABKAkidQoKTW9kZWxTdGF0ZRIQCghtb2RlbF9pZBgBIAEoCRIuCgVwaGFzZRgCIAEoDjIfLnNwbGl0Y29ydGV4Lm5vZGUudjEuTW9kZWxQaGFzZRIWCg5wcm9ncmVzc19ieXRlcxgDIAEoBBINCgVlcnJvchgEIAEoCSKSAQoJVGVsZW1ldHJ5EhMKC2NwdV9wZXJjZW50GAEgASgBEhYKDm1lbW9yeV91c2VkX21iGAIgASgNEhcKD2JhdHRlcnlfcGVyY2VudBgDIAEoBRIQCghjaGFyZ2luZxgEIAEoCBIVCg10ZW1wZXJhdHVyZV9jGAUgASgBEhYKDnRva2Vuc19wZXJfc2VjGAYgASgBIhwKBFBpbmcSFAoMdGltZXN0YW1wX21zGAEgASgEIhwKBFBvbmcSFAoMdGltZXN0YW1wX21zGAEgASgEIiwKC0NoYXRNZXNzYWdlEgwKBHJvbGUYASABKAkSDwoHY29udGVudBgCIAEoCSKkAQoQSW5mZXJlbmNlUmVxdWVzdBISCgpyZXF1ZXN0X2lkGAEgASgJEhAKCG1vZGVsX2lkGAIgASgJEjIKCG1lc3NhZ2VzGAMgAygLMiAuc3BsaXRjb3J0ZXgubm9kZS52MS5DaGF0TWVzc2FnZRISCgptYXhfdG9rZW5zGAQgASgNEhMKC3RlbXBlcmF0dXJlGAUgASgCEg0KBXRvcF9wGAYgASgCIjIKDkluZmVyZW5jZUNodW5rEhIKCnJlcXVlc3RfaWQYASABKAkSDAoEdGV4dBgCIAEoCSJsCg1JbmZlcmVuY2VEb25lEhIKCnJlcXVlc3RfaWQYASABKAkSFQoNcHJvbXB0X3Rva2VucxgCIAEoDRIZChFjb21wbGV0aW9uX3Rva2VucxgDIAEoDRIVCg1maW5pc2hfcmVhc29uGAQgASgJIkMKDkluZmVyZW5jZUVycm9yEhIKCnJlcXVlc3RfaWQYASABKAkSDAoEY29kZRgCIAEoCRIPCgdtZXNzYWdlGAMgASgJIhwKBkNhbmNlbBISCgpyZXF1ZXN0X2lkGAEgASgJKqQBCgpNb2RlbFBoYXNlEhsKF01PREVMX1BIQVNFX1VOU1BFQ0lGSUVEEAASFAoQTU9ERUxfUEhBU0VfTk9ORRABEhsKF01PREVMX1BIQVNFX0RPV05MT0FESU5HEAISFwoTTU9ERUxfUEhBU0VfTE9BRElORxADEhUKEU1PREVMX1BIQVNFX1JFQURZEAQSFgoSTU9ERUxfUEhBU0VfRkFJTEVEEAViBnByb3RvMw',
+    'Ch5zcGxpdGNvcnRleC9ub2RlL3YxL25vZGUucHJvdG8SE3NwbGl0Y29ydGV4Lm5vZGUudjEi2QYKCEVudmVsb3BlEjgKDGNsaWVudF9oZWxsbxgBIAEoCzIgLnNwbGl0Y29ydGV4Lm5vZGUudjEuQ2xpZW50SGVsbG9IABI4CgxzZXJ2ZXJfaGVsbG8YAiABKAsyIC5zcGxpdGNvcnRleC5ub2RlLnYxLlNlcnZlckhlbGxvSAASNgoLY2xpZW50X2F1dGgYAyABKAsyHy5zcGxpdGNvcnRleC5ub2RlLnYxLkNsaWVudEF1dGhIABIrCgVyZWFkeRgEIAEoCzIaLnNwbGl0Y29ydGV4Lm5vZGUudjEuUmVhZHlIABJAChBtb2RlbF9hc3NpZ25tZW50GAUgASgLMiQuc3BsaXRjb3J0ZXgubm9kZS52MS5Nb2RlbEFzc2lnbm1lbnRIABI2Cgttb2RlbF9zdGF0ZRgGIAEoCzIfLnNwbGl0Y29ydGV4Lm5vZGUudjEuTW9kZWxTdGF0ZUgAEjMKCXRlbGVtZXRyeRgHIAEoCzIeLnNwbGl0Y29ydGV4Lm5vZGUudjEuVGVsZW1ldHJ5SAASKQoEcGluZxgIIAEoCzIZLnNwbGl0Y29ydGV4Lm5vZGUudjEuUGluZ0gAEikKBHBvbmcYCSABKAsyGS5zcGxpdGNvcnRleC5ub2RlLnYxLlBvbmdIABJCChFpbmZlcmVuY2VfcmVxdWVzdBgKIAEoCzIlLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlUmVxdWVzdEgAEj4KD2luZmVyZW5jZV9jaHVuaxgLIAEoCzIjLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlQ2h1bmtIABI8Cg5pbmZlcmVuY2VfZG9uZRgMIAEoCzIiLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlRG9uZUgAEj4KD2luZmVyZW5jZV9lcnJvchgNIAEoCzIjLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlRXJyb3JIABItCgZjYW5jZWwYDiABKAsyGy5zcGxpdGNvcnRleC5ub2RlLnYxLkNhbmNlbEgAEjYKC25vZGVfY29uZmlnGA8gASgLMh8uc3BsaXRjb3J0ZXgubm9kZS52MS5Ob2RlQ29uZmlnSABCBgoEYm9keSJcCgtDbGllbnRIZWxsbxIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEg8KB25vZGVfaWQYAiABKAkSDQoFbm9uY2UYAyABKAwSEwoLYXBwX3ZlcnNpb24YBCABKAkiLwoLU2VydmVySGVsbG8SDQoFbm9uY2UYASABKAwSEQoJc2lnbmF0dXJlGAIgASgMIh8KCkNsaWVudEF1dGgSEQoJc2lnbmF0dXJlGAEgASgMIj0KBVJlYWR5EhUKDW1heF9pbl9mbGlnaHQYASABKA0SHQoVcGluZ19pbnRlcnZhbF9zZWNvbmRzGAIgASgNImgKD01vZGVsQXNzaWdubWVudBIQCghtb2RlbF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCWZpbGVfbmFtZRgDIAEoCRISCgpzaXplX2J5dGVzGAQgASgEEg4KBnNoYTI1NhgFIAEoCSI5CgpOb2RlQ29uZmlnEg8KB2JhY2tlbmQYASABKAkSGgoSbWF4X2NvbnRleHRfdG9rZW5zGAIgASgNInUKCk1vZGVsU3RhdGUSEAoIbW9kZWxfaWQYASABKAkSLgoFcGhhc2UYAiABKA4yHy5zcGxpdGNvcnRleC5ub2RlLnYxLk1vZGVsUGhhc2USFgoOcHJvZ3Jlc3NfYnl0ZXMYAyABKAQSDQoFZXJyb3IYBCABKAkivwEKCVRlbGVtZXRyeRITCgtjcHVfcGVyY2VudBgBIAEoARIWCg5tZW1vcnlfdXNlZF9tYhgCIAEoDRIXCg9iYXR0ZXJ5X3BlcmNlbnQYAyABKAUSEAoIY2hhcmdpbmcYBCABKAgSFQoNdGVtcGVyYXR1cmVfYxgFIAEoARIWCg50b2tlbnNfcGVyX3NlYxgGIAEoARIPCgdiYWNrZW5kGAcgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgIIAEoDSIcCgRQaW5nEhQKDHRpbWVzdGFtcF9tcxgBIAEoBCIcCgRQb25nEhQKDHRpbWVzdGFtcF9tcxgBIAEoBCIsCgtDaGF0TWVzc2FnZRIMCgRyb2xlGAEgASgJEg8KB2NvbnRlbnQYAiABKAkipAEKEEluZmVyZW5jZVJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRIQCghtb2RlbF9pZBgCIAEoCRIyCghtZXNzYWdlcxgDIAMoCzIgLnNwbGl0Y29ydGV4Lm5vZGUudjEuQ2hhdE1lc3NhZ2USEgoKbWF4X3Rva2VucxgEIAEoDRITCgt0ZW1wZXJhdHVyZRgFIAEoAhINCgV0b3BfcBgGIAEoAiIyCg5JbmZlcmVuY2VDaHVuaxISCgpyZXF1ZXN0X2lkGAEgASgJEgwKBHRleHQYAiABKAkibAoNSW5mZXJlbmNlRG9uZRISCgpyZXF1ZXN0X2lkGAEgASgJEhUKDXByb21wdF90b2tlbnMYAiABKA0SGQoRY29tcGxldGlvbl90b2tlbnMYAyABKA0SFQoNZmluaXNoX3JlYXNvbhgEIAEoCSJDCg5JbmZlcmVuY2VFcnJvchISCgpyZXF1ZXN0X2lkGAEgASgJEgwKBGNvZGUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCSIcCgZDYW5jZWwSEgoKcmVxdWVzdF9pZBgBIAEoCSqkAQoKTW9kZWxQaGFzZRIbChdNT0RFTF9QSEFTRV9VTlNQRUNJRklFRBAAEhQKEE1PREVMX1BIQVNFX05PTkUQARIbChdNT0RFTF9QSEFTRV9ET1dOTE9BRElORxACEhcKE01PREVMX1BIQVNFX0xPQURJTkcQAxIVChFNT0RFTF9QSEFTRV9SRUFEWRAEEhYKEk1PREVMX1BIQVNFX0ZBSUxFRBAFYgZwcm90bzM',
   );
 
 /**
@@ -132,6 +132,13 @@ export type Envelope = Message<'splitcortex.node.v1.Envelope'> & {
          */
         value: Cancel;
         case: 'cancel';
+      }
+    | {
+        /**
+         * @generated from field: splitcortex.node.v1.NodeConfig node_config = 15;
+         */
+        value: NodeConfig;
+        case: 'nodeConfig';
       }
     | { case: undefined; value?: undefined };
 };
@@ -294,6 +301,37 @@ export const ModelAssignmentSchema: GenMessage<ModelAssignment> =
   messageDesc(file_splitcortex_node_v1_node, 5);
 
 /**
+ * Admin overrides for this device (gateway -> node). Sent after Ready and whenever they change; the node applies
+ * them over its own settings and reloads the engine if the effective values changed. Zero values mean "no override":
+ * the node uses its own setting, which is `auto` by default (it measures and picks the fastest backend).
+ *
+ * @generated from message splitcortex.node.v1.NodeConfig
+ */
+export type NodeConfig = Message<'splitcortex.node.v1.NodeConfig'> & {
+  /**
+   * "" | "cpu" | "gpu"
+   *
+   * @generated from field: string backend = 1;
+   */
+  backend: string;
+
+  /**
+   * 0 = no override
+   *
+   * @generated from field: uint32 max_context_tokens = 2;
+   */
+  maxContextTokens: number;
+};
+
+/**
+ * Describes the message splitcortex.node.v1.NodeConfig.
+ * Use `create(NodeConfigSchema)` to create a new message.
+ */
+export const NodeConfigSchema: GenMessage<NodeConfig> =
+  /*@__PURE__*/
+  messageDesc(file_splitcortex_node_v1_node, 6);
+
+/**
  * node -> gateway. Requests are routed to a node only while it reports READY for the assigned model.
  *
  * @generated from message splitcortex.node.v1.ModelState
@@ -326,7 +364,7 @@ export type ModelState = Message<'splitcortex.node.v1.ModelState'> & {
  */
 export const ModelStateSchema: GenMessage<ModelState> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 6);
+  messageDesc(file_splitcortex_node_v1_node, 7);
 
 /**
  * Unknown values: cpu_percent < 0, memory_used_mb = 0, battery_percent < 0 (charging is then meaningless),
@@ -370,6 +408,20 @@ export type Telemetry = Message<'splitcortex.node.v1.Telemetry'> & {
    * @generated from field: double tokens_per_sec = 6;
    */
   tokensPerSec: number;
+
+  /**
+   * what the engine actually runs on: "cpu" | "gpu" ("" = unknown / no model loaded)
+   *
+   * @generated from field: string backend = 7;
+   */
+  backend: string;
+
+  /**
+   * the engine's context window in tokens (0 = unknown). The gateway only routes a
+   *
+   * @generated from field: uint32 max_context_tokens = 8;
+   */
+  maxContextTokens: number;
 };
 
 /**
@@ -378,7 +430,7 @@ export type Telemetry = Message<'splitcortex.node.v1.Telemetry'> & {
  */
 export const TelemetrySchema: GenMessage<Telemetry> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 7);
+  messageDesc(file_splitcortex_node_v1_node, 8);
 
 /**
  * @generated from message splitcortex.node.v1.Ping
@@ -396,7 +448,7 @@ export type Ping = Message<'splitcortex.node.v1.Ping'> & {
  */
 export const PingSchema: GenMessage<Ping> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 8);
+  messageDesc(file_splitcortex_node_v1_node, 9);
 
 /**
  * @generated from message splitcortex.node.v1.Pong
@@ -414,7 +466,7 @@ export type Pong = Message<'splitcortex.node.v1.Pong'> & {
  */
 export const PongSchema: GenMessage<Pong> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 9);
+  messageDesc(file_splitcortex_node_v1_node, 10);
 
 /**
  * @generated from message splitcortex.node.v1.ChatMessage
@@ -439,7 +491,7 @@ export type ChatMessage = Message<'splitcortex.node.v1.ChatMessage'> & {
  */
 export const ChatMessageSchema: GenMessage<ChatMessage> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 10);
+  messageDesc(file_splitcortex_node_v1_node, 11);
 
 /**
  * Every message below carries the request id, so many requests share the one socket.
@@ -490,7 +542,7 @@ export type InferenceRequest = Message<'splitcortex.node.v1.InferenceRequest'> &
  */
 export const InferenceRequestSchema: GenMessage<InferenceRequest> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 11);
+  messageDesc(file_splitcortex_node_v1_node, 12);
 
 /**
  * @generated from message splitcortex.node.v1.InferenceChunk
@@ -513,7 +565,7 @@ export type InferenceChunk = Message<'splitcortex.node.v1.InferenceChunk'> & {
  */
 export const InferenceChunkSchema: GenMessage<InferenceChunk> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 12);
+  messageDesc(file_splitcortex_node_v1_node, 13);
 
 /**
  * @generated from message splitcortex.node.v1.InferenceDone
@@ -548,7 +600,7 @@ export type InferenceDone = Message<'splitcortex.node.v1.InferenceDone'> & {
  */
 export const InferenceDoneSchema: GenMessage<InferenceDone> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 13);
+  messageDesc(file_splitcortex_node_v1_node, 14);
 
 /**
  * @generated from message splitcortex.node.v1.InferenceError
@@ -576,7 +628,7 @@ export type InferenceError = Message<'splitcortex.node.v1.InferenceError'> & {
  */
 export const InferenceErrorSchema: GenMessage<InferenceError> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 14);
+  messageDesc(file_splitcortex_node_v1_node, 15);
 
 /**
  * gateway -> node: the client went away, stop generating.
@@ -596,7 +648,7 @@ export type Cancel = Message<'splitcortex.node.v1.Cancel'> & {
  */
 export const CancelSchema: GenMessage<Cancel> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 15);
+  messageDesc(file_splitcortex_node_v1_node, 16);
 
 /**
  * @generated from enum splitcortex.node.v1.ModelPhase
