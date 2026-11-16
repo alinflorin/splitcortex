@@ -182,6 +182,9 @@ garage:
     replicaCount: 1
   garage:
     replicationFactor: "1"
+    # SQLite, not LMDB: LMDB needs a huge virtual address space (default map 1 TiB), which a 32-bit OS or a 39-bit-VA arm64
+    # kernel (Raspberry Pi) does not give. The engine cannot be switched on an existing meta volume: delete the meta PVC.
+    dbEngine: sqlite
     rpc:
       secret:
         create: false
