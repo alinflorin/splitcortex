@@ -11,14 +11,16 @@ import {
   tokens,
 } from '@fluentui/react-components';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useCreateApiKey, usePools } from '../../api/hooks';
 import { API_KEY_EXPIRIES, apiKeyFormSchema } from '../../api/schemas';
 import type { ApiKeyForm, CreatedApiKey } from '../../api/schemas';
 import { FormDialog } from '../../components/forms/FormDialog';
+import { LimitsFields } from '../../components/forms/LimitsFields';
 import { TextField } from '../../components/forms/TextField';
+import { EMPTY_LIMITS_TEXT, textToLimits } from '../../lib/limits';
 
 const DEFAULTS: ApiKeyForm = { name: '', scope: 'org', poolIds: [], expiry: 'never' };
 
@@ -47,15 +49,22 @@ export function ApiKeyFormDialog({ orgId, open, onClose, onCreated }: Props) {
     defaultValues: DEFAULTS,
   });
   const scope = form.watch('scope');
+  const [limitsText, setLimitsText] = useState(EMPTY_LIMITS_TEXT);
 
   const { reset } = form;
   useEffect(() => {
-    if (open) reset(DEFAULTS);
+    if (open) {
+      reset(DEFAULTS);
+      setLimitsText(EMPTY_LIMITS_TEXT);
+    }
   }, [open, reset]);
 
   const submit = form.handleSubmit(async (values) => {
+    const limits = textToLimits(limitsText);
+    if (!limits) return; // the invalid field is flagged in the dialog
+    const any = Object.values(limits).some((v) => v !== null);
     try {
-      onCreated(await create.mutateAsync(values));
+      onCreated(await create.mutateAsync({ form: values, limits: any ? limits : undefined }));
     } catch {
       // the mutation cache already showed an error toast; keep the dialog open
     }
@@ -137,6 +146,7 @@ export function ApiKeyFormDialog({ orgId, open, onClose, onCreated }: Props) {
           </Field>
         )}
       />
+      <LimitsFields value={limitsText} onChange={setLimitsText} />
     </FormDialog>
   );
 }

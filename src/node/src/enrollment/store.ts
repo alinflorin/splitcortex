@@ -10,7 +10,8 @@ export interface StoredEnrollment {
   /** Control plane URL it enrolled against. */
   enrollmentUrl: string;
   /** Pinned gateway identity; null if the platform had none yet at enrollment. */
-  gateway: { publicKey: string; url: string } | null;
+  /** `nextKeys`: keys the gateway announced for a key rotation (signed by the current one); trusted alongside it. */
+  gateway: { publicKey: string; url: string; nextKeys?: string[] } | null;
   enrolledAt: string;
 }
 

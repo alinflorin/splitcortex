@@ -1,5 +1,8 @@
+mod benchmark;
 mod cache;
+mod cluster;
 mod config;
+mod limits;
 mod node_ws;
 mod openai;
 mod proto;
@@ -56,6 +59,10 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
+    if args_first_is("rotation-status") {
+        return rotation_status().await;
+    }
+
     let cfg = config::Config::from_env()?;
     let db = PgPoolOptions::new()
         .max_connections(10)
@@ -67,8 +74,11 @@ async fn main() -> Result<()> {
     let (ready_tx, ready_rx) = watch::channel(false);
     let usage = Arc::new(usage::Usage::new(cfg.usage_max_buckets, cfg.usage_max_age_secs));
 
-    // Nothing is connected yet (single gateway instance): clear stale "connected" flags from a previous run.
-    sqlx::query("update node_status set connected = false where connected")
+    // Nodes this instance held in a previous run (same pod name after a restart) are not connected any more. Rows of
+    // other instances are theirs; rows of instances that died go stale on their own (the control plane ignores rows
+    // that were not refreshed for a minute).
+    sqlx::query("update node_status set connected = false, in_flight = 0 where connected and gateway_id = $1")
+        .bind(&cfg.instance_id)
         .execute(&db)
         .await?;
 
@@ -78,6 +88,12 @@ async fn main() -> Result<()> {
         registry: Default::default(),
         usage: usage.clone(),
         signing_key: cfg.signing_key,
+        next_key: cfg.next_key,
+        limiter: Default::default(),
+        instance_id: cfg.instance_id.clone(),
+        advertise: cfg.advertise.clone(),
+        internal_token: cfg.internal_token.clone(),
+        http: cluster::http_client(),
         changed: changed.clone(),
         cache_ready: ready_rx,
         unknown_keys: Mutex::new(HashMap::new()),
@@ -88,6 +104,27 @@ async fn main() -> Result<()> {
     tokio::spawn(usage::flush_loop(usage.clone(), db.clone()));
     tokio::spawn(node_ws::reconcile_loop(app.clone()));
     tokio::spawn(node_ws::heartbeat_loop(app.clone()));
+    tokio::spawn(cluster::instance_loop(app.clone()));
+    tokio::spawn(benchmark::run_loop(app.clone()));
+    {
+        let app = app.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_secs(300)).await;
+                app.limiter.prune(chrono::Utc::now().timestamp());
+            }
+        });
+    }
+
+    // Gateway-to-gateway forwarding (own port, only reachable inside the cluster, bearer token required).
+    if cfg.advertise.is_some() {
+        let app_for_internal = app.clone();
+        let internal = tokio::net::TcpListener::bind(("0.0.0.0", cfg.internal_port)).await?;
+        info!(port = cfg.internal_port, instance = %cfg.instance_id, "internal listener");
+        tokio::spawn(async move {
+            let _ = axum::serve(internal, cluster::internal_router(app_for_internal)).await;
+        });
+    }
 
     let router = Router::new()
         .route("/healthz", get(|| async { "ok" }))
@@ -106,8 +143,57 @@ async fn main() -> Result<()> {
         })
         .await?;
 
-    // Flush the usage counters before exiting.
+    // Flush the usage counters and leave the directory before exiting.
     usage.flush(&db).await;
+    cluster::leave(&app).await;
+    Ok(())
+}
+
+fn args_first_is(name: &str) -> bool {
+    std::env::args().nth(1).as_deref() == Some(name)
+}
+
+/// `gateway rotation-status`: how many devices already trust the next gateway key (run it in a gateway pod, which has
+/// the database URL and the next key; prints counts only, never key material).
+async fn rotation_status() -> Result<()> {
+    use sqlx::Row;
+    let database_url = std::env::var("DATABASE_URL")?;
+    let current = config::parse_private_key(&std::env::var("GATEWAY_PRIVATE_KEY")?)?;
+    let next = match std::env::var("GATEWAY_NEXT_PRIVATE_KEY") {
+        Ok(v) if !v.trim().is_empty() => Some(config::parse_private_key(&v)?),
+        _ => None,
+    };
+    let db = PgPoolOptions::new().max_connections(1).connect(&database_url).await?;
+    let total: i64 = sqlx::query_scalar("select count(*) from nodes where approved")
+        .fetch_one(&db)
+        .await?;
+    println!("devices (approved): {total}");
+    println!("current key id:     {}", config::key_id(&current.verifying_key()));
+    let Some(next) = next else {
+        println!("no rotation under way (GATEWAY_NEXT_PRIVATE_KEY is not set)");
+        return Ok(());
+    };
+    let id = config::key_id(&next.verifying_key());
+    println!("next key id:        {id}");
+    let row = sqlx::query(
+        "select count(*) filter (where ns.gateway_keys like '%' || $1 || '%') as trust, \
+         count(*) filter (where ns.gateway_keys is null) as unknown \
+         from nodes n left join node_status ns on ns.node_id = n.id where n.approved",
+    )
+    .bind(&id)
+    .fetch_one(&db)
+    .await?;
+    let (trust, unknown): (i64, i64) = (row.get("trust"), row.get("unknown"));
+    println!("trust the next key: {trust}");
+    println!("never reported:     {unknown}");
+    println!(
+        "{}",
+        if trust == total {
+            "every device trusts the next key: it is safe to promote it"
+        } else {
+            "not yet: devices learn the next key when they connect; promoting now would strand the others"
+        }
+    );
     Ok(())
 }
 

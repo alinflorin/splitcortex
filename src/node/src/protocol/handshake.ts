@@ -1,10 +1,12 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { toB64 } from '../enrollment/crypto';
 
 // Must match src/gateway/src/node_ws.rs byte for byte. Messages are `label` followed by `\n` + part for every part.
 export const GATEWAY_HELLO = 'splitcortex-gateway-hello-v1';
 export const NODE_HELLO = 'splitcortex-node-hello-v1';
 export const NODE_REQUEST = 'splitcortex-node-request-v1';
+export const NEXT_GATEWAY_KEY = 'splitcortex-gateway-next-key-v1';
 
 const enc = new TextEncoder();
 
@@ -62,3 +64,27 @@ export function nodeAuthorization(
   const sig = ed25519.sign(signedMessage(NODE_REQUEST, method, path, String(ts)), privateKey);
   return `Node ${nodeId}.${ts}.${toB64(sig)}`;
 }
+
+/**
+ * During a gateway key rotation the gateway announces the key it will switch to, signed by its current key (which this
+ * device trusts). The node nonce is part of the message, so an announcement cannot be replayed on another connection.
+ */
+export function verifyNextGatewayKey(
+  currentKey: Uint8Array,
+  nodeNonce: Uint8Array,
+  nextKey: Uint8Array,
+  signature: Uint8Array,
+): boolean {
+  try {
+    return ed25519.verify(
+      signature,
+      signedMessage(NEXT_GATEWAY_KEY, nodeNonce, nextKey),
+      currentKey,
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Identifies a gateway key: the first 8 bytes of its SHA-256 (what `GatewayKeys` reports; the gateway prints the same hex). */
+export const gatewayKeyId = (publicKey: Uint8Array): Uint8Array => sha256(publicKey).slice(0, 8);

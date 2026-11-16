@@ -39,6 +39,10 @@ export const organisations = pgTable('organisations', {
   id: id(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
+  /** Rate limits enforced by the gateway (null = unlimited). Per minute, and tokens per UTC day. */
+  limitRequestsPerMinute: integer('limit_requests_per_minute'),
+  limitTokensPerMinute: integer('limit_tokens_per_minute'),
+  limitTokensPerDay: bigint('limit_tokens_per_day', { mode: 'number' }),
   createdAt: createdAt(),
 });
 
@@ -155,8 +159,65 @@ export const nodeStatus = pgTable('node_status', {
   /** What the engine actually runs on (`cpu` | `gpu`) and its context window, as reported by the node. */
   backend: text('backend'),
   maxContextTokens: integer('max_context_tokens'),
+  /** The gateway instance holding the connection (`gateway_instances.id`). */
+  gatewayId: text('gateway_id'),
+  /** Ids (hex, comma separated) of the gateway keys the device trusts; used to check a key rotation. */
+  gatewayKeys: text('gateway_keys'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Running gateway instances (each heartbeats every few seconds); written by the gateways only. */
+export const gatewayInstances = pgTable('gateway_instances', {
+  id: text('id').primaryKey(),
+  /** Internal address other gateways forward requests to (never exposed outside the cluster). */
+  address: text('address').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * A benchmark of a pool: one fixed, platform-supplied prompt run on every connected node of the pool, one node at a
+ * time. The gateway that holds a node runs its row in `benchmark_results`.
+ */
+export const benchmarks = pgTable(
+  'benchmarks',
+  {
+    id: id(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    poolId: uuid('pool_id')
+      .notNull()
+      .references(() => pools.id, { onDelete: 'cascade' }),
+    createdBy: text('created_by').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('benchmarks_pool_idx').on(t.poolId, t.createdAt)],
+);
+
+export const benchmarkResults = pgTable(
+  'benchmark_results',
+  {
+    id: id(),
+    benchmarkId: uuid('benchmark_id')
+      .notNull()
+      .references(() => benchmarks.id, { onDelete: 'cascade' }),
+    nodeId: uuid('node_id')
+      .notNull()
+      .references(() => nodes.id, { onDelete: 'cascade' }),
+    /** pending | running | done | failed */
+    status: text('status').notNull().default('pending'),
+    error: text('error'),
+    /** Time to first token, total time and generated pieces; tokens per second is measured after the first token. */
+    ttftMs: integer('ttft_ms'),
+    totalMs: integer('total_ms'),
+    tokens: integer('tokens'),
+    tokensPerSec: doublePrecision('tokens_per_sec'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [unique('benchmark_results_unique').on(t.benchmarkId, t.nodeId)],
+);
 
 /** A model file owned by an organisation, stored in object storage and replicated onto the nodes of the pools it is assigned to. */
 export const models = pgTable(
@@ -228,6 +289,10 @@ export const apiKeys = pgTable(
     createdBy: text('created_by').notNull(),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    /** Rate limits enforced by the gateway (null = unlimited). Per minute, and tokens per UTC day. */
+    limitRequestsPerMinute: integer('limit_requests_per_minute'),
+    limitTokensPerMinute: integer('limit_tokens_per_minute'),
+    limitTokensPerDay: bigint('limit_tokens_per_day', { mode: 'number' }),
     createdAt: createdAt(),
   },
   (t) => [index('api_keys_org_idx').on(t.orgId)],

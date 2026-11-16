@@ -22,6 +22,9 @@ use crate::state::AppState;
 
 const GATEWAY_HELLO: &[u8] = b"splitcortex-gateway-hello-v1";
 const NODE_HELLO: &[u8] = b"splitcortex-node-hello-v1";
+const NEXT_KEY: &[u8] = b"splitcortex-gateway-next-key-v1";
+/// How long the requests of a dropped connection wait for the node to come back and resume them.
+pub const RESUME_GRACE: Duration = Duration::from_secs(20);
 const PROTOCOL_VERSION: u32 = 1;
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
 const PING_EVERY: Duration = Duration::from_secs(20);
@@ -123,8 +126,20 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
         assignment_sent: Default::default(),
         ctx_tokens: Default::default(),
         config_sent: Default::default(),
+        resuming: Default::default(),
+        since: std::time::Instant::now(),
     });
-    app.registry.register(conn.clone());
+    let waiting = app.registry.register(conn.clone());
+    if waiting > 0 {
+        // Requests of the previous connection wait for this node to list them (it does so right after Ready).
+        conn.resuming.store(true, Ordering::Relaxed);
+        schedule_expiry(&app, node_id);
+        let c = conn.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            c.resuming.store(false, Ordering::Relaxed);
+        });
+    }
     set_connected(&app, node_id, true).await;
     info!(node = %node_id, "node connected");
 
@@ -145,11 +160,22 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
         }
     });
 
+    // Key rotation: while a next key is configured, announce it signed by the current one (the node pinned that).
+    let (next_gateway_key, next_gateway_key_signature) = match &app.next_key {
+        Some(next) => {
+            let key = next.verifying_key().to_bytes().to_vec();
+            let sig = app.signing_key.sign(&signed(NEXT_KEY, &[&hello.nonce, &key]));
+            (key, sig.to_bytes().to_vec())
+        }
+        None => (Vec::new(), Vec::new()),
+    };
     let _ = conn
         .tx
         .send(Outbound::Send(env(Body::Ready(proto::Ready {
             max_in_flight: NODE_CAPACITY,
             ping_interval_seconds: PING_EVERY.as_secs() as u32,
+            next_gateway_key,
+            next_gateway_key_signature,
         }))))
         .await;
     sync_assignment(&app, &conn);
@@ -182,11 +208,24 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
     };
 
     writer.abort();
-    if app.registry.unregister(node_id, conn.conn_id) {
+    let (removed, waiting) = app.registry.unregister(node_id, conn.conn_id);
+    if waiting > 0 {
+        schedule_expiry(&app, node_id);
+    }
+    if removed {
         set_connected(&app, node_id, false).await;
     }
     info!(node = %node_id, "node disconnected");
     result
+}
+
+/// Fails the requests still waiting for `node_id` once the grace period is over.
+fn schedule_expiry(app: &Arc<AppState>, node_id: Uuid) {
+    let app = app.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(RESUME_GRACE).await;
+        app.registry.expire_detached(node_id, RESUME_GRACE);
+    });
 }
 
 fn now_ms() -> u64 {
@@ -223,11 +262,11 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
             let backend = (t.backend == "cpu" || t.backend == "gpu").then_some(t.backend.clone());
             let _ = sqlx::query(
                 "insert into node_status (node_id, connected, cpu_percent, memory_used_mb, battery_percent, charging, \
-                 temperature_c, in_flight, tokens_per_sec, backend, max_context_tokens, updated_at) \
-                 values ($1, true, $2, $3, $4, $5, $6, $7, $8, $9, $10, now()) \
+                 temperature_c, in_flight, tokens_per_sec, backend, max_context_tokens, gateway_id, updated_at) \
+                 values ($1, true, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now()) \
                  on conflict (node_id) do update set cpu_percent = $2, memory_used_mb = $3, battery_percent = $4, \
                  charging = $5, temperature_c = $6, in_flight = $7, tokens_per_sec = $8, backend = $9, \
-                 max_context_tokens = $10, updated_at = now()",
+                 max_context_tokens = $10, gateway_id = $11, updated_at = now()",
             )
             .bind(node)
             .bind((t.cpu_percent >= 0.0).then_some(t.cpu_percent))
@@ -239,12 +278,13 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
             .bind(t.tokens_per_sec)
             .bind(backend)
             .bind((t.max_context_tokens > 0).then_some(t.max_context_tokens as i32))
+            .bind(&app.instance_id)
             .execute(&app.db)
             .await;
         }
         Some(Body::InferenceChunk(c)) => {
             app.registry
-                .deliver(node, &c.request_id, NodeEvent::Chunk(c.text))
+                .deliver(node, &c.request_id, c.seq, NodeEvent::Chunk(c.text))
                 .await
         }
         Some(Body::InferenceDone(d)) => {
@@ -252,6 +292,7 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
                 .deliver(
                     node,
                     &d.request_id,
+                    d.seq,
                     NodeEvent::Done {
                         finish_reason: d.finish_reason,
                     },
@@ -263,12 +304,42 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
                 .deliver(
                     node,
                     &x.request_id,
+                    x.seq,
                     NodeEvent::Error {
                         code: x.code,
                         message: x.message,
                     },
                 )
                 .await
+        }
+        Some(Body::Resume(r)) => {
+            let (resumed, unknown) = app.registry.resume(conn, &r.request_ids);
+            conn.resuming.store(false, Ordering::Relaxed);
+            if !r.request_ids.is_empty() {
+                let entries = resumed
+                    .into_iter()
+                    .map(|(request_id, received_seq)| proto::ResumeEntry {
+                        request_id,
+                        received_seq,
+                    })
+                    .collect();
+                let _ = conn
+                    .tx
+                    .try_send(Outbound::Send(env(Body::ResumeAck(proto::ResumeAck { entries }))));
+                for request_id in unknown {
+                    let _ = conn
+                        .tx
+                        .try_send(Outbound::Send(env(Body::Cancel(proto::Cancel { request_id }))));
+                }
+            }
+        }
+        Some(Body::GatewayKeys(k)) => {
+            let ids: Vec<String> = k.key_ids.iter().take(8).map(|b| hex(b)).collect();
+            let _ = sqlx::query("update node_status set gateway_keys = $2 where node_id = $1")
+                .bind(node)
+                .bind(ids.join(","))
+                .execute(&app.db)
+                .await;
         }
         _ => {} // handshake messages after the handshake, or gateway-only messages: ignored
     }
@@ -357,16 +428,25 @@ pub async fn reconcile_loop(app: Arc<AppState>) {
     }
 }
 
+fn hex(b: &[u8]) -> String {
+    b.iter().map(|x| format!("{x:02x}")).collect()
+}
+
+/// Records where the node is connected. A disconnect only counts when this gateway still holds the node (it may have
+/// reconnected to another instance meanwhile).
 async fn set_connected(app: &AppState, node: Uuid, connected: bool) {
     let _ = sqlx::query(
-        "insert into node_status (node_id, connected, connected_since, updated_at) \
-         values ($1, $2, case when $2 then now() end, now()) \
+        "insert into node_status (node_id, connected, connected_since, gateway_id, updated_at) \
+         values ($1, $2, case when $2 then now() end, case when $2 then $3 end, now()) \
          on conflict (node_id) do update set connected = $2, \
          connected_since = case when $2 then now() else node_status.connected_since end, \
-         in_flight = 0, updated_at = now()",
+         gateway_id = case when $2 then $3 else node_status.gateway_id end, \
+         in_flight = 0, updated_at = now() \
+         where $2 or node_status.gateway_id is not distinct from $3",
     )
     .bind(node)
     .bind(connected)
+    .bind(&app.instance_id)
     .execute(&app.db)
     .await;
 }
@@ -376,16 +456,36 @@ async fn update_model_status(_app: &AppState, node: Uuid, s: &proto::ModelState)
     debug!(%node, model = %s.model_id, phase = s.phase, progress = s.progress_bytes, "model state");
 }
 
-/// Keeps `node_status.updated_at` fresh for connected nodes (the control plane treats rows older than 60 s as offline).
+/// Keeps `node_status.updated_at` fresh for connected nodes (the control plane treats rows older than 60 s as offline)
+/// and closes connections of nodes that have since connected to another gateway instance (a newer connection of a node
+/// replaces the older one, wherever it is).
 pub async fn heartbeat_loop(app: Arc<AppState>) {
     loop {
         tokio::time::sleep(Duration::from_secs(15)).await;
-        let ids: Vec<Uuid> = app.registry.all().iter().map(|c| c.node_id).collect();
-        if ids.is_empty() {
+        let conns = app.registry.all();
+        if conns.is_empty() {
             continue;
         }
-        let _ = sqlx::query("update node_status set updated_at = now() where node_id = any($1)")
+        let ids: Vec<Uuid> = conns.iter().map(|c| c.node_id).collect();
+        if let Ok(moved) = sqlx::query_scalar::<_, Uuid>(
+            "select node_id from node_status where node_id = any($1) and connected \
+             and gateway_id is not null and gateway_id <> $2",
+        )
+        .bind(&ids)
+        .bind(&app.instance_id)
+        .fetch_all(&app.db)
+        .await
+        {
+            for c in conns
+                .iter()
+                .filter(|c| moved.contains(&c.node_id) && c.since.elapsed() > Duration::from_secs(10))
+            {
+                let _ = c.tx.try_send(Outbound::Close);
+            }
+        }
+        let _ = sqlx::query("update node_status set updated_at = now() where node_id = any($1) and gateway_id = $2")
             .bind(&ids)
+            .bind(&app.instance_id)
             .execute(&app.db)
             .await;
     }

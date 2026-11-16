@@ -1,6 +1,7 @@
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BatteryExemption } from '../components/BatteryExemption';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Screen } from '../components/Screen';
@@ -87,6 +88,7 @@ export default function Home() {
           )}
         </Card>
       ) : null}
+      {enrollment?.approved ? <BatteryExemption /> : null}
       <Link href="/logs" asChild>
         <Button label={t('home.logs')} />
       </Link>

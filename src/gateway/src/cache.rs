@@ -15,6 +15,8 @@ use tokio::sync::Notify;
 use tracing::{info, warn};
 use uuid::Uuid;
 
+use crate::limits::Limits;
+
 #[derive(Clone)]
 pub struct NodeRec {
     pub id: Uuid,
@@ -54,6 +56,7 @@ pub struct KeyRec {
     pub pools: HashSet<Uuid>,
     pub expires_at: Option<DateTime<Utc>>,
     pub revoked: bool,
+    pub limits: Limits,
 }
 
 #[derive(Default)]
@@ -61,6 +64,8 @@ pub struct Cache {
     pub nodes: HashMap<Uuid, NodeRec>,
     pub pools: HashMap<Uuid, PoolRec>,
     pub keys: HashMap<String, KeyRec>, // by sha256 hex of the token
+    /// Organisation-wide rate limits.
+    pub org_limits: HashMap<Uuid, Limits>,
 }
 
 pub type SharedCache = Arc<RwLock<Cache>>;
@@ -72,7 +77,25 @@ const POOL_SQL: &str = "select p.id, p.org_id, p.balancing_type::text as balanci
      left join pool_models pm on pm.pool_id = p.id \
      left join models m on m.id = pm.model_id and m.status = 'ready'";
 const KEY_SQL: &str = "select k.id, k.org_id, k.hash, k.all_pools, k.expires_at, k.revoked_at, \
+     k.limit_requests_per_minute, k.limit_tokens_per_minute, k.limit_tokens_per_day, \
      coalesce((select array_agg(pool_id) from api_key_pools where key_id = k.id), '{}') as pools from api_keys k";
+
+const ORG_SQL: &str =
+    "select id, limit_requests_per_minute, limit_tokens_per_minute, limit_tokens_per_day from organisations";
+
+fn limits_from(r: &sqlx::postgres::PgRow) -> Limits {
+    Limits {
+        requests_per_minute: r
+            .get::<Option<i32>, _>("limit_requests_per_minute")
+            .and_then(|v| u32::try_from(v).ok()),
+        tokens_per_minute: r
+            .get::<Option<i32>, _>("limit_tokens_per_minute")
+            .and_then(|v| u32::try_from(v).ok()),
+        tokens_per_day: r
+            .get::<Option<i64>, _>("limit_tokens_per_day")
+            .and_then(|v| u64::try_from(v).ok()),
+    }
+}
 
 fn node_from(r: &sqlx::postgres::PgRow) -> Option<NodeRec> {
     let raw = B64.decode(r.get::<String, _>("public_key")).ok()?;
@@ -118,6 +141,7 @@ pub fn key_from(r: &sqlx::postgres::PgRow) -> KeyRec {
         pools: r.get::<Vec<Uuid>, _>("pools").into_iter().collect(),
         expires_at: r.get("expires_at"),
         revoked: r.get::<Option<DateTime<Utc>>, _>("revoked_at").is_some(),
+        limits: limits_from(r),
     }
 }
 
@@ -148,6 +172,9 @@ async fn full_load(db: &PgPool) -> Result<(Cache, i64)> {
     for r in sqlx::query(KEY_SQL).fetch_all(db).await? {
         let k = key_from(&r);
         c.keys.insert(k.hash.clone(), k);
+    }
+    for r in sqlx::query(ORG_SQL).fetch_all(db).await? {
+        c.org_limits.insert(r.get("id"), limits_from(&r));
     }
     Ok((c, seq))
 }
@@ -185,12 +212,15 @@ async fn apply(db: &PgPool, cache: &SharedCache, kind: &str, id: Uuid) -> Result
         // An organisation is only recorded when it changes or is deleted; its children record their own changes,
         // but dropping everything of a deleted org here keeps the cache honest.
         "organisation" => {
-            let exists: bool = sqlx::query_scalar("select exists(select 1 from organisations where id = $1)")
+            let row = sqlx::query(&format!("{ORG_SQL} where id = $1"))
                 .bind(id)
-                .fetch_one(db)
+                .fetch_optional(db)
                 .await?;
-            if !exists {
+            if let Some(r) = row {
+                cache.write().unwrap().org_limits.insert(id, limits_from(&r));
+            } else {
                 let mut c = cache.write().unwrap();
+                c.org_limits.remove(&id);
                 c.nodes.retain(|_, n| n.org_id != id);
                 c.pools.retain(|_, p| p.org_id != id);
                 c.keys.retain(|_, k| k.org_id != id);

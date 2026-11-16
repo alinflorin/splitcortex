@@ -4,6 +4,10 @@
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
   <uses-permission android:name="android.permission.WAKE_LOCK"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+  <!-- Lets the user exempt the app from Doze / battery optimisation (the system asks them; it is never granted silently). -->
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+  <!-- A Wi-Fi lock keeps the radio awake while serving. -->
+  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
 
   <application>
     <!-- Keeps the process (and so the JS runtime holding the gateway connection and the model) alive while serving. -->

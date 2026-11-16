@@ -1,5 +1,6 @@
 import { Button, Subtitle2, Text, makeStyles, tokens } from '@fluentui/react-components';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -8,7 +9,10 @@ import { organisationFormSchema } from '../../api/schemas';
 import type { OrganisationForm } from '../../api/schemas';
 import { useConfirm } from '../../components/feedback/useConfirm';
 import { useToast } from '../../components/feedback/useToast';
+import { LimitsFields } from '../../components/forms/LimitsFields';
 import { TextField } from '../../components/forms/TextField';
+import { ItemCard } from '../../components/cards/cards';
+import { invalidLimits, limitsToText, textToLimits } from '../../lib/limits';
 import { isAdmin } from '../../lib/roles';
 import { useOrganisationContext } from './OrganisationLayout';
 
@@ -41,6 +45,19 @@ export function OrganisationSettingsTab() {
   const remove = useDeleteOrganisation(org.id);
   const confirm = useConfirm();
   const toast = useToast();
+
+  const [limitsText, setLimitsText] = useState(() => limitsToText(org.limits));
+  const limitsChanged = JSON.stringify(limitsText) !== JSON.stringify(limitsToText(org.limits));
+  const saveLimits = async () => {
+    const limits = textToLimits(limitsText);
+    if (!limits) return;
+    try {
+      await update.mutateAsync({ limits });
+      toast.success(t('limits.saved'));
+    } catch {
+      // error toast shown by the mutation cache
+    }
+  };
 
   const form = useForm<OrganisationForm>({
     resolver: zodResolver(organisationFormSchema),
@@ -92,6 +109,19 @@ export function OrganisationSettingsTab() {
           </Button>
         </div>
       </form>
+
+      <ItemCard title={t('limits.orgTitle')} subtitle={t('limits.orgHint')}>
+        <LimitsFields value={limitsText} onChange={setLimitsText} />
+        <div className={styles.actions}>
+          <Button
+            appearance="primary"
+            disabled={update.isPending || !limitsChanged || invalidLimits(limitsText).length > 0}
+            onClick={() => void saveLimits()}
+          >
+            {t('limits.save')}
+          </Button>
+        </div>
+      </ItemCard>
 
       {org.role === 'owner' && (
         <div className={styles.danger}>

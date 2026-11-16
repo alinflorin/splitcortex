@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD as B64, Engine};
-use ed25519_dalek::SigningKey;
+use ed25519_dalek::{SigningKey, VerifyingKey};
+use sha2::{Digest, Sha256};
 
 pub struct Config {
     pub port: u16,
@@ -11,23 +12,76 @@ pub struct Config {
     pub usage_max_buckets: usize,
     /// Maximum age of the oldest unflushed usage bucket before new requests fail closed.
     pub usage_max_age_secs: i64,
+    /// During a key rotation: the key the gateway is about to switch to (see docs/gateway.md).
+    pub next_key: Option<SigningKey>,
+    /// Name of this instance (the pod name), unique among running gateways.
+    pub instance_id: String,
+    /// Where other gateways reach this one (`host:port`), or None when running alone.
+    pub advertise: Option<String>,
+    /// Port of the internal listener (gateway to gateway forwarding), never exposed through a Service or Ingress.
+    pub internal_port: u16,
+    /// Shared by all instances (derived from the identity key): authenticates forwarded requests.
+    pub internal_token: String,
 }
 
 impl Config {
     pub fn from_env() -> Result<Self> {
         let seed = std::env::var("GATEWAY_PRIVATE_KEY").context("GATEWAY_PRIVATE_KEY is required")?;
+        let signing_key = parse_private_key(&seed)?;
+        let next_key = match std::env::var("GATEWAY_NEXT_PRIVATE_KEY") {
+            Ok(v) if !v.trim().is_empty() => Some(parse_private_key(&v)?),
+            _ => None,
+        };
+        let internal_port: u16 = env_or("GATEWAY_INTERNAL_PORT", 8081);
+        let advertise = std::env::var("GATEWAY_ADVERTISE_ADDR")
+            .ok()
+            .filter(|v| !v.is_empty())
+            .or_else(|| {
+                std::env::var("POD_IP")
+                    .ok()
+                    .filter(|v| !v.is_empty())
+                    .map(|ip| format!("{ip}:{internal_port}"))
+            });
+        let instance_id = std::env::var("GATEWAY_INSTANCE_ID")
+            .ok()
+            .filter(|v| !v.is_empty())
+            .or_else(|| std::env::var("HOSTNAME").ok().filter(|v| !v.is_empty()))
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let internal_token = internal_token(&signing_key);
         Ok(Self {
             port: std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8080),
             database_url: std::env::var("DATABASE_URL").context("DATABASE_URL is required")?,
-            signing_key: parse_private_key(&seed)?,
+            signing_key,
             usage_max_buckets: env_or("USAGE_MAX_BUCKETS", 20_000),
             usage_max_age_secs: env_or("USAGE_MAX_AGE_SECONDS", 600),
+            next_key,
+            instance_id,
+            advertise,
+            internal_port,
+            internal_token,
         })
     }
 }
 
 fn env_or<T: std::str::FromStr>(name: &str, default: T) -> T {
     std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default)
+}
+
+/// Identifies a gateway public key (first 8 bytes of its SHA-256, hex); devices report the ids they trust.
+pub fn key_id(key: &VerifyingKey) -> String {
+    Sha256::digest(key.to_bytes())[..8]
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+/// A bearer secret every instance derives from the identity key (they all hold it), so forwarded requests need no
+/// extra secret to distribute. It is never logged.
+pub fn internal_token(key: &SigningKey) -> String {
+    let mut h = Sha256::new();
+    h.update(b"splitcortex-internal-v1");
+    h.update(key.to_bytes());
+    h.finalize().iter().map(|b| format!("{b:02x}")).collect()
 }
 
 /// The private key is the base64 (url-safe or standard, padded or not) encoding of the 32-byte Ed25519 seed. The chart

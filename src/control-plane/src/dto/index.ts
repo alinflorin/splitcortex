@@ -2,6 +2,7 @@
 // of the ones it needs (no shared package); the Rust gateway uses neither (its contracts are protobuf, the OpenAI
 // wire format and the database).
 export * from './common';
+export * from './limits';
 export * from './user';
 export * from './organisation';
 export * from './pool';
@@ -9,4 +10,5 @@ export * from './usage';
 export * from './node';
 export * from './model';
 export * from './api-key';
+export * from './benchmark';
 export * from './enrollment';

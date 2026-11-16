@@ -13,6 +13,7 @@ import type { Db } from './db/client';
 import auth, { type VerifyToken } from './plugins/auth';
 import nodeAuth from './plugins/node-auth';
 import { apiKeyRoutes } from './routes/api-keys';
+import { benchmarkRoutes } from './routes/benchmarks';
 import { enrollmentRoutes, type GatewayIdentity } from './routes/enrollment';
 import { memberRoutes } from './routes/members';
 import { meRoutes } from './routes/me';
@@ -112,6 +113,7 @@ export async function buildApp({
       await api.register(nodeModelRoutes, { db, storage });
       await api.register(usageRoutes, { db });
       await api.register(apiKeyRoutes, { db });
+      await api.register(benchmarkRoutes, { db });
       await api.register(enrollmentRoutes, { db, gateway });
     },
     { prefix: API_PREFIX },

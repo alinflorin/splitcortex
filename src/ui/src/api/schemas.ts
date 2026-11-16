@@ -11,10 +11,24 @@ const nameSchema = z
 export const orgRoleSchema = z.enum(['owner', 'admin', 'member']);
 export type OrgRole = z.infer<typeof orgRoleSchema>;
 
+/** Rate limits the gateway enforces; null = unlimited. */
+export const limitsSchema = z.object({
+  requestsPerMinute: z.number().nullable(),
+  tokensPerMinute: z.number().nullable(),
+  tokensPerDay: z.number().nullable(),
+});
+export type Limits = z.infer<typeof limitsSchema>;
+export const NO_LIMITS: Limits = {
+  requestsPerMinute: null,
+  tokensPerMinute: null,
+  tokensPerDay: null,
+};
+
 export const organisationSchema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
+  limits: limitsSchema,
   createdAt: z.string(),
   role: orgRoleSchema,
 });
@@ -207,6 +221,7 @@ export const apiKeySchema = z.object({
   createdBy: z.string(),
   lastUsedAt: z.string().nullable(),
   revokedAt: z.string().nullable(),
+  limits: limitsSchema,
   createdAt: z.string(),
 });
 export type ApiKey = z.infer<typeof apiKeySchema>;
@@ -231,8 +246,9 @@ export const apiKeyFormSchema = z
 export type ApiKeyForm = z.infer<typeof apiKeyFormSchema>;
 
 /** Request body for the form values (expiry becomes an absolute time). */
-export function apiKeyRequest(form: ApiKeyForm, now = Date.now()) {
+export function apiKeyRequest(form: ApiKeyForm, now = Date.now(), limits?: Limits) {
   return {
+    ...(limits && { limits }),
     name: form.name,
     scope: form.scope,
     poolIds: form.scope === 'pools' ? form.poolIds : [],
@@ -263,3 +279,25 @@ export type Enrollment = z.infer<typeof enrollmentSchema>;
 /** The code is only returned by the create call. */
 export const createdEnrollmentSchema = z.object({ enrollment: enrollmentSchema, code: z.string() });
 export type CreatedEnrollment = z.infer<typeof createdEnrollmentSchema>;
+
+export const benchmarkResultSchema = z.object({
+  nodeId: z.string(),
+  nodeName: z.string().nullable(),
+  status: z.enum(['pending', 'running', 'done', 'failed']),
+  error: z.string().nullable(),
+  ttftMs: z.number().nullable(),
+  totalMs: z.number().nullable(),
+  tokens: z.number().nullable(),
+  tokensPerSec: z.number().nullable(),
+});
+export type BenchmarkResult = z.infer<typeof benchmarkResultSchema>;
+
+export const benchmarkSchema = z.object({
+  id: z.string(),
+  poolId: z.string(),
+  createdBy: z.string(),
+  createdAt: z.string(),
+  status: z.enum(['running', 'done']),
+  results: z.array(benchmarkResultSchema),
+});
+export type Benchmark = z.infer<typeof benchmarkSchema>;

@@ -16,6 +16,7 @@ const org = (role: Organisation['role']): Organisation => ({
   id: 'o1',
   name: 'Acme',
   slug: 'acme',
+  limits: { requestsPerMinute: null, tokensPerMinute: null, tokensPerDay: null },
   createdAt: '2026-01-01T00:00:00.000Z',
   role,
 });
@@ -39,6 +40,7 @@ const key = (over: Partial<ApiKey> = {}): ApiKey => ({
   createdBy: 'a@x.io',
   lastUsedAt: null,
   revokedAt: null,
+  limits: { requestsPerMinute: null, tokensPerMinute: null, tokensPerDay: null },
   createdAt: '2026-01-01T00:00:00.000Z',
   ...over,
 });

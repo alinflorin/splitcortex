@@ -9,7 +9,9 @@ import {
   CreatedApiKeySchema,
   ErrorSchema,
   OrgIdParamsSchema,
+  UpdateApiKeySchema,
 } from '../dto';
+import { limitColumns, limitsOf } from '../limits';
 import { requireOrgRole } from '../access';
 import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db } from '../db/client';
@@ -32,6 +34,7 @@ const toDto = (k: typeof apiKeys.$inferSelect, poolIds: string[]) => ({
   createdBy: k.createdBy,
   lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
   revokedAt: k.revokedAt?.toISOString() ?? null,
+  limits: limitsOf(k),
   createdAt: k.createdAt.toISOString(),
 });
 
@@ -95,7 +98,7 @@ export const apiKeyRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
     async (req, reply) => {
       const { orgId } = req.params;
       await requireOrgRole(app, db, req, orgId, 'admin');
-      const { name, scope, expiresAt } = req.body;
+      const { name, scope, expiresAt, limits } = req.body;
       const poolIds = scope === 'pools' ? [...new Set(req.body.poolIds)] : [];
       const expires = expiresAt ? new Date(expiresAt) : null;
       if (expires && expires.getTime() <= Date.now())
@@ -120,6 +123,7 @@ export const apiKeyRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
             allPools: scope === 'org',
             expiresAt: expires,
             createdBy: req.user!.email,
+            ...(limits && limitColumns(limits)),
           })
           .returning();
         if (poolIds.length > 0)
@@ -135,6 +139,48 @@ export const apiKeyRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
       });
       await notifyConfigChange(db, seq);
       return reply.code(201).send({ key: toDto(key, poolIds), secret });
+    },
+  );
+
+  app.patch(
+    '/organisations/:orgId/api-keys/:keyId',
+    {
+      onRequest: app.authenticate,
+      schema: {
+        tags: ['api keys'],
+        summary: 'Change the rate limits of an API key (admin or owner); null clears a limit',
+        security: [{ dex: [] }, { bearer: [] }],
+        params: ApiKeyParamsSchema,
+        body: UpdateApiKeySchema,
+        response: {
+          200: ApiKeySchema,
+          400: ErrorSchema,
+          401: ErrorSchema,
+          403: ErrorSchema,
+          404: ErrorSchema,
+        },
+      },
+    },
+    async (req) => {
+      const { orgId, keyId } = req.params;
+      await requireOrgRole(app, db, req, orgId, 'admin');
+      const result = await db.transaction(async (tx) => {
+        const [key] = await tx
+          .update(apiKeys)
+          .set(limitColumns(req.body.limits ?? {}))
+          .where(and(eq(apiKeys.id, keyId), eq(apiKeys.orgId, orgId)))
+          .returning();
+        if (!key) return null;
+        const seq = await recordConfigChange(tx, { entityType: 'api_key', entityId: keyId, orgId });
+        const links = await tx
+          .select({ poolId: apiKeyPools.poolId })
+          .from(apiKeyPools)
+          .where(eq(apiKeyPools.keyId, keyId));
+        return { seq, key, poolIds: links.map((l) => l.poolId) };
+      });
+      if (!result) throw app.httpErrors.notFound('API key not found');
+      await notifyConfigChange(db, result.seq);
+      return toDto(result.key, result.poolIds);
     },
   );
 

@@ -102,5 +102,11 @@
       "hint": "Prompt, history and answer together. Larger needs more memory; automatic follows the device's RAM. An administrator can override this from the web app.",
       "invalid": "Enter a whole number from {{min}} to {{max}}, or leave empty for automatic."
     }
+  },
+  "battery": {
+    "title": "Keep running in the background",
+    "hint": "Android may freeze the network of an app that runs in the background (Doze), which drops the connection to the gateway while the screen is off. Allow this app to ignore battery optimisation so the device keeps serving.",
+    "allow": "Allow",
+    "ok": "Battery optimisation is off for this app: it can keep serving in the background."
   }
 }

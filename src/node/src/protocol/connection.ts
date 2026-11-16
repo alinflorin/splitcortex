@@ -1,11 +1,12 @@
 import { create, fromBinary, toBinary } from '@bufbuild/protobuf';
 import { randomBytes } from '../enrollment/random';
 import type { LogBuffer } from '../runtime/log';
-import { signNodeHello, verifyGatewayHello } from './handshake';
+import { gatewayKeyId, signNodeHello, verifyGatewayHello, verifyNextGatewayKey } from './handshake';
 import {
   ClientAuthSchema,
   ClientHelloSchema,
   EnvelopeSchema,
+  GatewayKeysSchema,
   PongSchema,
   type Envelope,
 } from './gen/splitcortex/node/v1/node_pb';
@@ -34,6 +35,13 @@ export interface ConnectionOptions {
   privateKey: Uint8Array;
   /** The gateway key pinned at enrollment. The gateway must prove it before the node reveals anything. */
   gatewayPublicKey: Uint8Array;
+  /** Keys announced for a gateway key rotation (trusted too, see `onGatewayKeys`). */
+  nextGatewayKeys?: Uint8Array[];
+  /**
+   * The trusted keys changed: the gateway proved a next key (and `current` moved to it), or announced a new next key.
+   * Persist them so a restart keeps trusting them.
+   */
+  onGatewayKeys?: (keys: { current: Uint8Array; next: Uint8Array[] }) => void;
   appVersion: string;
   log: LogBuffer;
   onState: (s: ConnectionState) => void;
@@ -56,8 +64,23 @@ export class GatewayConnection {
   private retry: ReturnType<typeof setTimeout> | null = null;
   private watchdog: ReturnType<typeof setInterval> | null = null;
   private lastSeen = 0;
+  private current: Uint8Array;
+  private next: Uint8Array[];
+  private verifiedWith: Uint8Array | null = null;
 
-  constructor(private readonly o: ConnectionOptions) {}
+  constructor(private readonly o: ConnectionOptions) {
+    this.current = o.gatewayPublicKey;
+    this.next = o.nextGatewayKeys ?? [];
+  }
+
+  /** Reconnect now instead of waiting for the backoff (the app came back to the foreground, the network changed). */
+  reconnectNow() {
+    if (this.stopped || !this.retry) return;
+    clearTimeout(this.retry);
+    this.retry = null;
+    this.attempt = 0;
+    this.open();
+  }
 
   start() {
     if (!this.stopped) return;
@@ -128,7 +151,11 @@ export class GatewayConnection {
     if (this.stage === 'hello') {
       if (body.case !== 'serverHello') return this.fail('Unexpected handshake message');
       const { nonce, signature } = body.value;
-      if (!verifyGatewayHello(this.o.gatewayPublicKey, this.nonce, this.o.nodeId, signature)) {
+      this.verifiedWith =
+        [this.current, ...this.next].find((k) =>
+          verifyGatewayHello(k, this.nonce, this.o.nodeId, signature),
+        ) ?? null;
+      if (!this.verifiedWith) {
         // Not the gateway this device pinned at enrollment: never authenticate to it.
         return this.fail(
           'The server does not match the key pinned at enrollment; refusing to connect',
@@ -148,11 +175,18 @@ export class GatewayConnection {
       if (body.case !== 'ready') return this.fail('The gateway did not accept this device');
       this.stage = 'open';
       this.attempt = 0;
+      this.acceptKeys(body.value);
       this.o.onState('connected');
       this.lastSeen = Date.now();
       this.watchdog = setInterval(() => {
         if (Date.now() - this.lastSeen > IDLE_LIMIT_MS) this.fail('The gateway went silent');
       }, 10_000);
+      this.send({
+        case: 'gatewayKeys',
+        value: create(GatewayKeysSchema, {
+          keyIds: [this.current, ...this.next].map(gatewayKeyId),
+        }),
+      });
       this.o.onBody(body);
       return;
     }
@@ -164,6 +198,35 @@ export class GatewayConnection {
       return;
     }
     this.o.onBody(body);
+  }
+
+  /** Key rotation: switch to the key the gateway just proved, and learn the next one it announces. */
+  private acceptKeys(ready: { nextGatewayKey: Uint8Array; nextGatewayKeySignature: Uint8Array }) {
+    const proven = this.verifiedWith;
+    if (!proven) return;
+    const same = (a: Uint8Array, b: Uint8Array) =>
+      a.length === b.length && a.every((v, i) => v === b[i]);
+    let changed = false;
+    if (!same(proven, this.current)) {
+      // The gateway now signs with what it announced earlier: that is the current key from here on, the old one is retired.
+      this.current = proven;
+      this.next = [];
+      changed = true;
+    }
+    const announced = ready.nextGatewayKey;
+    if (
+      announced.length === 32 &&
+      !same(announced, this.current) &&
+      !this.next.some((k) => same(k, announced)) &&
+      verifyNextGatewayKey(proven, this.nonce, announced, ready.nextGatewayKeySignature)
+    ) {
+      this.next = [announced];
+      changed = true;
+    }
+    if (changed) {
+      this.o.log.info('Gateway key rotation: trusted keys updated');
+      this.o.onGatewayKeys?.({ current: this.current, next: this.next });
+    }
   }
 
   private fail(reason: string, permanentish = false) {

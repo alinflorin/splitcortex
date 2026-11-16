@@ -1,8 +1,9 @@
 import { create } from '@bufbuild/protobuf';
+import { AppState } from 'react-native';
 import Constants from 'expo-constants';
-import { fromB64 } from '../enrollment/crypto';
+import { fromB64, toB64 } from '../enrollment/crypto';
 import { getOrCreateIdentity } from '../enrollment/identity';
-import { loadEnrollment } from '../enrollment/store';
+import { loadEnrollment, saveEnrollment } from '../enrollment/store';
 import type { ComputePrefs, TunableEngine } from '../engine/types';
 import {
   nodeService,
@@ -19,6 +20,8 @@ import {
   ModelPhase,
   ModelStateSchema,
   type NodeConfig,
+  ResumeSchema,
+  type ResumeAck,
   TelemetrySchema,
   type InferenceRequest,
 } from '../protocol/gen/splitcortex/node/v1/node_pb';
@@ -63,6 +66,22 @@ const PHASE: Record<ModelStatus['phase'], ModelPhase> = {
 };
 
 /**
+ * A request the gateway may need to hear again after a dropped connection: everything sent for it carries a sequence
+ * number and is kept until the request is long finished, so a reconnect can resend what the gateway missed.
+ */
+interface Outbox {
+  seq: number;
+  frames: { seq: number; body: Body }[];
+  finishedAt: number | null;
+}
+/** More than this many frames per request are not retained (a resume of such a request cannot be completed). */
+const OUTBOX_FRAMES = 20_000;
+/** A finished request stays resumable this long. */
+const OUTBOX_KEEP_MS = 60_000;
+/** If the gateway has been unreachable this long, running requests are given up (the gateway fails them after 20 s). */
+const OFFLINE_ABORT_MS = 40_000;
+
+/**
  * The node's service: owns the gateway connection, the model on disk and the engine, and serves inference requests
  * one at a time. UI reads it with `useSyncExternalStore` (`subscribe`/`getSnapshot`). Start/stop/restart are
  * idempotent. Requests and answers are never logged, only counts.
@@ -75,6 +94,9 @@ export class NodeRuntime {
   private models: ModelManager | null = null;
   private telemetry: ReturnType<typeof setInterval> | null = null;
   private active = new Map<string, AbortController>();
+  private outbox = new Map<string, Outbox>();
+  private offlineTimer: ReturnType<typeof setTimeout> | null = null;
+  private appStateSub: { remove(): void } | null = null;
   private generation = 0; // guards async start() against a stop()/restart() that happened meanwhile
 
   constructor(
@@ -112,7 +134,7 @@ export class NodeRuntime {
     await this.engine.setPrefs('local', computePrefs(await this.readSettings()));
     if (gen !== this.generation) return;
 
-    const gatewayKey = fromB64(enrollment.gateway.publicKey);
+    let pinned = enrollment.gateway;
     this.models = new ModelManager({
       engine: this.engine,
       log: this.log,
@@ -129,12 +151,19 @@ export class NodeRuntime {
       url: enrollment.gateway.url,
       nodeId: enrollment.nodeId,
       privateKey: identity.privateKey,
-      gatewayPublicKey: gatewayKey,
+      gatewayPublicKey: fromB64(pinned.publicKey),
+      nextGatewayKeys: (pinned.nextKeys ?? []).map(fromB64),
+      onGatewayKeys: (k) => {
+        // Gateway key rotation: remember what the gateway proved (the old key is retired once it is replaced).
+        pinned = { ...pinned, publicKey: toB64(k.current), nextKeys: k.next.map(toB64) };
+        void saveEnrollment({ ...enrollment, gateway: pinned });
+      },
       appVersion: Constants.expoConfig?.version ?? '0',
       log: this.log,
       onState: (connection) => {
         if (connection !== this.state.connection) this.log.info(`Connection: ${connection}`);
         this.set({ connection });
+        this.watchOffline(connection);
       },
       onBody: (b) => this.onBody(b),
     });
@@ -148,6 +177,10 @@ export class NodeRuntime {
         ),
       );
     this.conn.start();
+    // Coming back to the foreground is a good moment to retry at once instead of waiting out the backoff.
+    this.appStateSub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') this.conn?.reconnectNow();
+    });
     this.telemetry = setInterval(() => void this.sendTelemetry(), 10_000);
   }
 
@@ -162,8 +195,13 @@ export class NodeRuntime {
     this.models?.stop();
     if (this.telemetry) clearInterval(this.telemetry);
     this.telemetry = null;
+    this.appStateSub?.remove();
+    this.appStateSub = null;
+    if (this.offlineTimer) clearTimeout(this.offlineTimer);
+    this.offlineTimer = null;
     this.active.forEach((c) => c.abort());
     this.active.clear();
+    this.outbox.clear();
     await this.engine.unload();
     await this.service.stop().catch(() => undefined);
     this.conn = null;
@@ -182,6 +220,14 @@ export class NodeRuntime {
     switch (b.case) {
       case 'ready':
         this.log.info('Connected to the gateway');
+        // List the requests this node still holds: the gateway tells which it still tracks and what it missed.
+        this.conn?.send({
+          case: 'resume',
+          value: create(ResumeSchema, { requestIds: [...this.outbox.keys()] }),
+        });
+        break;
+      case 'resumeAck':
+        this.resend(b.value);
         break;
       case 'modelAssignment': {
         const a = b.value;
@@ -202,9 +248,51 @@ export class NodeRuntime {
         break;
       case 'cancel':
         this.active.get(b.value.requestId)?.abort();
+        this.outbox.delete(b.value.requestId);
         break;
       default:
         break;
+    }
+  }
+
+  /** Sends a numbered frame for a request and keeps it so a reconnect can resend it. */
+  private emit(id: string, make: (seq: number) => Body) {
+    const box = this.outbox.get(id);
+    if (!box) return; // cancelled or given up
+    const seq = ++box.seq;
+    const body = make(seq);
+    if (box.frames.length < OUTBOX_FRAMES) box.frames.push({ seq, body });
+    this.conn?.send(body); // false while disconnected: it is resent on resume
+  }
+
+  /** The gateway's answer to `Resume`: resend what it missed. Requests it did not list are no longer wanted. */
+  private resend(ack: ResumeAck) {
+    const wanted = new Map(ack.entries.map((e) => [e.requestId, e.receivedSeq]));
+    for (const [id, box] of this.outbox) {
+      const received = wanted.get(id);
+      if (received === undefined) {
+        this.active.get(id)?.abort();
+        this.outbox.delete(id);
+        continue;
+      }
+      const missed = box.frames.filter((f) => f.seq > received);
+      this.log.info(`Resumed a request: resending ${missed.length} message(s)`);
+      for (const f of missed) this.conn?.send(f.body);
+    }
+  }
+
+  /** No connection for too long while generating: the gateway gave the requests up, so stop wasting the battery. */
+  private watchOffline(state: ConnectionState) {
+    if (state === 'connected') {
+      if (this.offlineTimer) clearTimeout(this.offlineTimer);
+      this.offlineTimer = null;
+    } else if (!this.offlineTimer && this.active.size > 0) {
+      this.offlineTimer = setTimeout(() => {
+        this.offlineTimer = null;
+        this.log.warn('The gateway stayed unreachable: giving up the running request');
+        this.active.forEach((c) => c.abort());
+        this.outbox.clear();
+      }, OFFLINE_ABORT_MS);
     }
   }
 
@@ -253,15 +341,16 @@ export class NodeRuntime {
 
   private async serve(req: InferenceRequest) {
     const id = req.requestId;
-    const send = (body: Body) => this.conn?.send(body);
+    this.outbox.set(id, { seq: 0, frames: [], finishedAt: null });
     const fail = (code: string, message: string) =>
-      send({
+      this.emit(id, (seq) => ({
         case: 'inferenceError',
-        value: create(InferenceErrorSchema, { requestId: id, code, message }),
-      });
-    if (this.state.inFlight > 0) return fail('busy', 'The node is already generating');
+        value: create(InferenceErrorSchema, { requestId: id, code, message, seq }),
+      }));
+    if (this.state.inFlight > 0)
+      return this.finishBox(id, () => fail('busy', 'The node is already generating'));
     if (req.modelId !== this.state.model.modelId || this.state.model.phase !== 'ready') {
-      return fail('model_not_ready', 'The requested model is not loaded');
+      return this.finishBox(id, () => fail('model_not_ready', 'The requested model is not loaded'));
     }
     const ctl = new AbortController();
     this.active.set(id, ctl);
@@ -278,22 +367,23 @@ export class NodeRuntime {
         },
         (text) => {
           pieces += 1;
-          send({
+          this.emit(id, (seq) => ({
             case: 'inferenceChunk',
-            value: create(InferenceChunkSchema, { requestId: id, text }),
-          });
+            value: create(InferenceChunkSchema, { requestId: id, text, seq }),
+          }));
         },
         ctl.signal,
       );
       if (!ctl.signal.aborted) {
-        send({
+        this.emit(id, (seq) => ({
           case: 'inferenceDone',
           value: create(InferenceDoneSchema, {
             requestId: id,
             completionTokens: pieces,
             finishReason: result.finishReason,
+            seq,
           }),
-        });
+        }));
       }
       const secs = Math.max((Date.now() - started) / 1000, 0.001);
       this.set({
@@ -310,7 +400,20 @@ export class NodeRuntime {
     } finally {
       this.active.delete(id);
       this.set({ inFlight: 0 });
+      this.finishBox(id);
     }
+  }
+
+  /** The request is over: keep its frames a little while (a reconnect may still need them), then forget them. */
+  private finishBox(id: string, last?: () => void) {
+    last?.();
+    const box = this.outbox.get(id);
+    if (!box) return;
+    box.finishedAt = Date.now();
+    const t = setTimeout(() => this.outbox.delete(id), OUTBOX_KEEP_MS) as unknown as {
+      unref?: () => void;
+    };
+    t.unref?.();
   }
 
   private async sendTelemetry() {

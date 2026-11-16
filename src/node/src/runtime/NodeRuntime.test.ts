@@ -4,8 +4,14 @@ import { NodeRuntime } from './NodeRuntime';
 let mockOnBody: ((b: { case?: string; value?: unknown }) => void) | undefined;
 const mockSent: { case?: string; value?: Record<string, unknown> }[] = [];
 let mockEnrollment: unknown = null;
+let mockOnline = true;
+let mockOnState: ((s: string) => void) | undefined;
+let mockOnStatus: ((m: unknown) => void) | undefined;
 
-jest.mock('../enrollment/store', () => ({ loadEnrollment: async () => mockEnrollment }));
+jest.mock('../enrollment/store', () => ({
+  loadEnrollment: async () => mockEnrollment,
+  saveEnrollment: jest.fn(async () => undefined),
+}));
 jest.mock('../enrollment/identity', () => ({
   getOrCreateIdentity: async () => ({
     privateKey: new Uint8Array(32),
@@ -16,18 +22,24 @@ jest.mock('../enrollment/identity', () => ({
 jest.mock('../models/manager', () => ({
   NO_MODEL: { phase: 'none', modelId: '', name: '', progressBytes: 0, sizeBytes: 0 },
   ModelManager: class {
+    constructor(o: { onStatus: typeof mockOnStatus }) {
+      mockOnStatus = o.onStatus;
+    }
     apply = jest.fn(async () => undefined);
     stop = jest.fn();
   },
 }));
 jest.mock('../protocol/connection', () => ({
   GatewayConnection: class {
-    constructor(o: { onBody: typeof mockOnBody }) {
+    constructor(o: { onBody: typeof mockOnBody; onState: typeof mockOnState }) {
       mockOnBody = o.onBody;
+      mockOnState = o.onState;
     }
+    reconnectNow = jest.fn();
     start = jest.fn();
     stop = jest.fn();
     send = (b: { case?: string; value?: Record<string, unknown> }) => {
+      if (!mockOnline) return false;
       mockSent.push(b);
       return true;
     };
@@ -56,6 +68,7 @@ const approved = {
 
 function setup() {
   mockSent.length = 0;
+  mockOnline = true;
   const service = { start: jest.fn(async () => undefined), stop: jest.fn(async () => undefined) };
   const telemetry = jest.fn(async () => ({
     cpuPercent: 42.5,
@@ -148,5 +161,103 @@ describe('NodeRuntime', () => {
       temperatureC: 31.5,
     });
     await rt.stop();
+  });
+
+  describe('requests across a dropped connection', () => {
+    const ready = { phase: 'ready', modelId: 'm1', name: 'm', progressBytes: 0, sizeBytes: 0 };
+    const request = {
+      requestId: 'r1',
+      modelId: 'm1',
+      messages: [],
+      maxTokens: 0,
+      temperature: 0,
+      topP: 0,
+    };
+    const frames = () =>
+      mockSent.filter((m) => m.case === 'inferenceChunk' || m.case === 'inferenceDone');
+
+    it('keeps generating offline and resends what the gateway missed after a resume', async () => {
+      mockEnrollment = approved;
+      const { rt } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      let release!: () => void;
+      const gate = new Promise<void>((r) => (release = r));
+      engine.generate = jest.fn(async (_req, onToken) => {
+        onToken('a');
+        mockOnline = false; // the socket drops after the first piece
+        onToken('b');
+        await gate;
+        onToken('c');
+        return { finishReason: 'stop' };
+      }) as unknown as TunableEngine['generate'];
+      mockOnBody?.({ case: 'inferenceRequest', value: request });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(frames().map((m) => m.value?.seq)).toEqual([1]);
+      release();
+      await jest.advanceTimersByTimeAsync(0);
+      mockOnline = true;
+      mockSent.length = 0;
+
+      // reconnect: the node lists the request, the gateway says it has seq 1
+      mockOnBody?.({ case: 'ready', value: {} });
+      expect(mockSent.find((m) => m.case === 'resume')?.value).toMatchObject({
+        requestIds: ['r1'],
+      });
+      mockOnBody?.({
+        case: 'resumeAck',
+        value: { entries: [{ requestId: 'r1', receivedSeq: 1 }] },
+      });
+      expect(frames().map((m) => [m.case, m.value?.seq])).toEqual([
+        ['inferenceChunk', 2],
+        ['inferenceChunk', 3],
+        ['inferenceDone', 4],
+      ]);
+      await rt.stop();
+    });
+
+    it('forgets requests the gateway no longer tracks', async () => {
+      mockEnrollment = approved;
+      const { rt } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      engine.generate = jest.fn(async (_req, onToken) => {
+        onToken('a');
+        return { finishReason: 'stop' };
+      }) as unknown as TunableEngine['generate'];
+      mockOnBody?.({ case: 'inferenceRequest', value: request });
+      await jest.advanceTimersByTimeAsync(0);
+      mockOnBody?.({ case: 'ready', value: {} });
+      mockOnBody?.({ case: 'resumeAck', value: { entries: [] } }); // not listed: dropped
+      mockSent.length = 0;
+      mockOnBody?.({ case: 'ready', value: {} });
+      expect(mockSent.find((m) => m.case === 'resume')?.value).toMatchObject({ requestIds: [] });
+      await rt.stop();
+    });
+
+    it('gives a running request up when the gateway stays unreachable', async () => {
+      mockEnrollment = approved;
+      const { rt } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      let aborted = false;
+      engine.generate = jest.fn(
+        (_req, _on, signal: AbortSignal) =>
+          new Promise((resolve) =>
+            signal.addEventListener('abort', () => {
+              aborted = true;
+              resolve({ finishReason: 'stop' });
+            }),
+          ),
+      ) as unknown as TunableEngine['generate'];
+      mockOnBody?.({ case: 'inferenceRequest', value: request });
+      await jest.advanceTimersByTimeAsync(0);
+      mockOnState?.('reconnecting');
+      await jest.advanceTimersByTimeAsync(30_000);
+      expect(aborted).toBe(false);
+      await jest.advanceTimersByTimeAsync(11_000);
+      expect(aborted).toBe(true);
+      await rt.stop();
+    });
   });
 });

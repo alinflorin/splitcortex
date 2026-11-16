@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.net.wifi.WifiManager
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -22,6 +23,7 @@ import com.facebook.react.jstasks.HeadlessJsTaskConfig
  */
 class NodeService : HeadlessJsTaskService() {
   private var wakeLock: PowerManager.WakeLock? = null
+  private var wifiLock: WifiManager.WifiLock? = null
   private var taskStarted = false
 
   override fun onCreate() {
@@ -29,6 +31,15 @@ class NodeService : HeadlessJsTaskService() {
     val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
     // The CPU must keep running while the screen is off, or generation and the socket would stall.
     wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "splitcortex:node").apply { acquire() }
+    // And so must the Wi-Fi radio: without a lock it dozes (power-save) and the gateway connection drops while idle.
+    val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+    val mode =
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+      else @Suppress("DEPRECATION") WifiManager.WIFI_MODE_FULL_HIGH_PERF
+    wifiLock = wifi?.createWifiLock(mode, "splitcortex:node")?.apply {
+      setReferenceCounted(false)
+      acquire()
+    }
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -46,6 +57,7 @@ class NodeService : HeadlessJsTaskService() {
   override fun onDestroy() {
     taskStarted = false
     wakeLock?.let { if (it.isHeld) it.release() }
+    wifiLock?.let { if (it.isHeld) it.release() }
     super.onDestroy()
   }
 

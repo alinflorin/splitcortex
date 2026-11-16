@@ -342,5 +342,46 @@
     "expired": "Codul a expirat. Creează unul nou.",
     "approvalNote": "Acest pool necesită aprobare: dispozitivul va aștepta aprobarea unui administrator.",
     "done": "{{name}} a fost adăugat."
+  },
+  "limits": {
+    "title": "Limite",
+    "unlimited": "Nelimitat",
+    "edit": "Editează limitele",
+    "saved": "Limitele au fost salvate.",
+    "requestsPerMinute": "Cereri pe minut",
+    "requestsPerMinuteHint": "Per instanță de gateway; gol înseamnă nelimitat.",
+    "tokensPerMinute": "Tokeni pe minut",
+    "tokensPerMinuteHint": "Tokeni din prompt și generați; gol înseamnă nelimitat.",
+    "tokensPerDay": "Tokeni pe zi",
+    "tokensPerDayHint": "Pe zi UTC; gol înseamnă nelimitat.",
+    "invalid": "Introdu un număr întreg de la 1 la {{max}} sau lasă gol.",
+    "orgTitle": "Limite de utilizare",
+    "orgHint": "Se aplică împreună tuturor cheilor acestei organizații. O cheie poate avea limite proprii mai stricte; cererile peste limită primesc HTTP 429.",
+    "keyTitle": "Limitele pentru {{name}}",
+    "perMinuteRequests": "{{n}} cereri/min",
+    "perMinuteTokens": "{{n}} tokeni/min",
+    "perDayTokens": "{{n}} tokeni/zi",
+    "save": "Salvează limitele"
+  },
+  "benchmarks": {
+    "title": "Teste de performanță",
+    "hint": "Rulează un prompt fix pe fiecare dispozitiv online din acest pool, pe rând, și măsoară cât de repede răspunde fiecare.",
+    "run": "Rulează testul",
+    "started": "Testul a început.",
+    "empty": "Niciun test încă.",
+    "running": "În curs",
+    "done": "Terminat",
+    "status": {
+      "pending": "În așteptare",
+      "running": "În curs",
+      "done": "Terminat",
+      "failed": "Eșuat"
+    },
+    "tokensPerSec": "Tokeni/sec",
+    "firstToken": "Primul token",
+    "total": "Timp total",
+    "tokens": "Tokeni",
+    "poolTotal": "Debit pool",
+    "unit": "tokeni/s"
   }
 }

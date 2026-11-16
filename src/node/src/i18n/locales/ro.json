@@ -102,5 +102,11 @@
       "hint": "Prompt, istoric și răspuns la un loc. Mai mare înseamnă mai multă memorie; automat urmează RAM-ul dispozitivului. Un administrator poate suprascrie din aplicația web.",
       "invalid": "Introdu un număr întreg între {{min}} și {{max}}, sau lasă gol pentru automat."
     }
+  },
+  "battery": {
+    "title": "Rulează în fundal",
+    "hint": "Android poate îngheța rețeaua unei aplicații din fundal (Doze), ceea ce închide conexiunea la gateway cât timp ecranul e stins. Permite aplicației să ignore optimizarea bateriei, ca dispozitivul să continue să servească.",
+    "allow": "Permite",
+    "ok": "Optimizarea bateriei este dezactivată pentru această aplicație: poate servi în fundal."
   }
 }

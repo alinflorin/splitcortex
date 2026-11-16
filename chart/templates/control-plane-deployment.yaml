@@ -16,6 +16,9 @@ spec:
     metadata:
       labels:
         {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "control-plane") | nindent 8 }}
+      annotations:
+        # It reads the gateway public key from a Secret at start; a key rotation step changes that Secret.
+        splitcortex.io/gateway-rotation: {{ .Values.gateway.rotation.stage | quote }}
     spec:
       containers:
         - name: control-plane

@@ -1,5 +1,8 @@
 {{- if .Values.gateway.enabled }}
-{{- /* One replica on purpose: the live registry of connected nodes is per process (see docs/gateway.md). */}}
+{{- /*
+  Any number of replicas (`gateway.replicas`): each holds the sockets of the nodes that connected to it, a request that
+  lands on an instance without a suitable node is forwarded to one that has it, over the internal port (see docs/gateway.md).
+*/ -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -9,10 +12,13 @@ metadata:
     {{- include "splitcortex.labels" . | nindent 4 }}
     app.kubernetes.io/component: gateway
 spec:
-  replicas: 1
-  # The old pod holds the node sockets; replace it only after the new one is ready.
+  replicas: {{ .Values.gateway.replicas }}
+  # Nodes reconnect (and resume their requests) when a pod goes away, so pods can be replaced one at a time.
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "gateway") | nindent 6 }}
@@ -20,6 +26,9 @@ spec:
     metadata:
       labels:
         {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "gateway") | nindent 8 }}
+      annotations:
+        # A key rotation step changes the identity Secrets: restart the pods so they read them (see docs/gateway.md).
+        splitcortex.io/gateway-rotation: {{ .Values.gateway.rotation.stage | quote }}
     spec:
       terminationGracePeriodSeconds: 30
       containers:
@@ -33,6 +42,21 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.gateway.identity.privateSecret }}
                   key: private-key
+            # Optional: only exists while a key rotation is prepared (see docs/gateway.md).
+            - name: GATEWAY_NEXT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.gateway.identity.nextPrivateSecret }}
+                  key: private-key
+                  optional: true
+            - name: GATEWAY_INSTANCE_ID
+              valueFrom:
+                fieldRef: {fieldPath: metadata.name}
+            - name: POD_IP
+              valueFrom:
+                fieldRef: {fieldPath: status.podIP}
+            - name: GATEWAY_INTERNAL_PORT
+              value: {{ .Values.gateway.internalPort | quote }}
             - name: PORT
               value: "8080"
             - name: LOG_LEVEL
@@ -44,6 +68,9 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+            # Gateway to gateway forwarding. Not in the Service or the Ingress; every call needs a token derived from the identity key.
+            - name: internal
+              containerPort: {{ .Values.gateway.internalPort }}
           startupProbe:
             httpGet: {path: /healthz, port: http}
             periodSeconds: 2

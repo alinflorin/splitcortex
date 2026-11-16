@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Badge, Body1, Button, makeStyles, tokens } from '@fluentui/react-components';
 import type { BadgeProps } from '@fluentui/react-components';
-import { Add24Regular, Delete20Regular } from '@fluentui/react-icons';
+import { Add24Regular, Delete20Regular, Gauge20Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useApiKeys, usePools, useRevokeApiKey } from '../../api/hooks';
 import { apiKeyState } from '../../api/schemas';
@@ -11,6 +11,7 @@ import { CardList, ItemCard, Stat, StatRow } from '../../components/cards/cards'
 import { useConfirm } from '../../components/feedback/useConfirm';
 import { useToast } from '../../components/feedback/useToast';
 import { isAdmin } from '../../lib/roles';
+import { ApiKeyLimitsDialog } from './ApiKeyLimitsDialog';
 import { ApiKeyFormDialog } from './ApiKeyFormDialog';
 import { ApiKeySecretDialog } from './ApiKeySecretDialog';
 import { useOrganisationContext } from './OrganisationLayout';
@@ -38,6 +39,7 @@ export function ApiKeysPage() {
   const toast = useToast();
   const [creating, setCreating] = useState(false);
   const [secret, setSecret] = useState<string | null>(null);
+  const [limiting, setLimiting] = useState<ApiKey | null>(null);
 
   // Keys are admin-only on the server; show nothing to plain members instead of an error.
   if (!admin) return <Body1 className={styles.muted}>{t('apiKeys.adminOnly')}</Body1>;
@@ -69,6 +71,15 @@ export function ApiKeysPage() {
   };
 
   const date = (iso: string) => new Date(iso).toLocaleDateString();
+  const limitsText = (k: ApiKey) => {
+    const parts = [
+      k.limits.requestsPerMinute &&
+        t('limits.perMinuteRequests', { n: k.limits.requestsPerMinute }),
+      k.limits.tokensPerMinute && t('limits.perMinuteTokens', { n: k.limits.tokensPerMinute }),
+      k.limits.tokensPerDay && t('limits.perDayTokens', { n: k.limits.tokensPerDay }),
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(' · ') : t('limits.unlimited');
+  };
 
   return (
     <>
@@ -97,12 +108,20 @@ export function ApiKeysPage() {
                     }
                     actions={
                       state === 'active' && (
-                        <Button
-                          appearance="subtle"
-                          icon={<Delete20Regular />}
-                          aria-label={t('apiKeys.revoke')}
-                          onClick={() => void onRevoke(k)}
-                        />
+                        <>
+                          <Button
+                            appearance="subtle"
+                            icon={<Gauge20Regular />}
+                            aria-label={t('limits.edit')}
+                            onClick={() => setLimiting(k)}
+                          />
+                          <Button
+                            appearance="subtle"
+                            icon={<Delete20Regular />}
+                            aria-label={t('apiKeys.revoke')}
+                            onClick={() => void onRevoke(k)}
+                          />
+                        </>
                       )
                     }
                   >
@@ -117,6 +136,7 @@ export function ApiKeysPage() {
                         label={t('apiKeys.expires')}
                         value={k.expiresAt ? date(k.expiresAt) : t('apiKeys.never')}
                       />
+                      <Stat label={t('limits.title')} value={limitsText(k)} />
                     </StatRow>
                   </ItemCard>
                 );
@@ -136,6 +156,7 @@ export function ApiKeysPage() {
         }}
       />
       <ApiKeySecretDialog secret={secret} onClose={() => setSecret(null)} />
+      <ApiKeyLimitsDialog orgId={org.id} target={limiting} onClose={() => setLimiting(null)} />
     </>
   );
 }

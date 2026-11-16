@@ -17,6 +17,7 @@ const org = {
   id: 'o1',
   name: 'Acme',
   slug: 'acme',
+  limits: { requestsPerMinute: null, tokensPerMinute: null, tokensPerDay: null },
   createdAt: '2026-01-01T00:00:00.000Z',
   role: 'admin',
 };

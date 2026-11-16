@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { IdSchema, NameSchema } from './common';
+import { LimitsSchema, UpdateLimitsSchema } from './limits';
 
 export const OrgRoleSchema = z.enum(['owner', 'admin', 'member']);
 export type OrgRole = z.infer<typeof OrgRoleSchema>;
@@ -8,6 +9,7 @@ export const OrganisationSchema = z.object({
   id: IdSchema,
   name: z.string(),
   slug: z.string(),
+  limits: LimitsSchema,
   createdAt: z.iso.datetime(),
 });
 export type OrganisationDto = z.infer<typeof OrganisationSchema>;
@@ -28,9 +30,12 @@ export const CreateOrganisationSchema = z.object({ name: NameSchema, slug: SlugS
 export type CreateOrganisationDto = z.infer<typeof CreateOrganisationSchema>;
 
 export const UpdateOrganisationSchema = z
-  .object({ name: NameSchema, slug: SlugSchema })
+  .object({ name: NameSchema, slug: SlugSchema, limits: UpdateLimitsSchema })
   .partial()
-  .refine((v) => v.name !== undefined || v.slug !== undefined, 'validation.required');
+  .refine(
+    (v) => v.name !== undefined || v.slug !== undefined || v.limits !== undefined,
+    'validation.required',
+  );
 export type UpdateOrganisationDto = z.infer<typeof UpdateOrganisationSchema>;
 
 export const EmailSchema = z.string().trim().toLowerCase().pipe(z.email('validation.email'));

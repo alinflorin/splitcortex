@@ -253,11 +253,19 @@ controlPlane:
         hosts:
           - app.splitcortex.127.0.0.1.nip.io
 
-# Gateway (src/gateway, Rust): the OpenAI-format edge (`/v1/*`) and the node WebSocket (`/node`). Single replica on
-# purpose (the registry of connected nodes is in process). Reads config from Postgres (LISTEN/NOTIFY, so it needs a
-# direct connection) and writes usage_records / node_status.
+# Gateway (src/gateway, Rust): the OpenAI-format edge (`/v1/*`) and the node WebSocket (`/node`). Any number of
+# replicas: each holds the sockets of the nodes connected to it and forwards a request to the instance that holds a
+# suitable node (internal port, no extra software). Reads config from Postgres (LISTEN/NOTIFY, so it needs a direct
+# connection) and writes usage_records / node_status / gateway_instances.
 gateway:
   enabled: true
+  replicas: 1
+  internalPort: 8081   # gateway to gateway; in no Service or Ingress
+  # Gateway identity key rotation (docs/gateway.md): "" (none), "prepare" (create the next key; the gateways announce
+  # it to devices), "promote" (the next key becomes the current one), then back to "" to finish. Each change restarts the
+  # gateways and the control plane.
+  rotation:
+    stage: 
   logLevel: info
   image:
     repository: splitcortex/gateway   # Tilt rebuilds and substitutes this image locally
@@ -275,6 +283,10 @@ gateway:
   identity:
     privateSecret: gateway-identity    # key `private-key` (Ed25519 seed, base64)
     publicSecret: gateway-public-key   # key `public-key`
+    nextPrivateSecret: gateway-identity-next      # only during a rotation
+    nextPublicSecret: gateway-public-key-next     # only during a rotation
+    previousPrivateSecret: gateway-identity-previous   # the retired key, kept after a promotion in case of a rollback
+    previousPublicSecret: gateway-public-key-previous
     command: [gateway]                 # Tilt overrides it (the dev image has no installed binary)
     kubectlImage: alpine/k8s:1.31.4    # creates the Secrets; any image with a shell and kubectl
   ingress:

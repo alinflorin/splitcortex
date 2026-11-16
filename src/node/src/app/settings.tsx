@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BatteryExemption } from '../components/BatteryExemption';
 import { Card } from '../components/Card';
 import { ChoiceGroup } from '../components/ChoiceGroup';
 import { Screen } from '../components/Screen';
@@ -58,6 +59,7 @@ export default function Settings() {
           />
         </Card>
       ) : null}
+      <BatteryExemption alwaysShow />
       {settings ? (
         <Card style={{ gap: 16 }}>
           <ChoiceGroup<ComputeChoice>

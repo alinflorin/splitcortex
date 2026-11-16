@@ -1,0 +1,163 @@
+{{- if and .Values.gateway.enabled .Values.gateway.rotation.stage }}
+{{- /*
+  Gateway identity key rotation, one stage per `helm upgrade` (see docs/gateway.md; devices pin the gateway key, so the
+  new key is introduced next to the old one and promoted only when every device trusts it):
+
+    prepare  creates the next key pair in two Secrets (`gateway-identity-next`, `gateway-public-key-next`) unless they
+             exist. The gateways (restarted by this upgrade) announce the next key to every device that connects,
+             signed with the current key, so devices trust both.
+    promote  retires the current key (kept as `gateway-identity-previous` / `gateway-public-key-previous` for a rollback)
+             and makes the next one current, then deletes the `-next` Secrets. The gateways and the control plane
+             restart and use it; devices switch on their next connect.
+
+  Then set the stage back to empty. Both stages are idempotent. Run as a pre-upgrade hook, so the Secrets are changed
+  before the Deployments restart. The key never appears in a log or an environment variable of the Job.
+*/ -}}
+{{- $stage := .Values.gateway.rotation.stage }}
+{{- if not (has $stage (list "prepare" "promote")) }}{{ fail "gateway.rotation.stage must be empty, prepare or promote" }}{{ end }}
+{{- $id := .Values.gateway.identity }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gateway-rotation
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gateway-rotation
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, create, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gateway-rotation
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gateway-rotation
+subjects:
+  - kind: ServiceAccount
+    name: gateway-rotation
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gateway-rotation
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway-rotation
+  annotations:
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "gateway-rotation") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: gateway-rotation
+      {{- if eq $stage "prepare" }}
+      initContainers:
+        - name: keygen
+          image: {{ include "splitcortex.image" (dict "root" . "image" .Values.gateway.image) | quote }}
+          imagePullPolicy: {{ .Values.gateway.image.pullPolicy }}
+          command:
+            {{- toYaml .Values.gateway.identity.command | nindent 12 }}
+          args: [keygen, --out, /keys/keys.env]
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: {{ .Values.gateway.readOnlyRootFilesystem }}
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: keys, mountPath: /keys}
+            - {name: tmp, mountPath: /tmp}
+      {{- end }}
+      containers:
+        - name: rotate
+          image: {{ $id.kubectlImage | quote }}
+          command:
+            - sh
+            - -ec
+            - |
+              exists() { kubectl get secret "$1" >/dev/null 2>&1; }
+              {{- if eq $stage "prepare" }}
+              if ! exists {{ $id.privateSecret }} || ! exists {{ $id.publicSecret }}; then
+                echo "There is no current gateway identity to rotate." >&2
+                exit 1
+              fi
+              if exists {{ $id.nextPrivateSecret }} && exists {{ $id.nextPublicSecret }}; then
+                echo "The next gateway key already exists, keeping it."
+                exit 0
+              fi
+              if exists {{ $id.nextPrivateSecret }} || exists {{ $id.nextPublicSecret }}; then
+                echo "Only one of the next-key Secrets exists; delete it and re-run." >&2
+                exit 1
+              fi
+              . /keys/keys.env
+              printf 'apiVersion: v1\nkind: List\nitems:\n- {apiVersion: v1, kind: Secret, metadata: {name: {{ $id.nextPrivateSecret }}}, stringData: {private-key: "%s"}}\n- {apiVersion: v1, kind: Secret, metadata: {name: {{ $id.nextPublicSecret }}}, stringData: {public-key: "%s"}}\n' "$GATEWAY_PRIVATE_KEY" "$GATEWAY_PUBLIC_KEY" > /tmp/secrets.yaml
+              kubectl create -f /tmp/secrets.yaml >/dev/null
+              rm -f /tmp/secrets.yaml
+              echo "Created the next gateway key."
+              {{- else }}
+              if ! exists {{ $id.nextPrivateSecret }} || ! exists {{ $id.nextPublicSecret }}; then
+                echo "There is no next gateway key to promote (already promoted, or never prepared)."
+                exit 0
+              fi
+              data() { kubectl get secret "$1" -o "jsonpath={.data.$2}"; }
+              cur_priv=$(data {{ $id.privateSecret }} private-key)
+              cur_pub=$(data {{ $id.publicSecret }} public-key)
+              next_priv=$(data {{ $id.nextPrivateSecret }} private-key)
+              next_pub=$(data {{ $id.nextPublicSecret }} public-key)
+              # Secret manifests go through a file (no process list, no log). `data:` values are already base64.
+              printf 'apiVersion: v1\nkind: List\nitems:\n- {apiVersion: v1, kind: Secret, metadata: {name: {{ $id.previousPrivateSecret }}}, data: {private-key: "%s"}}\n- {apiVersion: v1, kind: Secret, metadata: {name: {{ $id.previousPublicSecret }}}, data: {public-key: "%s"}}\n- {apiVersion: v1, kind: Secret, metadata: {name: {{ $id.privateSecret }}}, data: {private-key: "%s"}}\n- {apiVersion: v1, kind: Secret, metadata: {name: {{ $id.publicSecret }}}, data: {public-key: "%s"}}\n' "$cur_priv" "$cur_pub" "$next_priv" "$next_pub" > /tmp/secrets.yaml
+              kubectl apply -f /tmp/secrets.yaml >/dev/null
+              rm -f /tmp/secrets.yaml
+              kubectl delete secret {{ $id.nextPrivateSecret }} {{ $id.nextPublicSecret }} >/dev/null
+              echo "The next gateway key is now the current one."
+              {{- end }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            {{- if eq $stage "prepare" }}
+            - {name: keys, mountPath: /keys, readOnly: true}
+            {{- end }}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: keys
+          emptyDir: {medium: Memory}
+        - name: tmp
+          emptyDir: {}
+{{- end }}

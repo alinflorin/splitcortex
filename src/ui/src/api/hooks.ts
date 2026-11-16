@@ -7,6 +7,7 @@ import type { Method } from './client';
 import {
   apiKeyRequest,
   apiKeySchema,
+  benchmarkSchema,
   createdApiKeySchema,
   createdEnrollmentSchema,
   memberSchema,
@@ -18,6 +19,7 @@ import {
   usageSchema,
   type AddMemberForm,
   type ApiKeyForm,
+  type Limits,
   type ModelFromUrlForm,
   type OrgRole,
   type OrganisationForm,
@@ -52,6 +54,8 @@ const keys = {
   models: (id: string) => ['organisations', id, 'models'] as const,
   poolModels: (id: string, poolId: string) =>
     ['organisations', id, 'pools', poolId, 'models'] as const,
+  benchmarks: (id: string, poolId: string) =>
+    ['organisations', id, 'pools', poolId, 'benchmarks'] as const,
   usage: (id: string, params: string) => ['organisations', id, 'usage', params] as const,
 };
 
@@ -87,7 +91,7 @@ export function useUpdateOrganisation(orgId: string) {
   const req = useRequest();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: Partial<OrganisationForm>) =>
+    mutationFn: (body: Partial<OrganisationForm> & { limits?: Partial<Limits> }) =>
       req('PATCH', `/organisations/${orgId}`, organisationSchema, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.orgs }),
   });
@@ -426,8 +430,23 @@ export function useCreateApiKey(orgId: string) {
   const req = useRequest();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (form: ApiKeyForm) =>
-      req('POST', `/organisations/${orgId}/api-keys`, createdApiKeySchema, apiKeyRequest(form)),
+    mutationFn: ({ form, limits }: { form: ApiKeyForm; limits?: Limits }) =>
+      req(
+        'POST',
+        `/organisations/${orgId}/api-keys`,
+        createdApiKeySchema,
+        apiKeyRequest(form, Date.now(), limits),
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.apiKeys(orgId) }),
+  });
+}
+
+export function useUpdateApiKeyLimits(orgId: string) {
+  const req = useRequest();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ keyId, limits }: { keyId: string; limits: Limits }) =>
+      req('PATCH', `/organisations/${orgId}/api-keys/${keyId}`, apiKeySchema, { limits }),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.apiKeys(orgId) }),
   });
 }
@@ -438,5 +457,40 @@ export function useRevokeApiKey(orgId: string) {
   return useMutation({
     mutationFn: (keyId: string) => req('DELETE', `/organisations/${orgId}/api-keys/${keyId}`, null),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.apiKeys(orgId) }),
+  });
+}
+
+const BENCHMARK_REFRESH_MS = 3_000;
+
+/** The pool's latest benchmarks; polls while one is running (the gateways fill in the results). */
+export function useBenchmarks(orgId: string, poolId: string) {
+  const req = useRequest();
+  return useQuery({
+    enabled: req.ready,
+    queryKey: keys.benchmarks(orgId, poolId),
+    queryFn: () =>
+      req('GET', `/organisations/${orgId}/pools/${poolId}/benchmarks`, z.array(benchmarkSchema)),
+    refetchInterval: (q) =>
+      q.state.data?.some((b) => b.status === 'running') ? BENCHMARK_REFRESH_MS : false,
+  });
+}
+
+export function useRunBenchmark(orgId: string, poolId: string) {
+  const req = useRequest();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      req('POST', `/organisations/${orgId}/pools/${poolId}/benchmarks`, benchmarkSchema, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.benchmarks(orgId, poolId) }),
+  });
+}
+
+export function useDeleteBenchmark(orgId: string, poolId: string) {
+  const req = useRequest();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (benchmarkId: string) =>
+      req('DELETE', `/organisations/${orgId}/pools/${poolId}/benchmarks/${benchmarkId}`, null),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.benchmarks(orgId, poolId) }),
   });
 }

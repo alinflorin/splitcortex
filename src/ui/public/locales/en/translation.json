@@ -342,5 +342,46 @@
     "expired": "This code has expired. Create a new one.",
     "approvalNote": "This pool requires approval: the device will wait for an admin to approve it.",
     "done": "{{name}} was added."
+  },
+  "limits": {
+    "title": "Limits",
+    "unlimited": "Unlimited",
+    "edit": "Edit limits",
+    "saved": "Limits saved.",
+    "requestsPerMinute": "Requests per minute",
+    "requestsPerMinuteHint": "Per gateway instance; empty means unlimited.",
+    "tokensPerMinute": "Tokens per minute",
+    "tokensPerMinuteHint": "Prompt and generated tokens; empty means unlimited.",
+    "tokensPerDay": "Tokens per day",
+    "tokensPerDayHint": "Per UTC day; empty means unlimited.",
+    "invalid": "Enter a whole number from 1 to {{max}}, or leave it empty.",
+    "orgTitle": "Rate limits",
+    "orgHint": "Apply to every key of this organisation together. A key can have stricter limits of its own; requests over a limit get HTTP 429.",
+    "keyTitle": "Limits of {{name}}",
+    "perMinuteRequests": "{{n}} requests/min",
+    "perMinuteTokens": "{{n}} tokens/min",
+    "perDayTokens": "{{n}} tokens/day",
+    "save": "Save limits"
+  },
+  "benchmarks": {
+    "title": "Benchmarks",
+    "hint": "Runs a fixed prompt on every online device of this pool, one at a time, and measures how fast each one answers.",
+    "run": "Run benchmark",
+    "started": "Benchmark started.",
+    "empty": "No benchmarks yet.",
+    "running": "Running",
+    "done": "Done",
+    "status": {
+      "pending": "Waiting",
+      "running": "Running",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "tokensPerSec": "Tokens/sec",
+    "firstToken": "First token",
+    "total": "Total time",
+    "tokens": "Tokens",
+    "poolTotal": "Pool throughput",
+    "unit": "tokens/s"
   }
 }

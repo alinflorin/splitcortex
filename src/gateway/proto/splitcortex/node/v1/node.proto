@@ -30,6 +30,9 @@ message Envelope {
     InferenceError inference_error = 13;
     Cancel cancel = 14;
     NodeConfig node_config = 15;
+    Resume resume = 16;
+    ResumeAck resume_ack = 17;
+    GatewayKeys gateway_keys = 18;
   }
 }
 
@@ -54,6 +57,35 @@ message Ready {
   // Requests the gateway may have in flight on this node at once (credit-based backpressure, 1 for a phone).
   uint32 max_in_flight = 1;
   uint32 ping_interval_seconds = 2;
+  // Key rotation (see docs/gateway.md): while the operator rolls the gateway identity, the gateway announces the key it
+  // is about to switch to, signed by its current key (which the node pinned), so the node can trust both during the
+  // overlap. Empty when no rotation is under way.
+  //   next_gateway_key_signature = Ed25519(current key, "splitcortex-gateway-next-key-v1\n" node_nonce "\n" next_gateway_key)
+  bytes next_gateway_key = 3;
+  bytes next_gateway_key_signature = 4;
+}
+
+// node -> gateway, sent right after Ready on every (re)connect: the requests the node still holds (generating, or
+// finished but not known to be received). The gateway answers with a ResumeAck for the ones it still tracks and
+// cancels the rest. Chunks, Done and Error carry a per-request `seq` (1, 2, 3, ...) so the node can resend what the
+// gateway missed and the gateway can drop duplicates.
+message Resume {
+  repeated string request_ids = 1;
+}
+
+message ResumeEntry {
+  string request_id = 1;
+  uint32 received_seq = 2; // the highest seq the gateway has; the node resends everything above it
+}
+
+message ResumeAck {
+  repeated ResumeEntry entries = 1;
+}
+
+// node -> gateway, after Ready: ids (first 8 bytes of SHA-256 of the public key) of the gateway keys this device trusts.
+// Lets the operator see whether every device learned the next key before promoting it.
+message GatewayKeys {
+  repeated bytes key_ids = 1;
 }
 
 // What the node's pool serves (gateway -> node). Sent after Ready and again whenever it changes; an empty
@@ -132,6 +164,7 @@ message InferenceRequest {
 message InferenceChunk {
   string request_id = 1;
   string text = 2;
+  uint32 seq = 3;
 }
 
 message InferenceDone {
@@ -139,12 +172,14 @@ message InferenceDone {
   uint32 prompt_tokens = 2;
   uint32 completion_tokens = 3;
   string finish_reason = 4; // stop | length
+  uint32 seq = 5;
 }
 
 message InferenceError {
   string request_id = 1;
   string code = 2;
   string message = 3;
+  uint32 seq = 4;
 }
 
 // gateway -> node: the client went away, stop generating.

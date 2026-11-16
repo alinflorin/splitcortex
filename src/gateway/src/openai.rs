@@ -20,6 +20,8 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::cache::{fetch_key, KeyRec, ModelRec, PoolRec};
+use crate::cluster;
+use crate::limits::Subject;
 use crate::proto::envelope::Body;
 use crate::proto::{self, Envelope};
 use crate::registry::{NodeConn, NodeEvent, Outbound};
@@ -45,6 +47,19 @@ impl ApiError {
             message: message.into(),
             retry_after: None,
         }
+    }
+    pub fn status(status: StatusCode, code: &'static str, message: &str) -> Self {
+        Self::new(status, "invalid_request_error", code, message)
+    }
+    fn too_many(what: &str, retry_after: u32) -> Self {
+        let mut e = Self::new(
+            StatusCode::TOO_MANY_REQUESTS,
+            "rate_limit_error",
+            "rate_limit_exceeded",
+            format!("Rate limit reached: too many {what}. Try again in {retry_after} s."),
+        );
+        e.retry_after = Some(retry_after);
+        e
     }
     fn unavailable(message: &str) -> Self {
         let mut e = Self::new(
@@ -223,19 +238,36 @@ struct Run {
     error: bool,
     finished: bool,
     record: bool,
+    /// Count the generated tokens against the key's and organisation's limits (not for forwarded requests: the instance
+    /// that received the request counts those).
+    limited: bool,
 }
 
 impl Drop for Run {
     fn drop(&mut self) {
-        self.app.registry.finish_request(&self.request_id);
-        self.node.in_flight.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
+        self.app.registry.finish_request(&self.request_id, &self.node);
+        if self.limited && self.tokens_out > 0 {
+            let now = chrono::Utc::now().timestamp();
+            self.app
+                .limiter
+                .add_tokens(Subject::Key(self.key), self.tokens_out as u64, now);
+            self.app
+                .limiter
+                .add_tokens(Subject::Org(self.org), self.tokens_out as u64, now);
+        }
         if !self.finished {
             let cancel = Envelope {
                 body: Some(Body::Cancel(proto::Cancel {
                     request_id: self.request_id.clone(),
                 })),
             };
-            let _ = self.node.tx.try_send(Outbound::Send(cancel));
+            // After a resume the request lives on the node's newer connection.
+            let node = self
+                .app
+                .registry
+                .get(self.node.node_id)
+                .unwrap_or_else(|| self.node.clone());
+            let _ = node.tx.try_send(Outbound::Send(cancel));
         }
         if self.record {
             self.app.usage.record(
@@ -257,6 +289,13 @@ pub async fn chat_completions(
     body: Bytes,
 ) -> Result<Response, ApiError> {
     let key = authenticate(&app, &headers).await?;
+    chat_core(&app, key, body, false).await
+}
+
+/// Serves a chat request of an authenticated key. `forwarded`: another gateway instance already checked the limits and
+/// sent the request here because this instance holds the node; it is only served from local nodes and not forwarded on.
+pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded: bool) -> Result<Response, ApiError> {
+    let app = app.clone();
     let req: ChatReq = serde_json::from_slice(&body).map_err(|e| {
         ApiError::new(
             StatusCode::BAD_REQUEST,
@@ -304,6 +343,28 @@ pub async fn chat_completions(
         .collect();
     let tokens_in = (messages.iter().map(|m| m.content.chars().count()).sum::<usize>() as u32).div_ceil(4);
 
+    // Rate limits: the organisation's and the key's, both must allow it. (A forwarded request was checked already.)
+    if !forwarded {
+        let now = chrono::Utc::now().timestamp();
+        let org_limits = app
+            .cache
+            .read()
+            .unwrap()
+            .org_limits
+            .get(&key.org_id)
+            .copied()
+            .unwrap_or_default();
+        for (subject, limits) in [
+            (Subject::Org(key.org_id), org_limits),
+            (Subject::Key(key.id), key.limits),
+        ] {
+            app.limiter.refresh_day(&app.db, subject, &limits).await;
+            if let Err(r) = app.limiter.check(subject, &limits, now) {
+                return Err(ApiError::too_many(r.what, r.retry_after_secs));
+            }
+        }
+    }
+
     // Prompt + output must fit a node's context window. Output is unknown without `max_tokens`, so one token is assumed.
     let need = tokens_in.saturating_add(req.max_completion_tokens.or(req.max_tokens).unwrap_or(1));
     let largest = holders
@@ -311,6 +372,12 @@ pub async fn chat_completions(
         .filter_map(|(p, m)| app.registry.context_range(p.org_id, p.id, m.id))
         .map(|(_, hi)| hi)
         .max();
+    let mut largest = largest;
+    if !forwarded && largest.is_some_and(|hi| need > hi) && cluster::clustered(&app) {
+        // Nodes on other instances may have a larger window.
+        let ids: Vec<Uuid> = holders.iter().map(|(p, _)| p.id).collect();
+        largest = largest.max(cluster::max_context(&app, &ids).await);
+    }
     if largest.is_some_and(|hi| need > hi) {
         return Err(ApiError::new(
             StatusCode::BAD_REQUEST,
@@ -321,6 +388,12 @@ pub async fn chat_completions(
                 largest.unwrap_or(0)
             ),
         ));
+    }
+
+    if !forwarded {
+        let now = chrono::Utc::now().timestamp();
+        app.limiter.admit(Subject::Org(key.org_id), tokens_in as u64, now);
+        app.limiter.admit(Subject::Key(key.id), tokens_in as u64, now);
     }
 
     let mut tried: Vec<Uuid> = Vec::new();
@@ -343,7 +416,7 @@ pub async fn chat_completions(
         };
 
         let request_id = Uuid::new_v4().to_string();
-        let mut rx = app.registry.track_request(&request_id, node.node_id);
+        let mut rx = app.registry.track_request(&request_id, &node);
         let mut run = Run {
             app: app.clone(),
             node: node.clone(),
@@ -357,6 +430,7 @@ pub async fn chat_completions(
             error: false,
             finished: false,
             record: true,
+            limited: !forwarded,
         };
         let msg = Envelope {
             body: Some(Body::InferenceRequest(proto::InferenceRequest {
@@ -397,6 +471,17 @@ pub async fn chat_completions(
                 } else {
                     collect_response(run, rx, first, id, created, req.model).await?
                 });
+            }
+        }
+    }
+    // No suitable node here: ask the other instances that hold nodes of these pools.
+    if !forwarded {
+        let ids: Vec<Uuid> = holders.iter().map(|(p, _)| p.id).collect();
+        for peer in cluster::peers_with_pools(&app, &ids).await {
+            match cluster::forward_chat(&app, &peer, &key.hash, body.clone()).await {
+                // 502/503 mean "that instance has no node for it right now": try the next one.
+                Ok(res) if !matches!(res.status().as_u16(), 502 | 503) => return Ok(res),
+                _ => continue,
             }
         }
     }

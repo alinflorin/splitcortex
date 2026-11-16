@@ -22,6 +22,8 @@ interface Native {
   stopService(): Promise<void>;
   setStartAtBoot(enabled: boolean): Promise<void>;
   getTelemetry(): Promise<DeviceTelemetry>;
+  isIgnoringBatteryOptimizations(): Promise<boolean>;
+  requestIgnoreBatteryOptimizations(): Promise<void>;
 }
 
 // Android only (the local module `modules/splitcortex-node-service`); absent on iOS, in Jest and in builds without it.
@@ -36,6 +38,10 @@ export interface ServiceControl {
 export const nodeService: ServiceControl & {
   setStartAtBoot(enabled: boolean): Promise<void>;
   telemetry(): Promise<DeviceTelemetry>;
+  /** Android: is the app exempt from battery optimisation (Doze)? True where it does not apply (iOS, no native module). */
+  batteryExempt(): Promise<boolean>;
+  /** Opens the system dialog asking the user to exempt the app. */
+  requestBatteryExemption(): Promise<void>;
   readonly available: boolean;
 } = {
   available: native !== null,
@@ -57,5 +63,12 @@ export const nodeService: ServiceControl & {
   },
   async telemetry() {
     return (await native?.getTelemetry()) ?? UNKNOWN_TELEMETRY;
+  },
+  async batteryExempt() {
+    if (!native) return true;
+    return native.isIgnoringBatteryOptimizations().catch(() => true);
+  },
+  async requestBatteryExemption() {
+    await native?.requestIgnoreBatteryOptimizations();
   },
 };

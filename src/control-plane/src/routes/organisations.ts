@@ -13,6 +13,7 @@ import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db } from '../db/client';
 import { apiKeys, memberships, nodes, organisations, pools } from '../db/schema';
 import { isUniqueViolation } from '../errors';
+import { limitColumns, limitsOf } from '../limits';
 
 export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db }) => {
   app.get(
@@ -34,6 +35,7 @@ export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app,
         .where(eq(memberships.userEmail, req.user!.email));
       return rows.map(({ org, role }) => ({
         ...org,
+        limits: limitsOf(org),
         createdAt: org.createdAt.toISOString(),
         role,
       }));
@@ -73,9 +75,12 @@ export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app,
         throw err;
       }
       await notifyConfigChange(db, seq);
-      return reply
-        .code(201)
-        .send({ ...created, createdAt: created.createdAt.toISOString(), role: 'owner' });
+      return reply.code(201).send({
+        ...created,
+        limits: limitsOf(created),
+        createdAt: created.createdAt.toISOString(),
+        role: 'owner',
+      });
     },
   );
 
@@ -97,7 +102,7 @@ export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app,
         .select()
         .from(organisations)
         .where(eq(organisations.id, req.params.orgId));
-      return { ...org!, createdAt: org!.createdAt.toISOString(), role };
+      return { ...org!, limits: limitsOf(org!), createdAt: org!.createdAt.toISOString(), role };
     },
   );
 
@@ -107,7 +112,7 @@ export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app,
       onRequest: app.authenticate,
       schema: {
         tags: ['organisations'],
-        summary: 'Rename an organisation or change its slug (admin or owner)',
+        summary: 'Rename an organisation, change its slug or its rate limits (admin or owner)',
         security: [{ dex: [] }, { bearer: [] }],
         params: OrgIdParamsSchema,
         body: UpdateOrganisationSchema,
@@ -127,7 +132,11 @@ export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app,
         const { seq, org } = await db.transaction(async (tx) => {
           const [org] = await tx
             .update(organisations)
-            .set(req.body)
+            .set({
+              ...(req.body.name !== undefined && { name: req.body.name }),
+              ...(req.body.slug !== undefined && { slug: req.body.slug }),
+              ...(req.body.limits && limitColumns(req.body.limits)),
+            })
             .where(eq(organisations.id, orgId))
             .returning();
           const seq = await recordConfigChange(tx, {
@@ -138,7 +147,7 @@ export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app,
           return { seq, org: org! };
         });
         await notifyConfigChange(db, seq);
-        return { ...org, createdAt: org.createdAt.toISOString(), role };
+        return { ...org, limits: limitsOf(org), createdAt: org.createdAt.toISOString(), role };
       } catch (err) {
         if (isUniqueViolation(err)) throw app.httpErrors.conflict('Slug already taken');
         throw err;
