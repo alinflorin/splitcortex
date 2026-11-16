@@ -11,5 +11,7 @@ COPY --chown=1000:1000 Cargo.toml Cargo.lock build.rs ./
 COPY --chown=1000:1000 proto ./proto
 RUN mkdir src && echo 'fn main(){}' > src/main.rs && cargo build && rm -rf src
 COPY --chown=1000:1000 src ./src
+# COPY keeps the files' old mtimes: without this cargo may think the stub build above is fresh and run `fn main(){}`.
+RUN touch src/main.rs
 EXPOSE 8080
 CMD ["cargo", "watch", "-q", "-w", "src", "-w", "proto", "-x", "run"]
