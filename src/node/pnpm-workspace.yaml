@@ -1,3 +1,5 @@
 allowBuilds:
   "@parcel/watcher": false
   react-native-litert-lm: false
+patchedDependencies:
+  react-native-litert-lm: patches/react-native-litert-lm.patch

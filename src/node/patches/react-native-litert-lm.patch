@@ -1,0 +1,15 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 9e9e02101cdf87b2feae26e998c85ad22f7024a4..b675596852f726d63c9a84ef8eeae18084ae64d0 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -35,7 +35,9 @@ android {
+         }
+         
+         ndk {
+-            abiFilters 'arm64-v8a'
++            // Follow the app's target ABIs (react-native.architectures / -PreactNativeArchitectures) so an x86_64 emulator build works;
++            // litertlm-android only ships arm64-v8a and x86_64.
++            abiFilters(*(rootProject.findProperty('reactNativeArchitectures') ?: 'arm64-v8a').toString().split(',').findAll { it in ['arm64-v8a', 'x86_64'] })
+         }
+     }
+     
