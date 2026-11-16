@@ -33,6 +33,7 @@
     "start": "Pornește",
     "stop": "Oprește",
     "restart": "Repornește",
+    "openWebApp": "Deschide aplicația web",
     "logs": "Jurnal",
     "blocked": {
       "not-enrolled": "Înrolează acest dispozitiv pentru a începe.",
