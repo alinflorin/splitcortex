@@ -10,16 +10,16 @@ dex:
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
     hosts:
-      - host: dex.stg.splitcortex.com
+      - host: dex.stg.splitcortex.alinflorinciu.qoffice.ro
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: dex-tls
         hosts:
-          - dex.stg.splitcortex.com
+          - dex.stg.splitcortex.alinflorinciu.qoffice.ro
   config:
-    issuer: https://dex.stg.splitcortex.com
+    issuer: https://dex.stg.splitcortex.alinflorinciu.qoffice.ro
     web:
       http: 0.0.0.0:5556
     staticClients:
@@ -27,8 +27,8 @@ dex:
         name: SplitCortex Web
         public: true
         redirectURIs:
-          - https://app.stg.splitcortex.com/
-          - https://app.stg.splitcortex.com/api/docs/static/oauth2-redirect.html
+          - https://app.stg.splitcortex.alinflorinciu.qoffice.ro/
+          - https://app.stg.splitcortex.alinflorinciu.qoffice.ro/api/docs/static/oauth2-redirect.html
 
 ui:
   image:
@@ -37,14 +37,14 @@ ui:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt
     hosts:
-      - host: app.stg.splitcortex.com
+      - host: app.stg.splitcortex.alinflorinciu.qoffice.ro
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: ui-tls
         hosts:
-          - app.stg.splitcortex.com
+          - app.stg.splitcortex.alinflorinciu.qoffice.ro
 
 
 gateway:
@@ -54,30 +54,30 @@ gateway:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt
     hosts:
-      - host: gateway.stg.splitcortex.com
+      - host: gateway.stg.splitcortex.alinflorinciu.qoffice.ro
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: gateway-tls
         hosts:
-          - gateway.stg.splitcortex.com
+          - gateway.stg.splitcortex.alinflorinciu.qoffice.ro
 
 controlPlane:
   gateway:
-    url: wss://gateway.stg.splitcortex.com/node
+    url: wss://gateway.stg.splitcortex.alinflorinciu.qoffice.ro/node
   image:
     repository: ghcr.io/alinflorin/splitcortex-control-plane
   ingress:
     hosts:
-      - host: app.stg.splitcortex.com
+      - host: app.stg.splitcortex.alinflorinciu.qoffice.ro
         paths:
           - path: /api
             pathType: Prefix
     tls:
       - secretName: ui-tls
         hosts:
-          - app.stg.splitcortex.com
+          - app.stg.splitcortex.alinflorinciu.qoffice.ro
 
 dev:
   coredns:
