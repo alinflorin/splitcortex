@@ -105,6 +105,7 @@ describe('pools tab', () => {
       requireApproval: true,
       servingType: 'replicated',
       balancingType: 'weighted_p2c',
+      onlineNodes: 0,
       createdAt: '2026-01-01T00:00:00.000Z',
     },
   ];
@@ -151,6 +152,19 @@ describe('pools tab', () => {
     );
   });
 
+  it('marks pools with a live node green and the others amber', async () => {
+    stubApi({
+      'GET /api/organisations/o1/pools': [
+        { ...pools[0]!, onlineNodes: 2 },
+        { ...pools[0]!, id: 'p2', name: 'idle', onlineNodes: 0 },
+      ],
+    });
+    await renderTab(<PoolsTab />, 'member');
+    await screen.findByText('2 nodes online');
+    expect(screen.getByRole('img', { name: 'At least one node is online' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'No node online' })).toBeInTheDocument();
+  });
+
   it('hides management for plain members', async () => {
     stubApi({ 'GET /api/organisations/o1/pools': pools });
     await renderTab(<PoolsTab />, 'member');
@@ -168,6 +182,7 @@ describe('pool page', () => {
     requireApproval: true,
     servingType: 'replicated',
     balancingType: 'round_robin',
+    onlineNodes: 0,
     createdAt: '2026-01-01T00:00:00.000Z',
   };
   const usage = {

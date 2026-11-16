@@ -27,6 +27,8 @@ export const PoolSchema = z.object({
   requireApproval: z.boolean(),
   servingType: ServingTypeSchema,
   balancingType: BalancingTypeSchema,
+  /** Approved nodes of the pool that are connected to the gateway and reporting right now. */
+  onlineNodes: z.number().int().nonnegative(),
   createdAt: z.iso.datetime(),
 });
 export type PoolDto = z.infer<typeof PoolSchema>;

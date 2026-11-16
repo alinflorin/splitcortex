@@ -7,18 +7,33 @@ import {
   DialogSurface,
   DialogTitle,
   Input,
+  Tab,
+  TabList,
+  Text,
   MessageBar,
   MessageBarBody,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
 import { Copy20Regular } from '@fluentui/react-icons';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { buildKeyExamples, getGatewayBaseUrl } from '../../lib/gateway';
 import { useToast } from '../../components/feedback/useToast';
 
 const useStyles = makeStyles({
   body: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
   row: { display: 'flex', gap: tokens.spacingHorizontalS },
+  code: {
+    margin: 0,
+    padding: tokens.spacingHorizontalM,
+    overflowX: 'auto',
+    fontFamily: tokens.fontFamilyMonospace,
+    fontSize: tokens.fontSizeBase200,
+    backgroundColor: tokens.colorNeutralBackground2,
+    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    borderRadius: tokens.borderRadiusMedium,
+  },
   input: { flexGrow: 1, fontFamily: tokens.fontFamilyMonospace },
 });
 
@@ -34,9 +49,12 @@ export function ApiKeySecretDialog({
   const { t } = useTranslation();
   const toast = useToast();
 
-  const copy = async () => {
+  const [tab, setTab] = useState<'curl' | 'python'>('curl');
+  const examples = secret ? buildKeyExamples(getGatewayBaseUrl(), secret) : null;
+
+  const copy = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(secret ?? '');
+      await navigator.clipboard.writeText(text);
       toast.success(t('apiKeys.copied'));
     } catch {
       // clipboard blocked: the field stays selectable
@@ -60,10 +78,26 @@ export function ApiKeySecretDialog({
                 aria-label={t('apiKeys.secretTitle')}
                 onFocus={(e) => e.target.select()}
               />
-              <Button icon={<Copy20Regular />} onClick={() => void copy()}>
+              <Button icon={<Copy20Regular />} onClick={() => void copy(secret ?? '')}>
                 {t('apiKeys.copy')}
               </Button>
             </div>
+            {examples && (
+              <>
+                <Text weight="semibold">{t('apiKeys.useTitle')}</Text>
+                <Text size={200}>{t('apiKeys.useHint')}</Text>
+                <TabList selectedValue={tab} onTabSelect={(_, d) => setTab(d.value as typeof tab)}>
+                  <Tab value="curl">curl</Tab>
+                  <Tab value="python">Python</Tab>
+                </TabList>
+                <pre className={styles.code}>{examples[tab]}</pre>
+                <div>
+                  <Button icon={<Copy20Regular />} onClick={() => void copy(examples[tab])}>
+                    {t('apiKeys.copyExample')}
+                  </Button>
+                </div>
+              </>
+            )}
           </DialogContent>
           <DialogActions>
             <Button appearance="primary" onClick={onClose}>

@@ -109,12 +109,16 @@ export function useDeleteOrganisation(orgId: string) {
   });
 }
 
+/** Live status refreshes on its own: nodes report every few seconds. */
+const LIVE_REFRESH_MS = 10_000;
+
 export function usePools(orgId: string) {
   const req = useRequest();
   return useQuery({
     enabled: req.ready,
     queryKey: keys.pools(orgId),
     queryFn: () => req('GET', `/organisations/${orgId}/pools`, z.array(poolSchema)),
+    refetchInterval: LIVE_REFRESH_MS,
   });
 }
 
@@ -221,9 +225,6 @@ export function useUsage(orgId: string, params: UsageParams) {
 }
 
 // ---- Nodes ----------------------------------------------------------------------------------------------------
-
-/** Live status refreshes on its own: nodes report every few seconds. */
-const LIVE_REFRESH_MS = 10_000;
 
 export function useNodes(orgId: string, poolId: string) {
   const req = useRequest();

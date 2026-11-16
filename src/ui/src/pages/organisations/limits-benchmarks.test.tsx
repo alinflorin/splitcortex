@@ -126,6 +126,7 @@ describe('benchmarks', () => {
     requireApproval: false,
     servingType: 'replicated',
     balancingType: 'weighted_p2c',
+    onlineNodes: 0,
     createdAt: '2026-01-01T00:00:00.000Z',
   };
   const done: Benchmark = {

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import {
@@ -12,10 +12,34 @@ import {
 import { requireOrgRole } from '../access';
 import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db } from '../db/client';
-import { apiKeyPools, nodes, pools } from '../db/schema';
+import { apiKeyPools, nodeStatus, nodes, pools } from '../db/schema';
 import { isUniqueViolation } from '../errors';
+import { LIVE_STALENESS_MS } from './nodes';
 
-const toDto = (p: typeof pools.$inferSelect) => ({ ...p, createdAt: p.createdAt.toISOString() });
+const toDto = (p: typeof pools.$inferSelect, online: Map<string, number> = new Map()) => ({
+  ...p,
+  onlineNodes: online.get(p.id) ?? 0,
+  createdAt: p.createdAt.toISOString(),
+});
+
+/** Online node count per pool of an organisation (same rule as a node's `online` status). */
+async function onlineByPool(db: Db, orgId: string) {
+  const rows = await db
+    .select({ poolId: nodes.poolId })
+    .from(nodes)
+    .innerJoin(nodeStatus, eq(nodeStatus.nodeId, nodes.id))
+    .where(
+      and(
+        eq(nodes.orgId, orgId),
+        eq(nodes.approved, true),
+        eq(nodeStatus.connected, true),
+        gt(nodeStatus.updatedAt, new Date(Date.now() - LIVE_STALENESS_MS)),
+      ),
+    );
+  const counts = new Map<string, number>();
+  for (const r of rows) counts.set(r.poolId, (counts.get(r.poolId) ?? 0) + 1);
+  return counts;
+}
 
 export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db }) => {
   app.get(
@@ -32,7 +56,10 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
     },
     async (req) => {
       await requireOrgRole(app, db, req, req.params.orgId);
-      return (await db.select().from(pools).where(eq(pools.orgId, req.params.orgId))).map(toDto);
+      const online = await onlineByPool(db, req.params.orgId);
+      return (await db.select().from(pools).where(eq(pools.orgId, req.params.orgId))).map((p) =>
+        toDto(p, online),
+      );
     },
   );
 
@@ -101,7 +128,7 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
         .from(pools)
         .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)));
       if (!pool) throw app.httpErrors.notFound('Pool not found');
-      return toDto(pool);
+      return toDto(pool, await onlineByPool(db, orgId));
     },
   );
 
@@ -140,7 +167,7 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
         });
         if (!result) throw app.httpErrors.notFound('Pool not found');
         await notifyConfigChange(db, result.seq);
-        return toDto(result.pool);
+        return toDto(result.pool, await onlineByPool(db, orgId));
       } catch (err) {
         if (isUniqueViolation(err))
           throw app.httpErrors.conflict('A pool with this name already exists');

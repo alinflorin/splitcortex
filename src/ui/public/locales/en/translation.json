@@ -37,7 +37,7 @@
   },
   "home": {
     "title": "Put idle devices to work",
-    "subtitle": "Turn phones and small computers into inference nodes, group them into pools and serve models through one API.",
+    "subtitle": "Turn idle devices into inference nodes, group them into pools and serve models through one API.",
     "welcome": "Welcome back, {{name}}",
     "cards": {
       "pools": {
@@ -117,6 +117,10 @@
     "deleteMessage": "This permanently deletes the organisation with its pools, memberships and usage history."
   },
   "pools": {
+    "live": "At least one node is online",
+    "noLive": "No node online",
+    "onlineCount_one": "{{count}} node online",
+    "onlineCount_other": "{{count}} nodes online",
     "title": "Pools",
     "new": "New pool",
     "edit": "Edit pool",
@@ -327,6 +331,9 @@
     "secretMessage": "This is the only time the key is shown. Store it somewhere safe.",
     "copy": "Copy",
     "copied": "Copied to clipboard.",
+    "useTitle": "Use this key",
+    "useHint": "Any OpenAI-compatible client works: change the base URL and the API key. Replace <model> with your pool's model name.",
+    "copyExample": "Copy example",
     "done": "Done",
     "revoke": "Revoke",
     "revokeTitle": "Revoke {{name}}?",
@@ -346,7 +353,7 @@
   "enroll": {
     "add": "Add device",
     "title": "Add a device",
-    "intro": "On the phone, open SplitCortex Node, tap Enroll and type this code or scan the QR.",
+    "intro": "On the node, open SplitCortex Node, tap Enroll and type this code or scan the QR.",
     "qrAlt": "QR code with the enrollment link",
     "copy": "Copy code",
     "copied": "Code copied.",

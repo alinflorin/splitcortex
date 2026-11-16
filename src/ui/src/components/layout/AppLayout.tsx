@@ -6,8 +6,21 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 
 const useStyles = makeStyles({
-  root: { display: 'flex', minHeight: '100dvh', backgroundColor: tokens.colorNeutralBackground1 },
-  column: { display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 },
+  // The shell is exactly one viewport tall; only the content column scrolls, so the sidebar stays put.
+  root: {
+    display: 'flex',
+    height: '100dvh',
+    overflow: 'hidden',
+    backgroundColor: tokens.colorNeutralBackground1,
+  },
+  column: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    minWidth: 0,
+    minHeight: 0,
+    overflowY: 'auto',
+  },
   main: {
     flexGrow: 1,
     width: '100%',

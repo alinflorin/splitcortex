@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { Badge, Body1, Button, makeStyles, tokens } from '@fluentui/react-components';
+import {
+  Badge,
+  Body1,
+  Button,
+  Text,
+  makeStyles,
+  mergeClasses,
+  tokens,
+} from '@fluentui/react-components';
 import { Add24Regular, Delete20Regular, Edit20Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +22,15 @@ import { useDeletePoolAction } from './useDeletePoolAction';
 
 const useStyles = makeStyles({
   toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: tokens.spacingVerticalL },
+  dot: {
+    width: '10px',
+    height: '10px',
+    flexShrink: 0,
+    borderRadius: tokens.borderRadiusCircular,
+  },
+  dotLive: { backgroundColor: tokens.colorPaletteGreenBackground3 },
+  dotIdle: { backgroundColor: tokens.colorPaletteMarigoldBackground3 },
+  status: { display: 'inline-flex', alignItems: 'center', gap: tokens.spacingHorizontalXS },
   muted: { color: tokens.colorNeutralForeground3 },
 });
 
@@ -50,9 +67,27 @@ export function PoolsTab() {
                   subtitle={`${t('common.created')} ${new Date(pool.createdAt).toLocaleDateString()}`}
                   onClick={() => void navigate(`/organisations/${org.id}/pools/${pool.id}`)}
                   meta={
-                    <Badge appearance="tint" color={pool.requireApproval ? 'warning' : 'subtle'}>
-                      {t(pool.requireApproval ? 'pools.approvalOn' : 'pools.approvalOff')}
-                    </Badge>
+                    <>
+                      <span
+                        className={styles.status}
+                        title={t(pool.onlineNodes > 0 ? 'pools.live' : 'pools.noLive')}
+                      >
+                        <span
+                          role="img"
+                          aria-label={t(pool.onlineNodes > 0 ? 'pools.live' : 'pools.noLive')}
+                          className={mergeClasses(
+                            styles.dot,
+                            pool.onlineNodes > 0 ? styles.dotLive : styles.dotIdle,
+                          )}
+                        />
+                        <Text size={200}>
+                          {t('pools.onlineCount', { count: pool.onlineNodes })}
+                        </Text>
+                      </span>
+                      <Badge appearance="tint" color={pool.requireApproval ? 'warning' : 'subtle'}>
+                        {t(pool.requireApproval ? 'pools.approvalOn' : 'pools.approvalOff')}
+                      </Badge>
+                    </>
                   }
                   actions={
                     admin && (

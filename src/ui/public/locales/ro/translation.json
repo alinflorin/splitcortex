@@ -37,7 +37,7 @@
   },
   "home": {
     "title": "Pune dispozitivele nefolosite la treabă",
-    "subtitle": "Transformă telefoanele și calculatoarele mici în noduri de inferență, grupează-le în pool-uri și servește modele printr-un singur API.",
+    "subtitle": "Transformă dispozitivele nefolosite în noduri de inferență, grupează-le în pool-uri și servește modele printr-un singur API.",
     "welcome": "Bine ai revenit, {{name}}",
     "cards": {
       "pools": {
@@ -117,6 +117,10 @@
     "deleteMessage": "Șterge definitiv organizația împreună cu pool-urile, membrii și istoricul de utilizare."
   },
   "pools": {
+    "live": "Cel puțin un nod este online",
+    "noLive": "Niciun nod online",
+    "onlineCount_one": "{{count}} nod online",
+    "onlineCount_other": "{{count}} noduri online",
     "title": "Pool-uri",
     "new": "Pool nou",
     "edit": "Editează pool-ul",
@@ -327,6 +331,9 @@
     "secretMessage": "Cheia este afișată o singură dată. Păstreaz-o într-un loc sigur.",
     "copy": "Copiază",
     "copied": "Copiat în clipboard.",
+    "useTitle": "Folosește această cheie",
+    "useHint": "Orice client compatibil OpenAI funcționează: schimbă URL-ul de bază și cheia API. Înlocuiește <model> cu numele modelului din pool.",
+    "copyExample": "Copiază exemplul",
     "done": "Gata",
     "revoke": "Revocă",
     "revokeTitle": "Revoci {{name}}?",
@@ -346,7 +353,7 @@
   "enroll": {
     "add": "Adaugă dispozitiv",
     "title": "Adaugă un dispozitiv",
-    "intro": "Pe telefon, deschide SplitCortex Node, apasă Înrolare și introdu acest cod sau scanează codul QR.",
+    "intro": "Pe nod, deschide SplitCortex Node, apasă Înrolare și introdu acest cod sau scanează codul QR.",
     "qrAlt": "Cod QR cu linkul de înrolare",
     "copy": "Copiază codul",
     "copied": "Cod copiat.",
