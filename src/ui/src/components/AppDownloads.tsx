@@ -17,9 +17,9 @@ import { useToast } from './feedback/useToast';
 
 const RELEASES = 'https://github.com/alinflorin/splitcortex/releases';
 /** Each app has its own release stream (tags `mobile-node-v*` and `desktop-node-v*`), so link to just that one. */
-export const MOBILE_RELEASES_URL = `${RELEASES}?q=mobile-node-v&expanded=true`;
-export const DESKTOP_RELEASES_URL = `${RELEASES}?q=desktop-node-v&expanded=true`;
-export const CLI_RELEASES_URL = `${RELEASES}?q=cli-node-v&expanded=true`;
+export const MOBILE_RELEASES_URL = `${RELEASES}?q=mobile-node&expanded=true`;
+export const DESKTOP_RELEASES_URL = `${RELEASES}?q=desktop-node&expanded=true`;
+export const CLI_RELEASES_URL = `${RELEASES}?q=cli-node&expanded=true`;
 /** The install scripts live in the repository (`src/cli-node`) and are fetched straight from GitHub. */
 const CLI_RAW = 'https://raw.githubusercontent.com/alinflorin/splitcortex/main/src/cli-node';
 export const CLI_INSTALL_SH = `curl -fsSL ${CLI_RAW}/install.sh | sh`;

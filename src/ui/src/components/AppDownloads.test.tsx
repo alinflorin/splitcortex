@@ -29,7 +29,7 @@ describe('AppDownloads', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Download APK' }));
     expect(open).toHaveBeenCalledWith(MOBILE_RELEASES_URL, '_blank', 'noopener,noreferrer');
     expect(MOBILE_RELEASES_URL).toBe(
-      'https://github.com/alinflorin/splitcortex/releases?q=mobile-node-v&expanded=true',
+      'https://github.com/alinflorin/splitcortex/releases?q=mobile-node&expanded=true',
     );
     await userEvent.click(screen.getByRole('button', { name: 'Google Play' }));
     await userEvent.click(screen.getByRole('button', { name: 'App Store' }));
@@ -37,7 +37,7 @@ describe('AppDownloads', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Download for desktop' }));
     expect(open).toHaveBeenCalledWith(DESKTOP_RELEASES_URL, '_blank', 'noopener,noreferrer');
-    expect(DESKTOP_RELEASES_URL).toContain('q=desktop-node-v');
+    expect(DESKTOP_RELEASES_URL).toContain('q=desktop-node');
   });
 
   it('opens the web node in a new tab without a code', async () => {
@@ -75,7 +75,7 @@ describe('AppDownloads', () => {
       'curl -fsSL https://raw.githubusercontent.com/alinflorin/splitcortex/main/src/cli-node/install.sh | sh',
     );
     expect(CLI_INSTALL_PS1).toContain('install.ps1 | iex');
-    expect(CLI_RELEASES_URL).toContain('q=cli-node-v');
+    expect(CLI_RELEASES_URL).toContain('q=cli-node');
     await renderWithApi(<AppDownloads />);
     expect(screen.getByText(CLI_INSTALL_SH)).toBeInTheDocument();
     expect(screen.getByText(CLI_INSTALL_PS1)).toBeInTheDocument();
