@@ -1,5 +1,12 @@
 import type { MouseEvent } from 'react';
-import { NavDrawer, NavDrawerBody, NavItem, makeStyles, tokens } from '@fluentui/react-components';
+import {
+  NavDrawer,
+  NavDrawerBody,
+  NavItem,
+  Text,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
 import {
   Building24Filled,
   Building24Regular,
@@ -33,6 +40,23 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground2,
     borderRight: `1px solid ${tokens.colorNeutralStroke3}`,
   },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalM,
+    height: '64px',
+    flexShrink: 0,
+    paddingLeft: tokens.spacingHorizontalL,
+    paddingRight: tokens.spacingHorizontalL,
+  },
+  logo: { width: '36px', height: '36px' },
+  brand: {
+    fontSize: tokens.fontSizeBase400,
+    fontWeight: tokens.fontWeightRegular,
+    textTransform: 'lowercase',
+  },
+  brandSplit: { color: '#14b8d4' },
+  brandCortex: { color: '#4f5df0' },
   body: { padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalS}` },
 });
 
@@ -77,6 +101,15 @@ export function Sidebar({ open, overlay, onOpenChange }: SidebarProps) {
       onOpenChange={(_, data) => onOpenChange(data.open)}
       className={styles.drawer}
     >
+      {!overlay && (
+        <div className={styles.header}>
+          <img src="/logo.svg" alt="" className={styles.logo} />
+          <Text className={styles.brand}>
+            <span className={styles.brandSplit}>split</span>
+            <span className={styles.brandCortex}>cortex</span>
+          </Text>
+        </div>
+      )}
       <NavDrawerBody className={styles.body}>
         {orgId ? (
           // Inside an organisation the sidebar is only about that organisation.

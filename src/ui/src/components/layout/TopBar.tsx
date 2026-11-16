@@ -59,13 +59,15 @@ export function TopBar({
           />
         </Tooltip>
       )}
-      <Link to="/" className={styles.brandLink} aria-label="SplitCortex">
-        <img src="/logo.svg" alt="" className={styles.logo} />
-        <Text className={styles.brand}>
-          <span className={styles.brandSplit}>split</span>
-          <span className={styles.brandCortex}>cortex</span>
-        </Text>
-      </Link>
+      {showNavToggle && (
+        <Link to="/" className={styles.brandLink} aria-label="SplitCortex">
+          <img src="/logo.svg" alt="" className={styles.logo} />
+          <Text className={styles.brand}>
+            <span className={styles.brandSplit}>split</span>
+            <span className={styles.brandCortex}>cortex</span>
+          </Text>
+        </Link>
+      )}
       <div className={styles.spacer} />
       <UserMenu />
     </header>
