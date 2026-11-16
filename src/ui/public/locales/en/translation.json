@@ -143,12 +143,12 @@
       "random": "Random",
       "randomHint": "A random node for each request."
     },
-    "models": "Models",
-    "modelsEmpty": "This pool serves no models yet.",
-    "pickModel": "Pick a model to serve",
-    "noModelsToAdd": "No more ready models to add",
-    "addModel": "Add model",
-    "modelAdded": "Model added to the pool.",
+    "models": "Model",
+    "modelsEmpty": "This pool serves no model yet.",
+    "pickModel": "Pick the model to serve",
+    "noModelsToAdd": "No other ready models",
+    "addModel": "Set model",
+    "modelAdded": "The pool now serves this model.",
     "removeModel": "Stop serving"
   },
   "members": {

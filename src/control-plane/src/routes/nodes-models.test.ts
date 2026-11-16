@@ -228,7 +228,7 @@ describe('models', () => {
     );
     expect(done.json()).toMatchObject({ status: 'ready', sizeBytes: size });
 
-    // assign to the pool (idempotent), list, unassign
+    // assign to the pool (idempotent; one model per pool, a new one replaces it), list, unassign
     const assign = `/organisations/${orgId}/pools/${poolId}/models/${ok.model.id}`;
     expect((await call('PUT', assign, member)).statusCode).toBe(403);
     expect((await call('PUT', assign, 'own@m.io')).statusCode).toBe(204);

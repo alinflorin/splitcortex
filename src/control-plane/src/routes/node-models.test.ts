@@ -14,7 +14,7 @@ afterAll(async () => {
   await t.close();
 });
 
-const call = (method: 'POST' | 'GET', url: string, user: string, payload?: object) =>
+const call = (method: 'POST' | 'GET' | 'PUT', url: string, user: string, payload?: object) =>
   t.app.inject({ method, url: `/api${url}`, headers: t.as(user), payload });
 
 const SIZE = 1000;
@@ -78,8 +78,8 @@ describe('node model downloads', () => {
   it('lists and streams the ready models of the node pool, with ranges', async () => {
     const s = await setup('dl');
     const m = await s.addModel('gemma', s.pool.id);
-    await s.addModel('failed', s.pool.id, 'failed');
-    await s.addModel('elsewhere', s.other.id);
+    await s.addModel('failed', null, 'failed');
+    await s.addModel('elsewhere', null);
 
     const list = await t.app.inject({
       method: 'GET',
@@ -126,12 +126,29 @@ describe('node model downloads', () => {
     // not assigned to the node's pool / not ready: the same 404
     for (const other of [
       await s.addModel('elsewhere2', s.other.id),
-      await s.addModel('failed2', s.pool.id, 'failed'),
+      await s.addModel('failed2', null, 'failed'),
     ]) {
       const p = `/api/node/models/${other.id}/file`;
       const res = await t.app.inject({ method: 'GET', url: p, headers: s.auth('GET', p) });
       expect(res.statusCode).toBe(404);
     }
+  });
+
+  it('serves one model per pool: assigning another replaces it', async () => {
+    const s = await setup('one');
+    const a = await s.addModel('a', null);
+    const b = await s.addModel('b', null);
+    const put = (m: string) =>
+      call('PUT', `/organisations/${s.org.id}/pools/${s.pool.id}/models/${m}`, 'own@one.io');
+    expect((await put(a.id)).statusCode).toBe(204);
+    expect((await put(b.id)).statusCode).toBe(204);
+    expect((await put(b.id)).statusCode).toBe(204);
+    const list = await call(
+      'GET',
+      `/organisations/${s.org.id}/pools/${s.pool.id}/models`,
+      'own@one.io',
+    );
+    expect(list.json<{ id: string }[]>().map((m) => m.id)).toEqual([b.id]);
   });
 
   it('rejects bad, stale, replayed-elsewhere and unapproved credentials', async () => {

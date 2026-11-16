@@ -143,12 +143,12 @@
       "random": "Aleatoriu",
       "randomHint": "Un nod aleatoriu pentru fiecare cerere."
     },
-    "models": "Modele",
+    "models": "Model",
     "modelsEmpty": "Acest pool nu servește încă niciun model.",
-    "pickModel": "Alege un model de servit",
-    "noModelsToAdd": "Nu mai sunt modele gata de adăugat",
-    "addModel": "Adaugă model",
-    "modelAdded": "Modelul a fost adăugat în pool.",
+    "pickModel": "Alege modelul de servit",
+    "noModelsToAdd": "Nu există alte modele gata",
+    "addModel": "Setează modelul",
+    "modelAdded": "Pool-ul servește acum acest model.",
     "removeModel": "Nu mai servi"
   },
   "members": {

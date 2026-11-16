@@ -450,7 +450,7 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
       onRequest: app.authenticate,
       schema: {
         tags: ['models'],
-        summary: 'Serve a ready model from a pool (admin or owner)',
+        summary: 'Serve a ready model from a pool, replacing its current one (admin or owner)',
         security,
         params: PoolModelParamsSchema,
         response: {
@@ -473,12 +473,14 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
       if (!pool) throw app.httpErrors.notFound('Pool not found');
       if (model.status !== 'ready') throw app.httpErrors.conflict('The model is not ready yet');
       const seq = await db.transaction(async (tx) => {
-        const inserted = await tx
-          .insert(poolModels)
-          .values({ poolId, modelId })
-          .onConflictDoNothing()
-          .returning({ poolId: poolModels.poolId });
-        if (inserted.length === 0) return null; // already assigned: idempotent
+        // One model per pool: serving a model replaces the previous one (nodes swap on their next sync).
+        const [current] = await tx
+          .select({ modelId: poolModels.modelId })
+          .from(poolModels)
+          .where(eq(poolModels.poolId, poolId));
+        if (current?.modelId === modelId) return null; // already served: idempotent
+        await tx.delete(poolModels).where(eq(poolModels.poolId, poolId));
+        await tx.insert(poolModels).values({ poolId, modelId });
         return recordConfigChange(tx, { entityType: 'pool', entityId: poolId, orgId });
       });
       if (seq !== null) await notifyConfigChange(db, seq);

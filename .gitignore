@@ -74,6 +74,7 @@ Temporary Items
 
 # Local History for Visual Studio Code
 .history/
+src/gateway/target
 
 # Built Visual Studio Code Extensions
 *.vsix

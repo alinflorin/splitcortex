@@ -221,8 +221,10 @@ controlPlane:
     audience: splitcortex-ui   # the Dex client id of the web app (`aud` of its tokens)
     jwksUrl: ""                # default: http://dex:5556/keys (in-cluster, no public TLS needed)
   gateway:
-    publicKey: ""   # the gateway's public key (devices pin it at enrollment); empty until the gateway exists
-    url: ""         # wss URL nodes connect to
+    # The wss URL nodes connect to. The public key is not configured: the control plane reads it from the Secret
+    # `gateway.identity.publicSecret` (`publicKey` here only applies when the gateway is disabled).
+    publicKey: ""
+    url: "wss://gateway.splitcortex.127.0.0.1.nip.io/node"
   migrate:
     enabled: true
     command: [node, dist/db/migrate.js]
@@ -250,6 +252,48 @@ controlPlane:
       - secretName: ui-tls
         hosts:
           - app.splitcortex.127.0.0.1.nip.io
+
+# Gateway (src/gateway, Rust): the OpenAI-format edge (`/v1/*`) and the node WebSocket (`/node`). Single replica on
+# purpose (the registry of connected nodes is in process). Reads config from Postgres (LISTEN/NOTIFY, so it needs a
+# direct connection) and writes usage_records / node_status.
+gateway:
+  enabled: true
+  logLevel: info
+  image:
+    repository: splitcortex/gateway   # Tilt rebuilds and substitutes this image locally
+    tag: ""                           # default: chart appVersion
+    pullPolicy: IfNotPresent
+  service:
+    port: 80
+  readOnlyRootFilesystem: true   # Tilt dev sets false (cargo writes build output)
+  # Fail closed (503) when this many usage buckets are unflushed, or the oldest is older than this many seconds.
+  usage:
+    maxBuckets: 20000
+    maxAgeSeconds: 600
+  # The identity key pair is created once by a Helm hook Job (templates/gateway-identity-job.yaml) and stored in two
+  # Secrets: the private key for the gateway only, the public key for the control plane (handed to devices at enrollment).
+  identity:
+    privateSecret: gateway-identity    # key `private-key` (Ed25519 seed, base64)
+    publicSecret: gateway-public-key   # key `public-key`
+    command: [gateway]                 # Tilt overrides it (the dev image has no installed binary)
+    kubectlImage: alpine/k8s:1.31.4    # creates the Secrets; any image with a shell and kubectl
+  ingress:
+    enabled: true
+    className: traefik   # keep equal to ingress.className
+    annotations:
+      cert-manager.io/cluster-issuer: root-ca-issuer
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-gateway@kubernetescrd
+    hosts:
+      - host: gateway.splitcortex.127.0.0.1.nip.io
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: gateway-tls
+        hosts:
+          - gateway.splitcortex.127.0.0.1.nip.io
 
 # Traefik rate limits (templates/rate-limits.yaml). Not attached to an entryPoint: reference them from each route.
 rateLimit:

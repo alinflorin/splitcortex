@@ -20,7 +20,7 @@ local_resource(
     # Repos are derived from Chart.yaml (same as CI) so a new dependency never needs a manual `helm repo add`.
     cmd=("grep -E '^\\s+repository:' chart/Chart.yaml | awk '{print $2}' | sort -u | while read -r url; do " +
          "helm repo add \"$(echo \"$url\" | sed -E 's#https?://##; s#[^A-Za-z0-9]+#-#g; s#-$##')\" \"$url\" --force-update >/dev/null; done && " +
-         'helm dependency build chart && helm upgrade -i --wait --timeout 5m --set ui.enabled=false --set controlPlane.enabled=false ' +
+         'helm dependency build chart && helm upgrade -i --wait --timeout 5m --set ui.enabled=false --set controlPlane.enabled=false --set gateway.enabled=false ' +
          '--create-namespace -n %s %s splitcortex chart' % (NAMESPACE, values_args)),
     deps=['chart/Chart.yaml', 'chart/Chart.lock', 'chart/values.yaml', 'chart/templates'] + helm_values,
     labels=['infra'],
@@ -78,11 +78,29 @@ k8s_resource('control-plane-migrate', resource_deps=['chart'], labels=['apps'])
 k8s_resource('garage-bootstrap', resource_deps=['chart'], labels=['apps'])
 # The abandoned-upload sweeper CronJob (daily; trigger it manually from the Tilt UI).
 k8s_resource('control-plane-sweep', resource_deps=['chart'], labels=['apps'], auto_init=False)
-k8s_resource('control-plane', resource_deps=['chart', 'control-plane-migrate', 'garage-bootstrap'], labels=['apps'],
+k8s_resource('control-plane', resource_deps=['chart', 'control-plane-migrate', 'garage-bootstrap', 'gateway-identity'], labels=['apps'],
              links=['https://app.splitcortex.127.0.0.1.nip.io/api/docs'])
 
-# Gateway (Rust; needs a direct Postgres connection for LISTEN):
-#   docker_build('splitcortex/gateway', '.', dockerfile='apps/gateway/Dockerfile',
-#                only=['apps/gateway', 'proto'])
-# Then deploy their manifests (once the chart has workload templates) and
-# set resource_deps=['chart'].
+# Gateway (src/gateway, Rust). The dev image runs `cargo watch`; src/ and proto/ are synced and it rebuilds + restarts
+# (a first build in the container takes a few minutes). Needs the migrated database, like the control plane.
+docker_build(
+    'splitcortex/gateway', 'src/gateway', dockerfile='src/gateway/Dockerfile.dev',
+    live_update=[
+        fall_back_on(['src/gateway/Cargo.toml', 'src/gateway/Cargo.lock', 'src/gateway/build.rs']),
+        sync('src/gateway/src', '/app/src'),
+        sync('src/gateway/proto', '/app/proto'),
+    ],
+)
+k8s_yaml(local(
+    'helm template splitcortex chart -n %s %s ' % (NAMESPACE, values_args) +
+    '--show-only templates/gateway-deployment.yaml --show-only templates/gateway-service.yaml ' +
+    '--show-only templates/gateway-ingress.yaml --show-only templates/gateway-identity-job.yaml ' +
+    '--set gateway.readOnlyRootFilesystem=false ' +
+    # The dev image has no installed binary: run keygen through cargo (cwd is /app).
+    "--set 'gateway.identity.command={cargo,run,-q,--}'",
+    quiet=True,
+))
+# The identity Job (a Helm hook in a real install) creates the gateway's key Secrets once; a plain Job under Tilt.
+k8s_resource('gateway-identity', resource_deps=['chart'], labels=['apps'])
+k8s_resource('gateway', resource_deps=['chart', 'control-plane-migrate', 'gateway-identity'], labels=['apps'],
+             links=['https://gateway.splitcortex.127.0.0.1.nip.io/v1/models'])

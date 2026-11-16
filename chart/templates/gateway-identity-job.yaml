@@ -1,0 +1,131 @@
+{{- if .Values.gateway.enabled }}
+{{- /*
+  One-off creation of the gateway's identity (Ed25519 key pair) as a Helm hook, run before anything else is installed or
+  upgraded. The gateway image's `keygen --out` writes the pair to a file in an init container; `kubectl` then creates
+  two Secrets from it, in one `create` call: `gateway-identity` (private key, mounted only by the gateway) and
+  `gateway-public-key` (public key, read by the control plane to hand to devices at enrollment). If the Secrets already
+  exist the Job does nothing, so upgrades never rotate the key (devices pin it). The Secrets are not Helm-managed, so they
+  survive `helm uninstall`; delete them by hand to start with a new identity (and re-enroll every device). The key never
+  appears in a log. The ServiceAccount can only create and read Secrets in this namespace.
+*/ -}}
+{{- $private := .Values.gateway.identity.privateSecret }}
+{{- $public := .Values.gateway.identity.publicSecret }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gateway-identity
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gateway-identity
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gateway-identity
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gateway-identity
+subjects:
+  - kind: ServiceAccount
+    name: gateway-identity
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gateway-identity
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway-identity
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "gateway-identity") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: gateway-identity
+      initContainers:
+        - name: keygen
+          image: {{ include "splitcortex.image" (dict "root" . "image" .Values.gateway.image) | quote }}
+          imagePullPolicy: {{ .Values.gateway.image.pullPolicy }}
+          command:
+            {{- toYaml .Values.gateway.identity.command | nindent 12 }}
+          args: [keygen, --out, /keys/keys.env]
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: {{ .Values.gateway.readOnlyRootFilesystem }}
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: keys, mountPath: /keys}
+            - {name: tmp, mountPath: /tmp}
+      containers:
+        - name: create-secrets
+          image: {{ .Values.gateway.identity.kubectlImage | quote }}
+          command:
+            - sh
+            - -ec
+            - |
+              if kubectl get secret {{ $private }} >/dev/null 2>&1 && kubectl get secret {{ $public }} >/dev/null 2>&1; then
+                echo "The gateway identity already exists, keeping it."
+                exit 0
+              fi
+              if kubectl get secret {{ $private }} >/dev/null 2>&1 || kubectl get secret {{ $public }} >/dev/null 2>&1; then
+                echo "Only one of the Secrets {{ $private }} / {{ $public }} exists; delete it and re-run." >&2
+                exit 1
+              fi
+              . /keys/keys.env
+              # Both Secrets in one request, from a file, so the key is not in the process list or the log.
+              printf 'apiVersion: v1\nkind: List\nitems:\n- {apiVersion: v1, kind: Secret, metadata: {name: {{ $private }}}, stringData: {private-key: "%s"}}\n- {apiVersion: v1, kind: Secret, metadata: {name: {{ $public }}}, stringData: {public-key: "%s"}}\n' "$GATEWAY_PRIVATE_KEY" "$GATEWAY_PUBLIC_KEY" > /tmp/secrets.yaml
+              kubectl create -f /tmp/secrets.yaml >/dev/null
+              rm -f /tmp/secrets.yaml
+              echo "Created the gateway identity."
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: keys, mountPath: /keys, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: keys
+          emptyDir: {medium: Memory}
+        - name: tmp
+          emptyDir: {}
+{{- end }}

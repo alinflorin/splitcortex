@@ -39,3 +39,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# local native modules (modules/*): Gradle / Xcode build output
+modules/*/android/build/
+modules/*/android/.cxx/
+modules/*/ios/build/
+.gradle/

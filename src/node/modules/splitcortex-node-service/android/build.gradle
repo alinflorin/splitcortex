@@ -1,0 +1,21 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.splitcortex'
+version = '1.0.0'
+
+android {
+  namespace "com.splitcortex.nodeservice"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // HeadlessJsTaskService and the headless task config come from React Native (the app's react-native gradle plugin pins the version).
+  implementation 'com.facebook.react:react-android'
+  implementation 'androidx.core:core-ktx'
+}

@@ -4,13 +4,41 @@
   },
   "nav": {
     "home": "Node",
-    "settings": "Settings"
+    "settings": "Settings",
+    "logs": "Logs"
   },
   "home": {
     "title": "Put this device to work",
     "subtitle": "Enroll it into a pool and it will serve models for your organisation.",
     "status": "Not enrolled",
-    "enroll": "Enroll device"
+    "enroll": "Enroll device",
+    "running": "Serving",
+    "stopped": "Stopped",
+    "connection": {
+      "idle": "Not connected",
+      "connecting": "Connecting…",
+      "connected": "Connected to the gateway",
+      "reconnecting": "Reconnecting…"
+    },
+    "model": "Model",
+    "modelNone": "No model assigned to the pool",
+    "modelPhase": {
+      "none": "No model",
+      "downloading": "Downloading",
+      "loading": "Loading",
+      "ready": "Ready",
+      "failed": "Failed"
+    },
+    "served": "{{requests}} requests, {{tokens}} tokens",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "logs": "Logs",
+    "blocked": {
+      "not-enrolled": "Enroll this device to start serving.",
+      "not-approved": "Waiting for an admin to approve this device.",
+      "no-gateway": "The platform has not given this device a gateway yet."
+    }
   },
   "theme": {
     "label": "Theme",
@@ -47,5 +75,18 @@
     "fingerprint": "Key fingerprint",
     "forget": "Forget enrollment",
     "forgetNote": "Removes the enrollment from this device only. Revoke the device in the web app too."
+  },
+  "logs": {
+    "note": "What the node is doing. Prompts and answers are never logged.",
+    "share": "Share",
+    "clear": "Clear",
+    "empty": "Nothing yet."
+  },
+  "settings": {
+    "service": "Service",
+    "startAtBoot": "Start when the device boots",
+    "startAtBootHint": "Android only. The background service starts after boot with no need to open the app, and keeps serving with the screen off.",
+    "connectOnStart": "Connect and load the model on start",
+    "connectOnStartHint": "When the app starts, connect to the gateway and load the pool's model automatically."
   }
 }

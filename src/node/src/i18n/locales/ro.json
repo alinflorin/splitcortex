@@ -4,13 +4,41 @@
   },
   "nav": {
     "home": "Nod",
-    "settings": "Setări"
+    "settings": "Setări",
+    "logs": "Jurnal"
   },
   "home": {
     "title": "Pune acest dispozitiv la treabă",
     "subtitle": "Înrolează-l într-un pool și va servi modele pentru organizația ta.",
     "status": "Neînrolat",
-    "enroll": "Înrolează dispozitivul"
+    "enroll": "Înrolează dispozitivul",
+    "running": "Servește",
+    "stopped": "Oprit",
+    "connection": {
+      "idle": "Neconectat",
+      "connecting": "Se conectează…",
+      "connected": "Conectat la gateway",
+      "reconnecting": "Se reconectează…"
+    },
+    "model": "Model",
+    "modelNone": "Pool-ul nu are un model atribuit",
+    "modelPhase": {
+      "none": "Niciun model",
+      "downloading": "Se descarcă",
+      "loading": "Se încarcă",
+      "ready": "Gata",
+      "failed": "Eșuat"
+    },
+    "served": "{{requests}} cereri, {{tokens}} tokeni",
+    "start": "Pornește",
+    "stop": "Oprește",
+    "restart": "Repornește",
+    "logs": "Jurnal",
+    "blocked": {
+      "not-enrolled": "Înrolează acest dispozitiv pentru a începe.",
+      "not-approved": "Se așteaptă aprobarea unui administrator.",
+      "no-gateway": "Platforma nu a dat încă un gateway acestui dispozitiv."
+    }
   },
   "theme": {
     "label": "Temă",
@@ -47,5 +75,18 @@
     "fingerprint": "Amprenta cheii",
     "forget": "Uită înrolarea",
     "forgetNote": "Elimină înrolarea doar de pe acest dispozitiv. Revocă dispozitivul și în aplicația web."
+  },
+  "logs": {
+    "note": "Ce face nodul. Prompturile și răspunsurile nu sunt niciodată înregistrate.",
+    "share": "Distribuie",
+    "clear": "Șterge",
+    "empty": "Încă nimic."
+  },
+  "settings": {
+    "service": "Serviciu",
+    "startAtBoot": "Pornește la boot",
+    "startAtBootHint": "Doar Android. Serviciul din fundal pornește după boot fără să deschizi aplicația și servește și cu ecranul stins.",
+    "connectOnStart": "Conectează și încarcă modelul la pornire",
+    "connectOnStartHint": "La pornirea aplicației, se conectează la gateway și încarcă automat modelul pool-ului."
   }
 }

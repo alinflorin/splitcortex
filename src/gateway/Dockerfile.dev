@@ -1,0 +1,15 @@
+# Development image for Tilt: `cargo watch` rebuilds and restarts on 8080 (same port as production, so the chart's
+# Service, Ingress and probes work unchanged). Tilt live_update syncs src/ and proto/.
+# Build context: src/gateway
+FROM rust:1-slim
+RUN cargo install cargo-watch --locked
+RUN mkdir /app && chown 1000:1000 /app
+WORKDIR /app
+USER 1000:1000
+ENV CARGO_HOME=/app/.cargo PORT=8080
+COPY --chown=1000:1000 Cargo.toml Cargo.lock build.rs ./
+COPY --chown=1000:1000 proto ./proto
+RUN mkdir src && echo 'fn main(){}' > src/main.rs && cargo build && rm -rf src
+COPY --chown=1000:1000 src ./src
+EXPOSE 8080
+CMD ["cargo", "watch", "-q", "-w", "src", "-w", "proto", "-x", "run"]

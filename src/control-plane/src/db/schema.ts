@@ -183,7 +183,7 @@ export const models = pgTable(
   ],
 );
 
-/** Which models a pool serves (every node of the pool gets all of them). */
+/** The model a pool serves (every node of the pool holds it). One model per pool: `pool_id` is unique. */
 export const poolModels = pgTable(
   'pool_models',
   {
@@ -195,7 +195,10 @@ export const poolModels = pgTable(
       .references(() => models.id, { onDelete: 'cascade' }),
     createdAt: createdAt(),
   },
-  (t) => [primaryKey({ columns: [t.poolId, t.modelId] })],
+  (t) => [
+    primaryKey({ columns: [t.poolId, t.modelId] }),
+    unique('pool_models_pool_id_unique').on(t.poolId),
+  ],
 );
 
 /**

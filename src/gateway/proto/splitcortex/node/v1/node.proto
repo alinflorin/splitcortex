@@ -1,0 +1,141 @@
+// The node protocol: what a node (phone, RPi) and the gateway say to each other over one long-lived WebSocket (wss).
+// Every binary WebSocket frame carries exactly one `Envelope`. The schema is transport-independent (a different
+// transport can carry the same envelopes) and versioned by the package name; additive changes only.
+//
+// Handshake (mutual proof of possession; no secret is ever sent, TLS is not the only protection):
+//   node    -> ClientHello  { node_id, nonce }
+//   gateway -> ServerHello  { nonce, signature }   signature = Ed25519(gateway key, "splitcortex-gateway-hello-v1\n" node_nonce "\n" node_id)
+//                                                  the node verifies it against the gateway key it pinned at enrollment
+//   node    -> ClientAuth   { signature }          signature = Ed25519(device key, "splitcortex-node-hello-v1\n" server_nonce "\n" node_nonce "\n" node_id)
+//   gateway -> Ready        { ... }                or the socket is closed (no reason is given for auth failures)
+// Identity comes from the registered device key, never from later messages.
+syntax = "proto3";
+
+package splitcortex.node.v1;
+
+message Envelope {
+  oneof body {
+    ClientHello client_hello = 1;
+    ServerHello server_hello = 2;
+    ClientAuth client_auth = 3;
+    Ready ready = 4;
+    ModelAssignment model_assignment = 5;
+    ModelState model_state = 6;
+    Telemetry telemetry = 7;
+    Ping ping = 8;
+    Pong pong = 9;
+    InferenceRequest inference_request = 10;
+    InferenceChunk inference_chunk = 11;
+    InferenceDone inference_done = 12;
+    InferenceError inference_error = 13;
+    Cancel cancel = 14;
+  }
+}
+
+message ClientHello {
+  uint32 protocol_version = 1;
+  string node_id = 2;
+  bytes nonce = 3; // 32 random bytes
+  string app_version = 4;
+}
+
+message ServerHello {
+  bytes nonce = 1; // 32 random bytes
+  bytes signature = 2;
+}
+
+message ClientAuth {
+  bytes signature = 1;
+}
+
+// Sent once after a successful handshake.
+message Ready {
+  // Requests the gateway may have in flight on this node at once (credit-based backpressure, 1 for a phone).
+  uint32 max_in_flight = 1;
+  uint32 ping_interval_seconds = 2;
+}
+
+// What the node's pool serves (gateway -> node). Sent after Ready and again whenever it changes; an empty
+// `model_id` means the pool serves nothing. The node downloads the file from the control plane (never through the
+// gateway), verifies `sha256`, replaces the previous model and reports `ModelState`.
+message ModelAssignment {
+  string model_id = 1;
+  string name = 2;
+  string file_name = 3;
+  uint64 size_bytes = 4;
+  string sha256 = 5; // hex, may be empty when unknown
+}
+
+enum ModelPhase {
+  MODEL_PHASE_UNSPECIFIED = 0;
+  MODEL_PHASE_NONE = 1;
+  MODEL_PHASE_DOWNLOADING = 2;
+  MODEL_PHASE_LOADING = 3;
+  MODEL_PHASE_READY = 4;
+  MODEL_PHASE_FAILED = 5;
+}
+
+// node -> gateway. Requests are routed to a node only while it reports READY for the assigned model.
+message ModelState {
+  string model_id = 1;
+  ModelPhase phase = 2;
+  uint64 progress_bytes = 3;
+  string error = 4;
+}
+
+// Unknown values: cpu_percent < 0, memory_used_mb = 0, battery_percent < 0 (charging is then meaningless),
+// temperature_c <= -100. The gateway stores them as null.
+message Telemetry {
+  double cpu_percent = 1;     // of the whole device (all cores), 0-100
+  uint32 memory_used_mb = 2;  // resident memory of the node app, including the loaded model
+  int32 battery_percent = 3;
+  bool charging = 4;
+  double temperature_c = 5;   // battery temperature
+  double tokens_per_sec = 6;
+}
+
+message Ping {
+  uint64 timestamp_ms = 1;
+}
+
+message Pong {
+  uint64 timestamp_ms = 1;
+}
+
+message ChatMessage {
+  string role = 1; // system | user | assistant
+  string content = 2;
+}
+
+// Every message below carries the request id, so many requests share the one socket.
+message InferenceRequest {
+  string request_id = 1;
+  string model_id = 2;
+  repeated ChatMessage messages = 3;
+  uint32 max_tokens = 4; // 0 = engine default
+  float temperature = 5; // 0 = engine default
+  float top_p = 6;       // 0 = engine default
+}
+
+message InferenceChunk {
+  string request_id = 1;
+  string text = 2;
+}
+
+message InferenceDone {
+  string request_id = 1;
+  uint32 prompt_tokens = 2;
+  uint32 completion_tokens = 3;
+  string finish_reason = 4; // stop | length
+}
+
+message InferenceError {
+  string request_id = 1;
+  string code = 2;
+  string message = 3;
+}
+
+// gateway -> node: the client went away, stop generating.
+message Cancel {
+  string request_id = 1;
+}

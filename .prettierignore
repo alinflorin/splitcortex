@@ -3,3 +3,4 @@ dist
 pnpm-lock.yaml
 chart/templates
 chart/charts
+src/node/src/protocol/gen

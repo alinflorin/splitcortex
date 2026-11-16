@@ -1,0 +1,65 @@
+{{- if .Values.gateway.enabled }}
+{{- /* One replica on purpose: the live registry of connected nodes is per process (see docs/gateway.md). */}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: 1
+  # The old pod holds the node sockets; replace it only after the new one is ready.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "gateway") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "gateway") | nindent 8 }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: gateway
+          image: {{ include "splitcortex.image" (dict "root" . "image" .Values.gateway.image) | quote }}
+          imagePullPolicy: {{ .Values.gateway.image.pullPolicy }}
+          env:
+            {{- include "splitcortex.databaseEnv" . | nindent 12 }}
+            - name: GATEWAY_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.gateway.identity.privateSecret }}
+                  key: private-key
+            - name: PORT
+              value: "8080"
+            - name: LOG_LEVEL
+              value: {{ .Values.gateway.logLevel | quote }}
+            - name: USAGE_MAX_BUCKETS
+              value: {{ .Values.gateway.usage.maxBuckets | quote }}
+            - name: USAGE_MAX_AGE_SECONDS
+              value: {{ .Values.gateway.usage.maxAgeSeconds | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+          startupProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 2
+            failureThreshold: 150
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: {{ .Values.gateway.readOnlyRootFilesystem }}
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

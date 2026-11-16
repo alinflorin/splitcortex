@@ -47,7 +47,25 @@ ui:
           - app.stg.splitcortex.com
 
 
+gateway:
+  image:
+    repository: ghcr.io/alinflorin/splitcortex-gateway
+  ingress:
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+    hosts:
+      - host: gateway.stg.splitcortex.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: gateway-tls
+        hosts:
+          - gateway.stg.splitcortex.com
+
 controlPlane:
+  gateway:
+    url: wss://gateway.stg.splitcortex.com/node
   image:
     repository: ghcr.io/alinflorin/splitcortex-control-plane
   ingress:

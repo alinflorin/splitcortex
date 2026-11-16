@@ -1,0 +1,36 @@
+{{- if and .Values.gateway.enabled .Values.gateway.ingress.enabled }}
+{{- /* One host for both legs: `/v1/*` (OpenAI format, clients) and `/node` (WebSocket, devices). Traefik upgrades WebSockets by itself. */}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+  {{- with .Values.gateway.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.gateway.ingress.className }}
+  {{- with .Values.gateway.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.gateway.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: gateway
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+{{- end }}

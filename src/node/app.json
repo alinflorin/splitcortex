@@ -28,7 +28,8 @@
       "expo-localization",
       "expo-secure-store",
       ["expo-camera", { "cameraPermission": "Allow SplitCortex Node to scan the enrollment QR code.", "recordAudioAndroid": false }],
-      "expo-status-bar"
+      "expo-status-bar",
+      ["expo-build-properties", { "android": { "minSdkVersion": 26, "kotlinVersion": "2.4.0" } }]
     ]
   }
 }

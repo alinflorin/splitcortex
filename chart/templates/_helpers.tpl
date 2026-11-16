@@ -83,12 +83,20 @@ app.kubernetes.io/component: {{ .component }}
 - name: OIDC_JWKS_URL
   value: {{ $jwks | quote }}
 {{- end }}
-{{- if and .Values.controlPlane.gateway.publicKey .Values.controlPlane.gateway.url }}
-{{- /* Gateway identity handed to devices at enrollment (public values only; the private key lives with the gateway). */}}
-- name: GATEWAY_PUBLIC_KEY
-  value: {{ .Values.controlPlane.gateway.publicKey | quote }}
+{{- if .Values.controlPlane.gateway.url }}
+{{- /* Gateway handed to devices at enrollment (public values only). The key comes from the Secret the identity Job created. */}}
 - name: GATEWAY_WSS_URL
   value: {{ .Values.controlPlane.gateway.url | quote }}
+{{- if .Values.gateway.enabled }}
+- name: GATEWAY_PUBLIC_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.gateway.identity.publicSecret }}
+      key: public-key
+{{- else if .Values.controlPlane.gateway.publicKey }}
+- name: GATEWAY_PUBLIC_KEY
+  value: {{ .Values.controlPlane.gateway.publicKey | quote }}
+{{- end }}
 {{- end }}
 {{- if .Values.garage.enabled }}
 {{- /* Model storage: in-cluster only. The control plane streams uploads into it and bootstraps it through the admin API. */}}
