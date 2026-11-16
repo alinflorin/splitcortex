@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" width="160" height="48" role="img" aria-label="DOWNLOAD THE APK GitHub Releases">
-  <rect x="0.5" y="0.5" width="159" height="47" rx="8" fill="#000" stroke="#a6a6a6"/>
-  <circle cx="25" cy="24" r="11" fill="#3ddc84"/><path d="M25 17v10m-4-4l4 4 4-4" stroke="#000" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="50" y="19" fill="#fff" font-family="Inter, Arial, sans-serif" font-size="9">DOWNLOAD THE APK</text>
-  <text x="50" y="36" fill="#fff" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600">GitHub Releases</text>
-</svg>

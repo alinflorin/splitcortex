@@ -1,0 +1,52 @@
+name: CLI node
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/cli-node/**", "src/gateway/proto/**", ".github/workflows/cli-node.yaml"]
+  pull_request:
+    paths: ["src/cli-node/**", "src/gateway/proto/**", ".github/workflows/cli-node.yaml"]
+  workflow_dispatch:
+
+concurrency:
+  group: cli-node-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Verification only (no archive, no release): cargo fmt, clippy and tests (which also load the real LiteRT-LM library and
+# resolve every function the node calls), plus shellcheck on the install script. Archives are built by
+# cli-node-release.yaml on a cli-node-vX.Y.Z tag.
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-22.04, ubuntu-22.04-arm, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: src/cli-node
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src/cli-node -> target"
+
+      - name: Fetch the LiteRT-LM library
+        run: python scripts/fetch-litert.py
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+
+      - name: Check the install script
+        if: matrix.platform == 'ubuntu-22.04'
+        run: shellcheck install.sh

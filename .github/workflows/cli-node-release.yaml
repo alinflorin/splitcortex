@@ -1,0 +1,92 @@
+# Command line node release, tag cli-node-vX.Y.Z (its own stream, independent of the server vX.Y.Z, the mobile
+# mobile-node-vX.Y.Z and the desktop desktop-node-vX.Y.Z tags): builds the binary for every platform, packs it with the
+# LiteRT-LM library next to it (splitcortex-node-<target>.tar.gz, .zip on Windows, plus a .sha256 file) and attaches the
+# archives to a GitHub release named after the tag. install.sh / install.ps1 (in src/cli-node) and `splitcortex-node
+# update` find the newest cli-node-v* release; it is never marked "latest" (that badge belongs to the server release).
+name: CLI node release
+
+on:
+  push:
+    tags: ["cli-node-v[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (X.Y.Z); the tag cli-node-vX.Y.Z must exist"
+        required: true
+        type: string
+
+concurrency:
+  group: cli-node-release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ inputs.version && format('cli-node-v{0}', inputs.version) || github.ref_name }}
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Not "latest": that badge belongs to the server release.
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "SplitCortex CLI node ${TAG#cli-node-v}" --generate-notes --verify-tag --latest=false
+          echo "version=${TAG#cli-node-v}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            triple: x86_64-unknown-linux-gnu
+          - platform: ubuntu-22.04-arm
+            triple: aarch64-unknown-linux-gnu
+          - platform: macos-latest
+            triple: aarch64-apple-darwin
+          # macOS x86_64 (Intel) is not built: Google publishes no LiteRT-LM library for it (only macos_arm64), so the
+          # node would install but could not serve.
+          - platform: windows-latest
+            triple: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: src/cli-node
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src/cli-node -> target"
+          key: ${{ matrix.triple }}
+
+      - name: Set the version from the tag
+        run: python scripts/set-version.py "${{ needs.create-release.outputs.version }}"
+      - name: Fetch the LiteRT-LM library for this target
+        run: python scripts/fetch-litert.py ${{ matrix.triple }} --required
+      - run: cargo build --release --target ${{ matrix.triple }}
+      - name: Pack
+        run: python scripts/package.py ${{ matrix.triple }} dist
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "$TAG" dist/* --clobber

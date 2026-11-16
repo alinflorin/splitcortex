@@ -30,18 +30,28 @@
   },
   "apps": {
     "title": "Rulează un nod",
-    "body": "Alege unde rulezi un nod: instalează o aplicație sau deschide nodul web într-un browser. Fiecare se alătură unui grup cu un cod din Adaugă dispozitiv.",
+    "body": "Alege unde rulezi un nod: instalează o aplicație sau nodul din linia de comandă, ori deschide nodul web într-un browser. Fiecare se alătură unui grup cu un cod din Adaugă dispozitiv.",
     "mobile": {
       "title": "Aplicația mobilă",
       "body": "Transformă un telefon Android într-un nod mereu pornit. Continuă să servească și cu ecranul stins.",
-      "apk": "Descarcă APK-ul din GitHub Releases",
-      "play": "Disponibil pe Google Play",
-      "ios": "Descarcă din App Store"
+      "apk": "Descarcă APK-ul",
+      "play": "Google Play",
+      "ios": "App Store"
     },
     "desktop": {
       "title": "Aplicația desktop",
       "body": "Servește de pe un computer Linux, macOS (Apple silicon) sau Windows. Rulează în bara de sistem și se actualizează singură.",
       "download": "Descarcă pentru desktop"
+    },
+    "cli": {
+      "title": "Linie de comandă",
+      "body": "Rulează un nod pe un server sau pe orice computer fără ecran. Îl instalezi cu o singură comandă, apoi te alături cu un cod din Adaugă dispozitiv.",
+      "unix": "Linux și macOS",
+      "windows": "Windows (PowerShell)",
+      "copy": "Copiază",
+      "copied": "Comandă copiată",
+      "copyFailed": "Nu s-a putut copia comanda",
+      "download": "Toate descărcările pentru linia de comandă"
     },
     "web": {
       "title": "Nod web",

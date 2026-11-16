@@ -1,11 +1,14 @@
-import { Body1, Button, Text, makeStyles, tokens } from '@fluentui/react-components';
+import { Body1, Button, Caption1, Text, makeStyles, tokens } from '@fluentui/react-components';
 import {
   ArrowDownload20Regular,
+  Code24Regular,
+  Copy20Regular,
   Desktop24Regular,
   Globe24Regular,
   Open20Regular,
   Phone24Regular,
   Share20Regular,
+  ShoppingBag20Regular,
 } from '@fluentui/react-icons';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +19,11 @@ const RELEASES = 'https://github.com/alinflorin/splitcortex/releases';
 /** Each app has its own release stream (tags `mobile-node-v*` and `desktop-node-v*`), so link to just that one. */
 export const MOBILE_RELEASES_URL = `${RELEASES}?q=mobile-node-v&expanded=true`;
 export const DESKTOP_RELEASES_URL = `${RELEASES}?q=desktop-node-v&expanded=true`;
+export const CLI_RELEASES_URL = `${RELEASES}?q=cli-node-v&expanded=true`;
+/** The install scripts live in the repository (`src/cli-node`) and are fetched straight from GitHub. */
+const CLI_RAW = 'https://raw.githubusercontent.com/alinflorin/splitcortex/main/src/cli-node';
+export const CLI_INSTALL_SH = `curl -fsSL ${CLI_RAW}/install.sh | sh`;
+export const CLI_INSTALL_PS1 = `irm ${CLI_RAW}/install.ps1 | iex`;
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
@@ -37,6 +45,19 @@ const useStyles = makeStyles({
   },
   cardHead: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalM },
   icon: { display: 'inline-flex', color: tokens.colorBrandForeground1 },
+  command: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXS },
+  commandRow: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS },
+  code: {
+    flexGrow: 1,
+    minWidth: 0,
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
+    borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: tokens.colorNeutralBackground3,
+    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    fontFamily: tokens.fontFamilyMonospace,
+    fontSize: tokens.fontSizeBase200,
+    wordBreak: 'break-all',
+  },
   actions: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -44,18 +65,19 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalM,
     marginTop: 'auto',
   },
-  badge: { display: 'block', height: '40px' },
 });
 
 function AppCard({
   icon,
   title,
   body,
+  extra,
   children,
 }: {
   icon: ReactNode;
   title: string;
   body: string;
+  extra?: ReactNode;
   children: ReactNode;
 }) {
   const styles = useStyles();
@@ -68,6 +90,7 @@ function AppCard({
         </Text>
       </div>
       <Body1 className={styles.muted}>{body}</Body1>
+      {extra}
       <div className={styles.actions}>{children}</div>
     </article>
   );
@@ -98,6 +121,15 @@ export function AppDownloads() {
     }
   };
 
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(t('apps.cli.copied'));
+    } catch {
+      toast.error(t('apps.cli.copyFailed'));
+    }
+  };
+
   const open = (url: string) => window.open(url, '_blank', 'noopener,noreferrer');
 
   return (
@@ -114,12 +146,20 @@ export function AppDownloads() {
           title={t('apps.mobile.title')}
           body={t('apps.mobile.body')}
         >
-          <a href={MOBILE_RELEASES_URL} target="_blank" rel="noreferrer">
-            <img src="/badges/apk.svg" alt={t('apps.mobile.apk')} className={styles.badge} />
-          </a>
-          {/* Store listings do not exist yet: the badges are shown and do nothing. */}
-          <img src="/badges/google-play.svg" alt={t('apps.mobile.play')} className={styles.badge} />
-          <img src="/badges/app-store.svg" alt={t('apps.mobile.ios')} className={styles.badge} />
+          <Button
+            appearance="primary"
+            icon={<ArrowDownload20Regular />}
+            onClick={() => open(MOBILE_RELEASES_URL)}
+          >
+            {t('apps.mobile.apk')}
+          </Button>
+          {/* Store listings do not exist yet: these buttons are shown and do nothing. */}
+          <Button icon={<ShoppingBag20Regular />} disabledFocusable>
+            {t('apps.mobile.play')}
+          </Button>
+          <Button icon={<ShoppingBag20Regular />} disabledFocusable>
+            {t('apps.mobile.ios')}
+          </Button>
         </AppCard>
         <AppCard
           icon={<Desktop24Regular />}
@@ -132,6 +172,35 @@ export function AppDownloads() {
             onClick={() => open(DESKTOP_RELEASES_URL)}
           >
             {t('apps.desktop.download')}
+          </Button>
+        </AppCard>
+        <AppCard
+          icon={<Code24Regular />}
+          title={t('apps.cli.title')}
+          body={t('apps.cli.body')}
+          extra={
+            <>
+              {[
+                { label: t('apps.cli.unix'), command: CLI_INSTALL_SH },
+                { label: t('apps.cli.windows'), command: CLI_INSTALL_PS1 },
+              ].map(({ label, command }) => (
+                <div key={label} className={styles.command}>
+                  <Caption1 className={styles.muted}>{label}</Caption1>
+                  <div className={styles.commandRow}>
+                    <code className={styles.code}>{command}</code>
+                    <Button
+                      icon={<Copy20Regular />}
+                      aria-label={`${t('apps.cli.copy')}: ${label}`}
+                      onClick={() => void copy(command)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </>
+          }
+        >
+          <Button icon={<ArrowDownload20Regular />} onClick={() => open(CLI_RELEASES_URL)}>
+            {t('apps.cli.download')}
           </Button>
         </AppCard>
         <AppCard icon={<Globe24Regular />} title={t('apps.web.title')} body={t('apps.web.body')}>
