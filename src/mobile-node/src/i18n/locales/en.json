@@ -33,7 +33,6 @@
     "start": "Start",
     "stop": "Stop",
     "restart": "Restart",
-    "openWebApp": "Open the web app",
     "logs": "Logs",
     "blocked": {
       "not-enrolled": "Enroll this device to start serving.",

@@ -40,7 +40,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           # Not "latest": that badge belongs to the server release.
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "SplitCortex Node ${TAG#desktop-node-v}" --generate-notes --verify-tag --latest=false
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "desktop-node ${TAG#desktop-node-v}" --generate-notes --verify-tag --latest=false
           echo "id=$(gh api "repos/$GH_REPO/releases/tags/$TAG" --jq .id)" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#desktop-node-v}" >> "$GITHUB_OUTPUT"
 

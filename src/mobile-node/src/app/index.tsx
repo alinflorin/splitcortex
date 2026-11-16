@@ -1,6 +1,5 @@
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { Linking } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { BatteryExemption } from '../components/BatteryExemption';
 import { Button } from '../components/Button';
@@ -10,10 +9,6 @@ import { Text } from '../components/Text';
 import { runtime, useRuntime } from '../runtime';
 import { refreshEnrollmentInfo } from '../enrollment/info';
 import { clearEnrollment, useEnrollment } from '../enrollment/store';
-
-/** The web app lives on the control plane's host; the stored URL is its `/api` root. */
-const webAppUrl = (controlPlaneUrl: string) =>
-  controlPlaneUrl.replace(/\/+$/, '').replace(/\/api$/, '');
 
 export default function Home() {
   const { t } = useTranslation();
@@ -116,12 +111,6 @@ export default function Home() {
         </Card>
       ) : null}
       {enrollment?.approved ? <BatteryExemption /> : null}
-      {enrollment ? (
-        <Button
-          label={t('home.openWebApp')}
-          onPress={() => void Linking.openURL(webAppUrl(enrollment.enrollmentUrl))}
-        />
-      ) : null}
       <Link href="/logs" asChild>
         <Button label={t('home.logs')} />
       </Link>

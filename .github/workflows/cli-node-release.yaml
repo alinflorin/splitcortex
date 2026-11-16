@@ -39,7 +39,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           # Not "latest": that badge belongs to the server release.
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "SplitCortex CLI node ${TAG#cli-node-v}" --generate-notes --verify-tag --latest=false
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "cli-node ${TAG#cli-node-v}" --generate-notes --verify-tag --latest=false
           echo "version=${TAG#cli-node-v}" >> "$GITHUB_OUTPUT"
 
   build:
