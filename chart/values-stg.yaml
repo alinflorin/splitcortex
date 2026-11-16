@@ -56,6 +56,21 @@ ui:
         hosts:
           - app.stg.splitcortex.alinflorinciu.qoffice.ro
 
+webNode:
+  image:
+    repository: ghcr.io/alinflorin/splitcortex-web-node
+  ingress:
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+    hosts:
+      - host: web-node.stg.splitcortex.alinflorinciu.qoffice.ro
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: web-node-tls
+        hosts:
+          - web-node.stg.splitcortex.alinflorinciu.qoffice.ro
 
 gateway:
   image:
@@ -84,10 +99,17 @@ controlPlane:
         paths:
           - path: /api
             pathType: Prefix
+      - host: web-node.stg.splitcortex.alinflorinciu.qoffice.ro
+        paths:
+          - path: /api
+            pathType: Prefix
     tls:
       - secretName: ui-tls
         hosts:
           - app.stg.splitcortex.alinflorinciu.qoffice.ro
+      - secretName: web-node-tls
+        hosts:
+          - web-node.stg.splitcortex.alinflorinciu.qoffice.ro
 
 dev:
   coredns:

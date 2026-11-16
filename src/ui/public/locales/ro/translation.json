@@ -361,6 +361,8 @@
     "expires": "Valabil încă {{time}}",
     "expired": "Codul a expirat. Creează unul nou.",
     "approvalNote": "Acest pool necesită aprobare: dispozitivul va aștepta aprobarea unui administrator.",
+    "addWebNode": "Adaugă nod web",
+    "webNodeOpened": "Nodul web s-a deschis într-o filă nouă. Alătură-te cu codul deja completat.",
     "done": "{{name}} a fost adăugat."
   },
   "limits": {

@@ -24,6 +24,9 @@ jobs:
   ui:
     uses: ./.github/workflows/ui.yaml
 
+  web-node:
+    uses: ./.github/workflows/web-node.yaml
+
   control-plane:
     uses: ./.github/workflows/control-plane.yaml
 
@@ -32,7 +35,7 @@ jobs:
 
   # GitHub release with generated notes, once everything built.
   github-release:
-    needs: [chart, ui, control-plane, gateway]
+    needs: [chart, ui, web-node, control-plane, gateway]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -45,7 +48,7 @@ jobs:
         run: gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag --latest
 
   deploy-stg:
-    needs: [chart, ui, control-plane, gateway]
+    needs: [chart, ui, web-node, control-plane, gateway]
     uses: ./.github/workflows/deploy.yaml
     with:
       environment: stg

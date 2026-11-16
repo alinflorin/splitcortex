@@ -16,11 +16,11 @@ values_args = ' '.join(['-f ' + v for v in helm_values])
 
 local_resource(
     'chart',
-    # ui/controlPlane.enabled=false: those workloads are built and deployed by Tilt below (live image substitution).
+    # ui/webNode/controlPlane.enabled=false: those workloads are built and deployed by Tilt below (live image substitution).
     # Repos are derived from Chart.yaml (same as CI) so a new dependency never needs a manual `helm repo add`.
     cmd=("grep -E '^\\s+repository:' chart/Chart.yaml | awk '{print $2}' | sort -u | while read -r url; do " +
          "helm repo add \"$(echo \"$url\" | sed -E 's#https?://##; s#[^A-Za-z0-9]+#-#g; s#-$##')\" \"$url\" --force-update >/dev/null; done && " +
-         'helm dependency build chart && helm upgrade -i --wait --timeout 5m --set ui.enabled=false --set controlPlane.enabled=false --set gateway.enabled=false ' +
+         'helm dependency build chart && helm upgrade -i --wait --timeout 5m --set ui.enabled=false --set webNode.enabled=false --set controlPlane.enabled=false --set gateway.enabled=false ' +
          '--create-namespace -n %s %s splitcortex chart' % (NAMESPACE, values_args)),
     deps=['chart/Chart.yaml', 'chart/Chart.lock', 'chart/values.yaml', 'chart/templates'] + helm_values,
     labels=['infra'],
@@ -47,6 +47,26 @@ k8s_yaml(local(
     quiet=True,
 ))
 k8s_resource('ui', resource_deps=['chart'], labels=['apps'], links=['https://app.splitcortex.127.0.0.1.nip.io'])
+
+# Web node (src/web-node, a browser that serves inference like a phone node). Same shape as the UI: the dev image runs
+# Vite with HMR on 8080 and live_update syncs sources. Its host also routes /api to the control plane (chart values).
+docker_build(
+    'splitcortex/web-node', 'src/web-node', dockerfile='src/web-node/Dockerfile.dev',
+    live_update=[
+        fall_back_on(['src/web-node/package.json', 'src/web-node/pnpm-lock.yaml', 'src/web-node/vite.config.ts']),
+        sync('src/web-node/src', '/app/src'),
+        sync('src/web-node/public', '/app/public'),
+        sync('src/web-node/index.html', '/app/index.html'),
+    ],
+)
+k8s_yaml(local(
+    'helm template splitcortex chart -n %s %s ' % (NAMESPACE, values_args) +
+    '--show-only templates/web-node-deployment.yaml --show-only templates/web-node-service.yaml ' +
+    '--set webNode.readOnlyRootFilesystem=false ' +
+    '--show-only templates/web-node-ingress.yaml',
+    quiet=True,
+))
+k8s_resource('web-node', resource_deps=['chart'], labels=['apps'], links=['https://web-node.splitcortex.127.0.0.1.nip.io'])
 
 # Control plane (src/control-plane, Fastify + Drizzle). The dev image runs `tsx watch`; src edits are synced.
 # Changes under src/control-plane/drizzle (new migrations) are deliberately NOT synced, so they rebuild the image

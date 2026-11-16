@@ -87,6 +87,24 @@ jobs:
           } >> "$GITHUB_ENV"
       # Generates the native android/ project (git-ignored, never committed).
       - run: pnpm exec expo prebuild --platform android --no-install
+      # Gradle's own NDK auto-install has no retry and fails on a truncated download
+      # ("Archive is not a ZIP archive"), so install the pinned NDK up front with retries.
+      - name: Install Android NDK
+        env:
+          NDK_VERSION: 27.1.12297006
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          for attempt in 1 2 3 4; do
+            rm -rf "$ANDROID_HOME/ndk/$NDK_VERSION"
+            if yes | "$SDKMANAGER" --install "ndk;$NDK_VERSION" \
+              && [ -f "$ANDROID_HOME/ndk/$NDK_VERSION/source.properties" ]; then
+              exit 0
+            fi
+            echo "::warning::NDK install attempt $attempt failed, retrying"
+            sleep $((attempt * 10))
+          done
+          echo "::error::could not install NDK $NDK_VERSION"
+          exit 1
       - name: Build APK
         working-directory: src/mobile-node/android
         run: ./gradlew ${{ github.ref_type == 'tag' && 'assembleRelease' || 'assembleDebug' }}

@@ -1,0 +1,66 @@
+import {
+  Button,
+  Menu,
+  MenuList,
+  MenuPopover,
+  MenuTrigger,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
+import { Settings24Regular } from '@fluentui/react-icons';
+import { useTranslation } from 'react-i18next';
+import { LanguageSubmenu, ThemeSubmenu } from './PreferencesMenu';
+
+const useStyles = makeStyles({
+  bar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalM,
+    height: '64px',
+    padding: `0 ${tokens.spacingHorizontalXL}`,
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+    '@media (max-width: 599px)': { padding: `0 ${tokens.spacingHorizontalM}` },
+  },
+  brand: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, minWidth: 0 },
+  logo: { width: '32px', height: '32px', flexShrink: 0 },
+  name: { fontSize: tokens.fontSizeBase400, textTransform: 'lowercase' },
+  split: { color: '#14b8d4' },
+  cortex: { color: '#4f5df0' },
+  tag: { color: tokens.colorNeutralForeground3, fontSize: tokens.fontSizeBase200 },
+  spacer: { flexGrow: 1 },
+});
+
+export function TopBar() {
+  const styles = useStyles();
+  const { t } = useTranslation();
+  return (
+    <header className={styles.bar}>
+      <div className={styles.brand}>
+        <img className={styles.logo} src="/logo.svg" alt="" />
+        <span className={styles.name}>
+          <span className={styles.split}>split</span>
+          <span className={styles.cortex}>cortex</span>
+        </span>
+        <span className={styles.tag}>{t('app.webNode')}</span>
+      </div>
+      <div className={styles.spacer} />
+      <Menu positioning={{ align: 'end' }}>
+        <MenuTrigger disableButtonEnhancement>
+          <Button
+            appearance="subtle"
+            shape="circular"
+            icon={<Settings24Regular />}
+            aria-label={t('app.preferences')}
+          />
+        </MenuTrigger>
+        <MenuPopover>
+          <MenuList>
+            <ThemeSubmenu />
+            <LanguageSubmenu />
+          </MenuList>
+        </MenuPopover>
+      </Menu>
+    </header>
+  );
+}

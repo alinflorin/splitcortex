@@ -1,0 +1,17 @@
+{{- if .Values.webNode.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-node
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web-node
+spec:
+  selector:
+    {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "web-node") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.webNode.service.port }}
+      targetPort: http
+{{- end }}

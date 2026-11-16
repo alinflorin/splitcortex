@@ -1,0 +1,29 @@
+name: Web node image
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/web-node/**", ".github/workflows/web-node.yaml", ".github/workflows/docker-service.yaml"]
+  pull_request:
+    paths: ["src/web-node/**", ".github/workflows/web-node.yaml", ".github/workflows/docker-service.yaml"]
+  workflow_dispatch:
+  # Tags are handled by release.yaml, which calls this workflow.
+  workflow_call:
+
+concurrency:
+  group: web-node-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-service.yaml
+    with:
+      service: web-node
+      context: src/web-node
+      dockerfile: src/web-node/Dockerfile

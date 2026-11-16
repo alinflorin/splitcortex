@@ -164,6 +164,38 @@ ui:
         hosts:
           - app.splitcortex.127.0.0.1.nip.io
 
+# Web node (src/web-node): static SPA served by Caddy on port 8080, a browser that serves inference like a phone node. It
+# is its own host (`web-node.<domain>`) and ALSO routes `/api` to the control plane (see controlPlane.ingress), so the
+# browser talks to the control plane on its own origin: no CORS. TLS and rate limiting are done by the ingress.
+webNode:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: splitcortex/web-node   # Tilt rebuilds and substitutes this image locally
+    tag: ""                            # default: chart appVersion
+    pullPolicy: IfNotPresent
+  service:
+    port: 80
+  readOnlyRootFilesystem: true   # Tilt dev sets false (Vite writes caches, live_update syncs files)
+  ingress:
+    enabled: true
+    className: traefik   # keep equal to ingress.className
+    annotations:
+      cert-manager.io/cluster-issuer: root-ca-issuer
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
+    # The web app derives this host from its own (`app.` -> `web-node.`, ui/src/lib/webNode.ts).
+    hosts:
+      - host: web-node.splitcortex.127.0.0.1.nip.io
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: web-node-tls
+        hosts:
+          - web-node.splitcortex.127.0.0.1.nip.io
+
 # Garage: single-node S3-compatible object storage for model files (subchart `garage` 2.5.0 from https://charts.derwitt.dev, a thin
 # wrapper around upstream Garage; `dxflrs/garage` is multi-arch, the chart default is amd64-only). It is internal only: no ingress,
 # the control plane streams uploads and Hugging Face mirrors into it. The subchart does not bootstrap anything, so a Helm hook
@@ -245,9 +277,14 @@ controlPlane:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
-    # Same host as the web app (same origin, no CORS). The TLS Secret is issued via the UI's Ingress.
+    # Same host as the web app (same origin, no CORS), and the same on the web node's host (its browser enrolls and
+    # downloads models through `/api` there). The TLS Secrets are issued via the UI's and the web node's Ingresses.
     hosts:
       - host: app.splitcortex.127.0.0.1.nip.io
+        paths:
+          - path: /api
+            pathType: Prefix
+      - host: web-node.splitcortex.127.0.0.1.nip.io
         paths:
           - path: /api
             pathType: Prefix
@@ -255,6 +292,9 @@ controlPlane:
       - secretName: ui-tls
         hosts:
           - app.splitcortex.127.0.0.1.nip.io
+      - secretName: web-node-tls
+        hosts:
+          - web-node.splitcortex.127.0.0.1.nip.io
 
 # Gateway (src/gateway, Rust): the OpenAI-format edge (`/v1/*`) and the node WebSocket (`/node`). Any number of
 # replicas: each holds the sockets of the nodes connected to it and forwards a request to the instance that holds a

@@ -1,0 +1,90 @@
+{
+  "app": {
+    "webNode": "Web node",
+    "preferences": "Preferences",
+    "intro": "This browser can serve AI requests for your SplitCortex pool, like a phone running the node app.",
+    "keepOpen": "Keep this tab open while the node should serve. A browser may pause hidden tabs, and there is no background service on the web.",
+    "unsupported": "This browser cannot store models (it needs the Origin Private File System and web workers). Use a current Chrome, Edge or Safari.",
+    "noWebGpu": "This browser has no WebGPU, so models can only run on the CPU, which is slow. Use a current Chrome or Edge for the GPU."
+  },
+  "theme": {
+    "label": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "ro": "Română"
+  },
+  "common": {
+    "cancel": "Cancel"
+  },
+  "join": {
+    "title": "Join a pool",
+    "intro": "Open the pool in the SplitCortex web app, choose Add web node, and the code is filled in here. You can also type the code it shows.",
+    "code": "Join code",
+    "submit": "Join",
+    "joining": "Joining…",
+    "errors": {
+      "invalidFormat": "Enter the code as XXXX-XXXXXX.",
+      "invalidCode": "This code is not valid, has expired or was already used. Create a new one in the web app.",
+      "rateLimited": "Too many attempts. Wait a moment and try again.",
+      "conflict": "This browser is already registered. Remove the old device in the web app, or leave the pool here first.",
+      "untrustedServer": "The server could not prove that it knows the code. Nothing was sent. Check the address of this page.",
+      "network": "Could not reach the server. Check your connection.",
+      "server": "The server answered with an error. Try again."
+    }
+  },
+  "node": {
+    "title": "This browser",
+    "org": "Organisation",
+    "pool": "Pool",
+    "fingerprint": "Key fingerprint",
+    "model": "Model",
+    "runsOn": "Runs on",
+    "requests": "Requests served",
+    "tokens": "Tokens served",
+    "speed": "Speed",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "leave": "Remove this device",
+    "leaveTitle": "Remove this device?",
+    "leaveBody": "This browser forgets its identity and deletes the stored model. Remove the device in the web app as well, then join again with a new code to use it again.",
+    "notApproved": "Waiting for an admin to approve this device in the web app.",
+    "noGateway": "The platform has not given this device a gateway yet.",
+    "modelFailed": "The model could not be loaded: {{error}}",
+    "connection": {
+      "idle": "Stopped",
+      "connecting": "Connecting",
+      "connected": "Connected",
+      "reconnecting": "Reconnecting"
+    },
+    "phase": {
+      "none": "none",
+      "downloading": "downloading",
+      "loading": "loading",
+      "ready": "ready",
+      "failed": "failed"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "compute": "Compute",
+    "computeHint": "Automatic measures CPU and GPU once per model and takes the faster. An admin's setting in the web app wins.",
+    "auto": "Automatic",
+    "context": "Context window (tokens)",
+    "contextHint": "{{min}} to {{max}}; empty is automatic. The model reloads when it changes.",
+    "contextInvalid": "Enter a whole number from {{min}} to {{max}} or leave empty.",
+    "keepScreenOn": "Keep the screen on while serving",
+    "connectOnStart": "Connect and load the model when this page opens"
+  },
+  "logs": {
+    "title": "Logs",
+    "copy": "Copy",
+    "clear": "Clear",
+    "empty": "Nothing yet. Logs show states and counts, never prompts or answers."
+  }
+}

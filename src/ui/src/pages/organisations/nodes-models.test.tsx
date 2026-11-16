@@ -316,4 +316,31 @@ describe('device enrollment', () => {
     await screen.findByText('No devices in this pool yet.');
     expect(screen.queryByRole('button', { name: 'Add device' })).not.toBeInTheDocument();
   });
+
+  describe('Add web node', () => {
+    it('creates a code and opens the web node with it in the fragment', async () => {
+      stubApi({
+        'GET /api/organisations/o1/pools/p1/nodes': [],
+        'POST /api/organisations/o1/pools/p1/enrollments': created,
+      });
+      const tab = { opener: {} as unknown, location: { href: '' }, close: vi.fn() };
+      vi.stubGlobal(
+        'open',
+        vi.fn(() => tab),
+      );
+      const user = userEvent.setup();
+      await renderWithApi(<PoolNodes pool={pool} admin />);
+      await user.click(await screen.findByRole('button', { name: 'Add web node' }));
+      await waitFor(() => expect(tab.location.href).toMatch(/\/#code=K7M2-QX9H4T$/));
+      expect(tab.location.href).toMatch(/^https:\/\/[^/]+\/#code=K7M2-QX9H4T$/);
+      expect(tab.opener).toBeNull();
+    });
+
+    it('is not offered to non-admins', async () => {
+      stubApi({ 'GET /api/organisations/o1/pools/p1/nodes': [] });
+      await renderWithApi(<PoolNodes pool={pool} />);
+      await screen.findByText('No devices in this pool yet.');
+      expect(screen.queryByRole('button', { name: 'Add web node' })).not.toBeInTheDocument();
+    });
+  });
 });

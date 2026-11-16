@@ -1,0 +1,90 @@
+{
+  "app": {
+    "webNode": "Nod web",
+    "preferences": "Preferințe",
+    "intro": "Acest browser poate servi cereri AI pentru pool-ul tău SplitCortex, ca un telefon care rulează aplicația de nod.",
+    "keepOpen": "Ține această filă deschisă cât timp nodul trebuie să servească. Un browser poate opri filele ascunse, iar pe web nu există serviciu în fundal.",
+    "unsupported": "Acest browser nu poate stoca modele (are nevoie de Origin Private File System și web workers). Folosește un Chrome, Edge sau Safari recent.",
+    "noWebGpu": "Acest browser nu are WebGPU, deci modelele rulează doar pe CPU, lent. Folosește un Chrome sau Edge recent pentru GPU."
+  },
+  "theme": {
+    "label": "Temă",
+    "system": "Sistem",
+    "light": "Luminoasă",
+    "dark": "Întunecată"
+  },
+  "language": {
+    "label": "Limbă",
+    "en": "English",
+    "ro": "Română"
+  },
+  "common": {
+    "cancel": "Anulează"
+  },
+  "join": {
+    "title": "Alătură-te unui pool",
+    "intro": "Deschide pool-ul în aplicația web SplitCortex, alege Adaugă nod web și codul se completează aici. Poți și să scrii codul afișat.",
+    "code": "Cod de înrolare",
+    "submit": "Alătură-te",
+    "joining": "Se alătură…",
+    "errors": {
+      "invalidFormat": "Introdu codul ca XXXX-XXXXXX.",
+      "invalidCode": "Codul nu este valid, a expirat sau a fost deja folosit. Creează unul nou în aplicația web.",
+      "rateLimited": "Prea multe încercări. Așteaptă puțin și încearcă din nou.",
+      "conflict": "Acest browser este deja înregistrat. Șterge dispozitivul vechi din aplicația web sau părăsește mai întâi pool-ul aici.",
+      "untrustedServer": "Serverul nu a putut dovedi că știe codul. Nu s-a trimis nimic. Verifică adresa acestei pagini.",
+      "network": "Serverul nu a putut fi contactat. Verifică conexiunea.",
+      "server": "Serverul a răspuns cu o eroare. Încearcă din nou."
+    }
+  },
+  "node": {
+    "title": "Acest browser",
+    "org": "Organizație",
+    "pool": "Pool",
+    "fingerprint": "Amprenta cheii",
+    "model": "Model",
+    "runsOn": "Rulează pe",
+    "requests": "Cereri servite",
+    "tokens": "Tokeni serviți",
+    "speed": "Viteză",
+    "start": "Pornește",
+    "stop": "Oprește",
+    "restart": "Repornește",
+    "leave": "Elimină acest dispozitiv",
+    "leaveTitle": "Elimini acest dispozitiv?",
+    "leaveBody": "Acest browser își uită identitatea și șterge modelul stocat. Elimină dispozitivul și din aplicația web, apoi alătură-te din nou cu un cod nou ca să-l folosești.",
+    "notApproved": "Se așteaptă ca un administrator să aprobe acest dispozitiv în aplicația web.",
+    "noGateway": "Platforma nu a dat încă acestui dispozitiv un gateway.",
+    "modelFailed": "Modelul nu a putut fi încărcat: {{error}}",
+    "connection": {
+      "idle": "Oprit",
+      "connecting": "Se conectează",
+      "connected": "Conectat",
+      "reconnecting": "Se reconectează"
+    },
+    "phase": {
+      "none": "niciunul",
+      "downloading": "se descarcă",
+      "loading": "se încarcă",
+      "ready": "pregătit",
+      "failed": "eșuat"
+    }
+  },
+  "settings": {
+    "title": "Setări",
+    "compute": "Calcul",
+    "computeHint": "Automat măsoară CPU și GPU o dată pentru fiecare model și îl alege pe cel mai rapid. Setarea unui administrator din aplicația web are prioritate.",
+    "auto": "Automat",
+    "context": "Fereastră de context (tokeni)",
+    "contextHint": "{{min}} până la {{max}}; gol înseamnă automat. Modelul se reîncarcă la schimbare.",
+    "contextInvalid": "Introdu un număr întreg între {{min}} și {{max}} sau lasă gol.",
+    "keepScreenOn": "Ține ecranul pornit cât timp servește",
+    "connectOnStart": "Conectează și încarcă modelul când se deschide pagina"
+  },
+  "logs": {
+    "title": "Jurnal",
+    "copy": "Copiază",
+    "clear": "Șterge",
+    "empty": "Nimic încă. Jurnalul arată stări și numere, niciodată prompturi sau răspunsuri."
+  }
+}

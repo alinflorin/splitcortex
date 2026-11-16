@@ -56,6 +56,21 @@ ui:
         hosts:
           - app.prd.splitcortex.com
 
+webNode:
+  image:
+    repository: ghcr.io/alinflorin/splitcortex-web-node
+  ingress:
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+    hosts:
+      - host: web-node.prd.splitcortex.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: web-node-tls
+        hosts:
+          - web-node.prd.splitcortex.com
 
 gateway:
   image:
@@ -84,10 +99,17 @@ controlPlane:
         paths:
           - path: /api
             pathType: Prefix
+      - host: web-node.prd.splitcortex.com
+        paths:
+          - path: /api
+            pathType: Prefix
     tls:
       - secretName: ui-tls
         hosts:
           - app.prd.splitcortex.com
+      - secretName: web-node-tls
+        hosts:
+          - web-node.prd.splitcortex.com
 
 dev:
   coredns:

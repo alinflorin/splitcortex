@@ -25,6 +25,7 @@ import { CardList, ItemCard } from '../../components/cards/cards';
 import { useToast } from '../../components/feedback/useToast';
 import { NodeStatusBadge } from '../../components/status/StatusBadge';
 import { formatAgo } from '../../lib/format';
+import { AddWebNodeButton } from './AddWebNodeButton';
 import { EnrollDeviceDialog } from './EnrollDeviceDialog';
 import { ModelCard } from './ModelCard';
 
@@ -38,6 +39,7 @@ const useStyles = makeStyles({
     '@media (max-width: 599px)': { flexDirection: 'column', alignItems: 'stretch' },
   },
   dropdown: { flexGrow: 1, minWidth: '220px' },
+  addRow: { display: 'flex', flexWrap: 'wrap', gap: tokens.spacingHorizontalS },
 });
 
 /** The devices of a pool as cards; each opens the node view. */
@@ -51,10 +53,11 @@ export function PoolNodes({ pool, admin = false }: { pool: Pool; admin?: boolean
   return (
     <>
       {admin && (
-        <div>
+        <div className={styles.addRow}>
           <Button icon={<Add20Regular />} onClick={() => setEnrolling(true)}>
             {t('enroll.add')}
           </Button>
+          <AddWebNodeButton pool={pool} />
           <EnrollDeviceDialog pool={pool} open={enrolling} onClose={() => setEnrolling(false)} />
         </div>
       )}

@@ -1,0 +1,46 @@
+{{- if .Values.webNode.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-node
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web-node
+spec:
+  replicas: {{ .Values.webNode.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "web-node") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "web-node") | nindent 8 }}
+    spec:
+      containers:
+        - name: web-node
+          image: {{ include "splitcortex.image" (dict "root" . "image" .Values.webNode.image) | quote }}
+          imagePullPolicy: {{ .Values.webNode.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          # Slow starters (the dev server pre-bundles dependencies) get up to ~2 min before liveness applies.
+          startupProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: {{ .Values.webNode.readOnlyRootFilesystem }}
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

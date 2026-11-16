@@ -361,6 +361,8 @@
     "expires": "Valid for {{time}}",
     "expired": "This code has expired. Create a new one.",
     "approvalNote": "This pool requires approval: the device will wait for an admin to approve it.",
+    "addWebNode": "Add web node",
+    "webNodeOpened": "Opened the web node in a new tab. Join with the code that is already filled in.",
     "done": "{{name}} was added."
   },
   "limits": {
