@@ -3,7 +3,9 @@ import { nodeAuthorization } from '../protocol/handshake';
 import type { Engine } from '../engine/types';
 import type { LogBuffer } from '../runtime/log';
 
-const CHUNK = 8 * 1024 * 1024; // same as the control plane's upload part size; each chunk is signed on its own
+// Each range request is signed on its own. Kept small and streamed to disk: the Android JS heap is capped (~192 MB) and
+// buffering whole 8 MiB bodies (arrayBuffer) ran it out of memory on a multi-GB model.
+const CHUNK = 4 * 1024 * 1024;
 
 export interface Assignment {
   modelId: string;
@@ -141,6 +143,39 @@ export class ModelManager {
     }
   }
 
+  /** Writes a response body to the file piece by piece (never the whole body in memory). Returns the bytes written. */
+  private async writeBody(
+    res: Response,
+    handle: { offset: number | null; writeBytes(b: Uint8Array): void | Promise<void> },
+    start: number,
+    signal: AbortSignal,
+    onBytes: (n: number) => void,
+  ): Promise<number> {
+    let pos = start;
+    const write = async (piece: Uint8Array) => {
+      handle.offset = pos;
+      await handle.writeBytes(piece);
+      pos += piece.length;
+      onBytes(piece.length);
+    };
+    const reader = res.body?.getReader();
+    if (!reader) {
+      await write(new Uint8Array(await res.arrayBuffer()));
+      return pos - start;
+    }
+    try {
+      for (;;) {
+        if (signal.aborted) return pos - start;
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value && value.length > 0) await write(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    return pos - start;
+  }
+
   private async download(a: Assignment, signal: AbortSignal) {
     const { log, baseUrl, nodeId, privateKey } = this.o;
     const doFetch = this.o.fetchFn ?? fetch;
@@ -177,21 +212,20 @@ export class ModelManager {
           },
         });
         if (res.status !== 206) throw new Error(`Download failed (HTTP ${res.status})`);
-        const bytes = new Uint8Array(await res.arrayBuffer());
-        if (bytes.length === 0) throw new Error('Download returned no data');
-        handle.offset = offset;
-        await handle.writeBytes(bytes);
-        offset += bytes.length;
-        if (Date.now() - lastReport > 1000) {
-          lastReport = Date.now();
-          this.set({
-            phase: 'downloading',
-            modelId: a.modelId,
-            name: a.name,
-            sizeBytes: a.sizeBytes,
-            progressBytes: offset,
-          });
-        }
+        const got = await this.writeBody(res, handle, offset, signal, (n) => {
+          offset += n;
+          if (Date.now() - lastReport > 1000) {
+            lastReport = Date.now();
+            this.set({
+              phase: 'downloading',
+              modelId: a.modelId,
+              name: a.name,
+              sizeBytes: a.sizeBytes,
+              progressBytes: offset,
+            });
+          }
+        });
+        if (got === 0) throw new Error('Download returned no data');
       }
     } finally {
       handle.close();

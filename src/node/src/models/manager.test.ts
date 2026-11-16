@@ -122,8 +122,10 @@ describe('ModelManager', () => {
     const { mgr, engine, statuses, ranges, auth } = setup();
     await mgr.apply(assignment());
     expect(ranges).toEqual([
-      'bytes=0-8388607',
-      'bytes=8388608-16777215',
+      'bytes=0-4194303',
+      'bytes=4194304-8388607',
+      'bytes=8388608-12582911',
+      'bytes=12582912-16777215',
       'bytes=16777216-19999999',
     ]);
     expect(new Set(auth).size).toBeGreaterThan(0);
@@ -137,7 +139,7 @@ describe('ModelManager', () => {
     const { mgr, ranges } = setup();
     mockDisk.set('doc/models/m1.litertlm.part', FILE.slice(0, 8388608));
     await mgr.apply(assignment());
-    expect(ranges[0]).toBe('bytes=8388608-16777215');
+    expect(ranges[0]).toBe('bytes=8388608-12582911');
   });
 
   it('rejects a file that does not match its checksum and deletes it', async () => {
