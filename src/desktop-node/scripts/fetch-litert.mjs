@@ -30,7 +30,13 @@ const hostTriple = () =>
   execFileSync('rustc', ['-vV'], { encoding: 'utf8' }).match(/^host: (.+)$/m)?.[1] ?? '';
 const triple = args.find((a) => !a.startsWith('--')) ?? hostTriple();
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'src-tauri', 'resources', 'litert');
+const root = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'src-tauri',
+  'resources',
+  'litert',
+);
 mkdirSync(root, { recursive: true });
 for (const f of readdirSync(root)) if (f !== '.gitkeep') rmSync(join(root, f), { force: true });
 
@@ -58,7 +64,8 @@ if (!zip || createHash('sha256').update(zip).digest('hex') !== SHA256) {
   if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
   zip = new Uint8Array(await res.arrayBuffer());
   const got = createHash('sha256').update(zip).digest('hex');
-  if (got !== SHA256) throw new Error(`Checksum mismatch for ${ASSET}: expected ${SHA256}, got ${got}`);
+  if (got !== SHA256)
+    throw new Error(`Checksum mismatch for ${ASSET}: expected ${SHA256}, got ${got}`);
   writeFileSync(zipPath, zip);
 }
 const [inside, outName] = entry;
@@ -66,4 +73,6 @@ const files = unzipSync(zip, { filter: (f) => f.name === inside });
 const data = files[inside];
 if (!data) throw new Error(`${inside} is not in ${ASSET}`);
 writeFileSync(join(root, outName), data);
-console.log(`LiteRT-LM ${VERSION}: ${outName} for ${triple} (${(data.length / 1048576).toFixed(0)} MiB)`);
+console.log(
+  `LiteRT-LM ${VERSION}: ${outName} for ${triple} (${(data.length / 1048576).toFixed(0)} MiB)`,
+);

@@ -15,6 +15,8 @@ const edit = (file, fn) => {
   writeFileSync(p, fn(readFileSync(p, 'utf8')));
 };
 edit('package.json', (s) => s.replace(/"version": "[^"]*"/, `"version": "${version}"`));
-edit('src-tauri/tauri.conf.json', (s) => s.replace(/"version": "[^"]*"/, `"version": "${version}"`));
+edit('src-tauri/tauri.conf.json', (s) =>
+  s.replace(/"version": "[^"]*"/, `"version": "${version}"`),
+);
 edit('src-tauri/Cargo.toml', (s) => s.replace(/^version = "[^"]*"/m, `version = "${version}"`));
 console.log(`Version set to ${version}`);

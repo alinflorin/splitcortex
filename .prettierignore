@@ -6,3 +6,5 @@ chart/charts
 src/mobile-node/src/protocol/gen
 src/web-node/src/protocol/gen
 src/desktop-node/src/protocol/gen
+target
+src/desktop-node/src-tauri/gen
