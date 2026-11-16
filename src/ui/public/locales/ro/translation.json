@@ -28,6 +28,13 @@
     "en": "English",
     "ro": "Română"
   },
+  "apps": {
+    "title": "Descarcă aplicația pentru noduri",
+    "body": "Instalează aplicația pe dispozitivul pe care vrei să îl transformi într-un nod.",
+    "apk": "Descarcă APK-ul din GitHub Releases",
+    "play": "Disponibil pe Google Play",
+    "ios": "Descarcă din App Store"
+  },
   "home": {
     "title": "Pune dispozitivele nefolosite la treabă",
     "subtitle": "Transformă telefoanele și calculatoarele mici în noduri de inferență, grupează-le în pool-uri și servește modele printr-un singur API.",

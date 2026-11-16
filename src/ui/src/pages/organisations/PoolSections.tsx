@@ -19,6 +19,7 @@ import {
   useUnassignModel,
 } from '../../api/hooks';
 import type { Pool } from '../../api/schemas';
+import { AppDownloads } from '../../components/AppDownloads';
 import { QueryBoundary } from '../../components/QueryBoundary';
 import { CardList, ItemCard } from '../../components/cards/cards';
 import { useToast } from '../../components/feedback/useToast';
@@ -57,6 +58,7 @@ export function PoolNodes({ pool, admin = false }: { pool: Pool; admin?: boolean
           <EnrollDeviceDialog pool={pool} open={enrolling} onClose={() => setEnrolling(false)} />
         </div>
       )}
+      <AppDownloads />
       <QueryBoundary query={query}>
         {(nodes) =>
           nodes.length === 0 ? (

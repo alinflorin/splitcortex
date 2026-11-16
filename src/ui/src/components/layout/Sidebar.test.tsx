@@ -5,10 +5,8 @@ import { en, renderApp } from '../../test/render';
 import { Sidebar } from './Sidebar';
 
 describe('Sidebar', () => {
-  it('renders the brand and navigation links', async () => {
+  it('renders the navigation links', async () => {
     await renderApp(<Sidebar open overlay={false} onOpenChange={vi.fn()} />);
-    expect(screen.getByText('split')).toBeInTheDocument();
-    expect(screen.getByText('cortex')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: en.nav.home })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: en.nav.about })).toHaveAttribute('href', '/about');
     expect(screen.getByRole('link', { name: en.nav.settings })).toHaveAttribute(

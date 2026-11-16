@@ -28,6 +28,13 @@
     "en": "English",
     "ro": "Română"
   },
+  "apps": {
+    "title": "Get the node app",
+    "body": "Install the app on the device you want to turn into a node.",
+    "apk": "Download the APK from GitHub Releases",
+    "play": "Get it on Google Play",
+    "ios": "Download on the App Store"
+  },
   "home": {
     "title": "Put idle devices to work",
     "subtitle": "Turn phones and small computers into inference nodes, group them into pools and serve models through one API.",
