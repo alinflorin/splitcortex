@@ -11,7 +11,7 @@ base64 = "0.22"
 bytes = "1"
 ed25519-dalek = { version = "2", features = ["rand_core"] }
 futures-util = "0.3"
-prost = "0.13"
+prost = "0.14"
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -28,5 +28,5 @@ hyper-util = { version = "0.1", features = ["client-legacy", "http1", "tokio"] }
 http-body-util = "0.1"
 
 [build-dependencies]
-prost-build = "0.13"
-protox = "0.7"
+prost-build = "0.14"
+protox = "0.10"
