@@ -33,6 +33,10 @@ export interface ServingNode {
   secret: string;
   /** Polls until the gateway serves the model (the node has downloaded and loaded it). */
   ready(): Promise<void>;
+  /** Stops the node process (a SIGTERM, as a user would) and waits for it to exit; the enrollment stays. */
+  halt(): Promise<void>;
+  /** Starts the node again from its enrollment (no wait; call `ready()`). */
+  restart(): void;
   stop(): Promise<void>;
 }
 
@@ -50,8 +54,12 @@ export async function startServingNode(): Promise<ServingNode> {
   const { secret } = await ws.apiKey();
   await promisify(execFile)(bin, ['join', '--code', await ws.code()], { env });
   let stderr = '';
-  const serving: ChildProcess = spawn(bin, ['run'], { env, stdio: ['ignore', 'ignore', 'pipe'] });
-  serving.stderr?.on('data', (d: Buffer) => (stderr = (stderr + d.toString()).slice(-4000)));
+  let serving: ChildProcess | undefined;
+  const launch = () => {
+    serving = spawn(bin, ['run'], { env, stdio: ['ignore', 'ignore', 'pipe'] });
+    serving.stderr?.on('data', (d: Buffer) => (stderr = (stderr + d.toString()).slice(-4000)));
+  };
+  launch();
   return {
     ws,
     modelId: model.id,
@@ -61,7 +69,7 @@ export async function startServingNode(): Promise<ServingNode> {
       await waitFor(
         'the gateway to serve the model',
         async () => {
-          if (serving.exitCode !== null) throw new Error(`run exited early:\n${stderr}`);
+          if (serving?.exitCode !== null) throw new Error(`run exited early:\n${stderr}`);
           const r = await chat(secret, { max_tokens: 1 });
           if (r.status === 404 || r.status === 503) return undefined;
           expect(r.status, stderr).toBe(200);
@@ -71,8 +79,18 @@ export async function startServingNode(): Promise<ServingNode> {
         3_000,
       );
     },
+    async halt() {
+      const p = serving;
+      if (!p || p.exitCode !== null) return;
+      const exited = new Promise((r) => p.once('exit', r));
+      p.kill('SIGTERM');
+      await exited;
+    },
+    restart() {
+      launch();
+    },
     async stop() {
-      serving.kill('SIGTERM');
+      serving?.kill('SIGTERM');
       await ws.cleanup();
       rmSync(home, { recursive: true, force: true });
     },

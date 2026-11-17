@@ -19,6 +19,7 @@ export interface NodeInfo {
   platform: string | null;
   approved: boolean;
   status: 'pending' | 'online' | 'offline';
+  live: { backend: 'cpu' | 'gpu' | null; maxContextTokens: number | null } | null;
 }
 
 export interface ModelInfo {
@@ -28,6 +29,25 @@ export interface ModelInfo {
   error: string | null;
 }
 
+export interface Enrollment {
+  id: string;
+  poolId: string;
+  expiresAt: string;
+  attempts: number;
+  maxAttempts: number;
+}
+export interface Benchmark {
+  id: string;
+  status: 'running' | 'done';
+  results: {
+    nodeId: string;
+    status: 'pending' | 'running' | 'done' | 'failed';
+    error: string | null;
+    ttftMs: number | null;
+    tokens: number | null;
+    tokensPerSec: number | null;
+  }[];
+}
 export interface Limits {
   requestsPerMinute: number | null;
   tokensPerMinute: number | null;
@@ -58,6 +78,23 @@ export class ControlPlane {
     return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
   }
 
+  /** Any call, without throwing on an error status (for negative tests). */
+  async send(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<{ status: number; body: unknown }> {
+    const res = await fetch(`${apiUrl}${path}`, {
+      method,
+      headers: {
+        authorization: `Bearer ${this.token}`,
+        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    return { status: res.status, body: await res.json().catch(() => null) };
+  }
+
   createOrg(): Promise<Org> {
     const slug = `e2e-${Date.now().toString(36)}-${randomBytes(3).toString('hex')}`;
     return this.call('POST', '/organisations', { name: `E2E ${slug}`, slug });
@@ -65,16 +102,43 @@ export class ControlPlane {
   deleteOrg(orgId: string): Promise<void> {
     return this.call('DELETE', `/organisations/${orgId}`);
   }
-  createPool(orgId: string, name = 'e2e-pool'): Promise<Pool> {
-    return this.call('POST', `/organisations/${orgId}/pools`, { name });
+  createPool(orgId: string, name = 'e2e-pool', requireApproval = false): Promise<Pool> {
+    return this.call('POST', `/organisations/${orgId}/pools`, { name, requireApproval });
   }
-  /** `XXXX-XXXXXX`, valid ~10 minutes, single use. */
+  setOrgLimits(orgId: string, limits: Partial<Limits>): Promise<void> {
+    return this.call('PATCH', `/organisations/${orgId}`, { limits });
+  }
+  approveNode(orgId: string, nodeId: string): Promise<NodeInfo> {
+    return this.call('PATCH', `/organisations/${orgId}/nodes/${nodeId}`, { approved: true });
+  }
+  revokeNode(orgId: string, nodeId: string): Promise<void> {
+    return this.call('DELETE', `/organisations/${orgId}/nodes/${nodeId}`);
+  }
+  startBenchmark(orgId: string, poolId: string): Promise<Benchmark> {
+    return this.call('POST', `/organisations/${orgId}/pools/${poolId}/benchmarks`);
+  }
+  /** Latest benchmarks of the pool, newest first. */
+  benchmarks(orgId: string, poolId: string): Promise<Benchmark[]> {
+    return this.call('GET', `/organisations/${orgId}/pools/${poolId}/benchmarks`);
+  }
+  listEnrollments(orgId: string, poolId: string): Promise<Enrollment[]> {
+    return this.call('GET', `/organisations/${orgId}/pools/${poolId}/enrollments`);
+  }
+  cancelEnrollment(orgId: string, enrollmentId: string): Promise<void> {
+    return this.call('DELETE', `/organisations/${orgId}/enrollments/${enrollmentId}`);
+  }
+  listOrgs(): Promise<Org[]> {
+    return this.call('GET', '/organisations');
+  }
+  /** `XXXX-XXXXXX`, valid ~10 minutes, single use; the enrollment record comes with it. */
+  createEnrollment(
+    orgId: string,
+    poolId: string,
+  ): Promise<{ enrollment: Enrollment; code: string }> {
+    return this.call('POST', `/organisations/${orgId}/pools/${poolId}/enrollments`);
+  }
   async createEnrollmentCode(orgId: string, poolId: string): Promise<string> {
-    const r = await this.call<{ code: string }>(
-      'POST',
-      `/organisations/${orgId}/pools/${poolId}/enrollments`,
-    );
-    return r.code;
+    return (await this.createEnrollment(orgId, poolId)).code;
   }
   /** Uploads a model file through the control plane (multipart, part by part) and returns it once stored. */
   async uploadModel(
@@ -151,10 +215,10 @@ export class ControlPlane {
 }
 
 /** A throwaway org + pool; `cleanup` deletes the org with everything in it. */
-export async function createWorkspace() {
+export async function createWorkspace(opts: { requireApproval?: boolean } = {}) {
   const cp = await ControlPlane.signIn();
   const org = await cp.createOrg();
-  const pool = await cp.createPool(org.id);
+  const pool = await cp.createPool(org.id, 'e2e-pool', opts.requireApproval ?? false);
   return {
     cp,
     org,

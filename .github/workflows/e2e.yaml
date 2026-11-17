@@ -32,7 +32,7 @@ on:
       suites:
         description: Which suites to run
         type: choice
-        options: [all, platform, web-node, cli, serving, desktop, mobile]
+        options: [all, platform, web-node, api, cli, serving, desktop, mobile]
         default: all
 
 concurrency:
@@ -125,6 +125,31 @@ jobs:
         if: failure()
         with:
           name: e2e-web-node-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 14
+
+  api:
+    if: inputs.suites == '' || inputs.suites == 'all' || inputs.suites == 'api'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: e2e/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:api
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: e2e-api-report
           path: |
             e2e/playwright-report
             e2e/test-results
