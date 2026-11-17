@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { waitFor } from '../../src/api.ts';
 import { bin, chat, startServingNode, type ServingNode } from '../../src/serving-node.ts';
+import { signIn } from '../platform/support.ts';
 
 // What guards the product: API key scope and revocation, rate limits, tenant isolation, and metering. Runs against its
 // own real node (same setup as inference.spec.ts); requests ask for one token to keep the engine out of the way.
@@ -91,4 +92,26 @@ test('usage is metered per key', async () => {
   );
   expect(point.tokensOut).toBeGreaterThan(0);
   expect(point.tokensIn).toBeGreaterThan(0);
+});
+
+test('the usage dashboard shows what the gateway metered', async ({ page }) => {
+  const { ws } = node;
+  const totals = (await ws.cp.usageByKey(ws.org.id)).totals;
+  expect(totals.requests).toBeGreaterThan(0);
+  const shown = (n: number) => n.toLocaleString('en');
+
+  await signIn(page);
+  await page.goto(`/organisations/${ws.org.id}/usage`);
+  // The four total cards, from the same numbers the API reports.
+  await expect(page.getByText('Requests', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(shown(totals.requests), { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(shown(totals.tokensOut), { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('No usage in this period.')).toHaveCount(0);
+
+  // Grouped by API key, each key that was used appears by its id.
+  await page.getByRole('combobox', { name: 'Group by' }).click();
+  await page.getByRole('option', { name: 'API key' }).click();
+  const grouped = await ws.cp.usageByKey(ws.org.id);
+  const usedKey = grouped.series.find((p) => p.group && p.requests > 0)!;
+  await expect(page.getByText(usedKey.group!, { exact: true }).first()).toBeVisible();
 });

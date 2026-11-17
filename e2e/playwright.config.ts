@@ -25,7 +25,12 @@ export default defineConfig({
     },
     { name: 'cli', testDir: './tests/cli' },
     { name: 'api', testDir: './tests/api' },
-    { name: 'serving', testDir: './tests/serving' },
+    {
+      name: 'serving',
+      testDir: './tests/serving',
+      // A few specs check the web app against real traffic from the node.
+      use: { ...devices['Desktop Chrome'], baseURL: appUrl, ignoreHTTPSErrors: isLocalStack },
+    },
     { name: 'desktop', testDir: './tests/desktop', timeout: 180_000 },
     { name: 'mobile', testDir: './tests/mobile', timeout: 300_000 },
   ],
