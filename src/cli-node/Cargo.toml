@@ -11,7 +11,7 @@ base64 = "0.22"
 bytes = "1"
 chacha20poly1305 = "0.11"
 clap = { version = "4", features = ["derive", "env"] }
-curve25519-dalek = { version = "4", features = ["rand_core"] }
+curve25519-dalek = { version = "5", features = ["rand_core"] }
 directories = "6"
 ed25519-dalek = { version = "2", features = ["rand_core"] }
 flate2 = "1"
