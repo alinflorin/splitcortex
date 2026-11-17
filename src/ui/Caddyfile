@@ -33,7 +33,10 @@
 		X-Frame-Options DENY
 	}
 
-	# SPA fallback for client-side routes (BrowserRouter).
-	try_files {path} /index.html
-	file_server
+	# SPA fallback for client-side routes (BrowserRouter). In a handle of its own: a bare try_files runs before the
+	# handle blocks above and would rewrite /healthz and /version.json to the index page.
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
 }
