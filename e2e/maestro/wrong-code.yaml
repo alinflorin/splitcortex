@@ -7,11 +7,17 @@ appId: com.splitcortex.node
 - tapOn: 'Enrollment code'
 - inputText: 'ZZZZZZZZZZ'
 - hideKeyboard
+# The ATD emulator screen is small: the form scrolls, and Maestro only sees what is on screen.
+- scrollUntilVisible:
+    element: 'Enrollment URL'
 - tapOn: 'Enrollment URL'
 - eraseText: 100
 - inputText: ${API_URL}
 - hideKeyboard
+- scrollUntilVisible:
+    element: 'Enroll'
 - tapOn: 'Enroll'
-- extendedWaitUntil:
-    visible: 'This code is not valid, has expired or was already used.'
+# The message may be below the fold on a small screen; scrolling also waits for it to appear.
+- scrollUntilVisible:
+    element: 'This code is not valid, has expired or was already used.'
     timeout: 60000

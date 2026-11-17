@@ -8,10 +8,15 @@ appId: com.splitcortex.node
 - tapOn: 'Enrollment code'
 - inputText: ${CODE}
 - hideKeyboard
+# The ATD emulator screen is small: the form scrolls, and Maestro only sees what is on screen.
+- scrollUntilVisible:
+    element: 'Enrollment URL'
 - tapOn: 'Enrollment URL'
 - eraseText: 100
 - inputText: ${API_URL}
 - hideKeyboard
+- scrollUntilVisible:
+    element: 'Enroll'
 - tapOn: 'Enroll'
 # Either the status screen or a system permission prompt (Android asks for notifications once the node starts); a prompt
 # hides the app's text from Maestro, so allow it first.
