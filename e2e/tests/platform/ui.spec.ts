@@ -75,7 +75,7 @@ test('creates an API key, shows its secret once, then revokes it', async ({ page
     .getByRole('button', { name: /Revoke|Confirm/ })
     .last()
     .click();
-  await expect(page.getByText('Revoked')).toBeVisible();
+  await expect(page.getByText('Revoked', { exact: true }).first()).toBeVisible();
 });
 
 test('deletes a pool after confirming', async ({ page }) => {
