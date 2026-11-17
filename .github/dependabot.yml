@@ -1,0 +1,117 @@
+# .github/dependabot.yml
+version: 2
+
+updates:
+  # ---------- pnpm projects (the "npm" ecosystem covers pnpm lockfiles) ----------
+  - package-ecosystem: npm
+    directories:
+      - /src/ui
+      - /src/web-node
+      - /src/desktop-node
+      - /src/control-plane
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Bucharest
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    labels: [dependencies]
+    commit-message:
+      prefix: "deps"
+
+  # Mobile node: Expo SDK pins react / react-native / expo-* together,
+  # so majors are bumped by hand with an SDK upgrade.
+  - package-ecosystem: npm
+    directory: /src/mobile-node
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Bucharest
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: expo
+        update-types: [version-update:semver-major]
+      - dependency-name: "expo-*"
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-native
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: "react-native-*"
+        update-types: [version-update:semver-major]
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    labels: [dependencies, mobile-node]
+    commit-message:
+      prefix: "deps(mobile)"
+
+  # ---------- Rust ----------
+  - package-ecosystem: cargo
+    directories:
+      - /src/gateway
+      - /src/cli-node
+      - /src/desktop-node/src-tauri
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "06:00"
+      timezone: Europe/Bucharest
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+      # keep the Tauri crates and JS packages moving together
+      tauri:
+        patterns: ["tauri", "tauri-*"]
+    labels: [dependencies, rust]
+    commit-message:
+      prefix: "deps"
+
+  # ---------- Docker (Dockerfile and Dockerfile.dev) ----------
+  - package-ecosystem: docker
+    directories:
+      - /src/ui
+      - /src/web-node
+      - /src/control-plane
+      - /src/gateway
+    schedule:
+      interval: weekly
+      day: wednesday
+      time: "06:00"
+      timezone: Europe/Bucharest
+    groups:
+      docker-base-images:
+        patterns: ["*"]
+    labels: [dependencies, docker]
+    commit-message:
+      prefix: "deps(docker)"
+
+  # ---------- GitHub Actions (all release/CI workflows) ----------
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    labels: [dependencies, ci]
+    commit-message:
+      prefix: "ci"
+
+  # ---------- Helm chart dependencies (Traefik, cert-manager, Dex, Postgres, ...) ----------
+  - package-ecosystem: helm
+    directory: /chart
+    schedule:
+      interval: weekly
+      day: thursday
+      time: "06:00"
+      timezone: Europe/Bucharest
+    open-pull-requests-limit: 3
+    labels: [dependencies, chart]
+    commit-message:
+      prefix: "deps(chart)"
