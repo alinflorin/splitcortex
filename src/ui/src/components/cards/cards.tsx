@@ -21,6 +21,26 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground2,
     boxShadow: 'none',
     border: `1px solid ${tokens.colorNeutralStroke3}`,
+    transitionProperty: 'border-color, transform, background-color',
+    transitionDuration: tokens.durationNormal,
+    transitionTimingFunction: tokens.curveEasyEase,
+    ':hover': {
+      borderTopColor: tokens.colorNeutralStroke1Hover,
+      borderRightColor: tokens.colorNeutralStroke1Hover,
+      borderBottomColor: tokens.colorNeutralStroke1Hover,
+      borderLeftColor: tokens.colorNeutralStroke1Hover,
+    },
+  },
+  clickable: {
+    cursor: 'pointer',
+    ':hover': {
+      transform: 'translateY(-2px)',
+      backgroundColor: tokens.colorNeutralBackground2Hover,
+      borderTopColor: tokens.colorBrandStroke1,
+      borderRightColor: tokens.colorBrandStroke1,
+      borderBottomColor: tokens.colorBrandStroke1,
+      borderLeftColor: tokens.colorBrandStroke1,
+    },
   },
   row: {
     display: 'flex',
@@ -69,7 +89,7 @@ interface ItemCardProps {
 export function ItemCard({ title, subtitle, meta, actions, onClick, children }: ItemCardProps) {
   const styles = useStyles();
   return (
-    <Card className={styles.card} onClick={onClick}>
+    <Card className={mergeClasses(styles.card, onClick && styles.clickable)} onClick={onClick}>
       <div className={styles.row}>
         <div className={styles.main}>
           <Text weight="semibold" className={styles.title}>

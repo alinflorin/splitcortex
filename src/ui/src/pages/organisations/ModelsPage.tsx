@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useDeleteModel, useModels, useRetryModel } from '../../api/hooks';
 import type { Model } from '../../api/schemas';
 import { QueryBoundary } from '../../components/QueryBoundary';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { CardList } from '../../components/cards/cards';
 import { useConfirm } from '../../components/feedback/useConfirm';
 import { useToast } from '../../components/feedback/useToast';
@@ -14,7 +15,6 @@ import { ModelCard } from './ModelCard';
 import { useOrganisationContext } from './OrganisationLayout';
 
 const useStyles = makeStyles({
-  toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: tokens.spacingVerticalL },
   muted: { color: tokens.colorNeutralForeground3 },
 });
 
@@ -48,13 +48,20 @@ export function ModelsPage() {
 
   return (
     <>
-      {admin && (
-        <div className={styles.toolbar}>
-          <Button appearance="primary" icon={<Add24Regular />} onClick={() => setAdding(true)}>
-            {t('models.add')}
-          </Button>
-        </div>
-      )}
+      <PageHeader
+        eyebrow={org.name}
+        title={t('models.title')}
+        subtitle={t('models.subtitle')}
+        actions={
+          admin ? (
+            <>
+              <Button appearance="primary" icon={<Add24Regular />} onClick={() => setAdding(true)}>
+                {t('models.add')}
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
       <QueryBoundary query={query}>
         {(models) =>
           models.length === 0 ? (

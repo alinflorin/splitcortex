@@ -1,5 +1,4 @@
 import {
-  Body1,
   Button,
   Caption1,
   Field,
@@ -9,7 +8,6 @@ import {
   Select,
   Text,
   Textarea,
-  Title1,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
@@ -34,6 +32,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { PageHeader } from '../components/layout/PageHeader';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'react-markdown';
 import { z } from 'zod';
@@ -413,12 +412,7 @@ export function Playground() {
 
   return (
     <div className={styles.root}>
-      <div>
-        <Title1>{t('playground.title')}</Title1>
-        <Body1 className={styles.muted} block>
-          {t('playground.subtitle')}
-        </Body1>
-      </div>
+      <PageHeader title={t('playground.title')} subtitle={t('playground.subtitle')} />
 
       <section className={styles.card}>
         <form onSubmit={(e) => void connect(e)} className={styles.keyRow}>

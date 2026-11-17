@@ -67,21 +67,91 @@
   },
   "home": {
     "title": "Put idle devices to work",
-    "subtitle": "Turn idle devices into inference nodes, group them into pools and serve models through one API.",
+    "subtitle": "Turn the phones, laptops and Raspberry Pis you already own into inference nodes. Group them into pools and serve models through one OpenAI-compatible API.",
     "welcome": "Welcome back, {{name}}",
-    "cards": {
-      "pools": {
-        "title": "Pools",
-        "body": "Group devices per organisation and serve a set of models from each pool."
-      },
-      "nodes": {
-        "title": "Nodes",
-        "body": "Enroll a device with a short code. It connects out to the gateway, no inbound access needed."
-      },
-      "api": {
-        "title": "OpenAI-compatible API",
-        "body": "Change only the base URL and API key in your existing client."
+    "hero": {
+      "badge": "Bring your own devices",
+      "titleA": "Your devices.",
+      "titleB": "Your private AI cloud.",
+      "ctaStart": "Get started",
+      "ctaOrgs": "Open my organisations",
+      "ctaHow": "How it works",
+      "phone": "Phone",
+      "laptop": "Laptop",
+      "pi": "Raspberry Pi",
+      "browser": "Browser",
+      "gateway": "Gateway",
+      "yourApp": "Your app"
+    },
+    "trust": [
+      "OpenAI-compatible API",
+      "Outbound-only connections",
+      "Per-device keys",
+      "Runs on phones, laptops, Pis and browsers"
+    ],
+    "how": {
+      "eyebrow": "How it works",
+      "title": "From idle hardware to an API in three steps",
+      "subtitle": "No servers to rent, no ports to open.",
+      "steps": {
+        "one": {
+          "title": "Enroll your devices",
+          "body": "Create a short code in the app and type it in, or scan its QR with the device. The device connects out to the gateway and is ready."
+        },
+        "two": {
+          "title": "Pick a model and a pool",
+          "body": "Add a model from Hugging Face or upload a .litertlm file, then assign it to a pool. Every device in the pool downloads and serves it."
+        },
+        "three": {
+          "title": "Call the API",
+          "body": "Create an API key and point any OpenAI client at the gateway. Requests are balanced across your healthy devices."
+        }
       }
+    },
+    "features": {
+      "eyebrow": "Everything included",
+      "title": "A complete serving platform, not just a connection",
+      "subtitle": "The control plane and the gateway run for you. You bring the compute.",
+      "items": {
+        "pools": {
+          "title": "Pools and models",
+          "body": "Group devices per organisation. Each pool serves one model, replicated on every device."
+        },
+        "enroll": {
+          "title": "Enroll with a short code",
+          "body": "Phones, laptops, servers and browser tabs join in seconds, with optional admin approval."
+        },
+        "api": {
+          "title": "OpenAI-compatible API",
+          "body": "Change only the base URL and API key. Streaming, images and audio input are supported."
+        },
+        "security": {
+          "title": "Secure by design",
+          "body": "Each device has its own key, the gateway is verified independently of TLS, and API keys are stored hashed."
+        },
+        "limits": {
+          "title": "Rate limits",
+          "body": "Cap requests and tokens per key or per organisation, and get a clear 429 when a limit is hit."
+        },
+        "insights": {
+          "title": "Usage and benchmarks",
+          "body": "See tokens per key and pool, and measure latency and tokens per second on your real devices."
+        }
+      }
+    },
+    "code": {
+      "title": "Works with the tools you already use",
+      "body": "Same request format, same streaming. Swap the base URL and you are done."
+    },
+    "run": {
+      "eyebrow": "Get a node running",
+      "title": "Pick where to run a node",
+      "subtitle": "Install an app or the command line node, or open the web node in a browser. Each one joins a pool with a code from Add device."
+    },
+    "cta": {
+      "title": "Ready to put your devices to work?",
+      "body": "Create an organisation, enroll a device and make your first request in minutes.",
+      "about": "Learn more"
     }
   },
   "endpoints": {
@@ -101,9 +171,160 @@
   },
   "about": {
     "title": "About SplitCortex",
-    "p1": "SplitCortex is a platform for reusing mobile compute devices as inference serving nodes.",
-    "p2": "Devices keep a secure outbound connection to the gateway, which authenticates requests, applies limits, balances load across healthy nodes and meters usage.",
-    "p3": "Models are replicated onto every node of a pool, and each API key is bound to exactly one pool."
+    "hero": {
+      "eyebrow": "About",
+      "highlight": "idle compute, put to work",
+      "lead": "SplitCortex is a platform that reuses the devices you already own as inference serving nodes. We run the control plane and the gateway; you bring the phones, laptops and Raspberry Pis."
+    },
+    "stats": {
+      "nodes": {
+        "value": "4",
+        "label": "ways to run a node"
+      },
+      "inbound": {
+        "value": "0",
+        "label": "inbound ports to open"
+      },
+      "api": {
+        "value": "1",
+        "label": "OpenAI-format API"
+      },
+      "engine": {
+        "value": "LiteRT",
+        "label": "on-device engine"
+      }
+    },
+    "story": {
+      "eyebrow": "Why we exist",
+      "title": "Billions of capable devices sit idle",
+      "problemTitle": "The problem",
+      "problem": "Phones and small computers now run capable language models, yet most of them spend the day idle in a drawer or on a desk. Renting GPUs in a datacenter is costly, and sending private prompts to someone else's hardware is not always an option.",
+      "answerTitle": "Our answer",
+      "answer": "Turn those devices into a pool you control. Each device keeps one outbound, encrypted connection to our gateway, which receives OpenAI-format requests and relays them to a healthy device in your pool. Your hardware, your models, one familiar API."
+    },
+    "flow": {
+      "eyebrow": "Under the hood",
+      "title": "How a request travels",
+      "subtitle": "Two separate legs, kept apart on purpose: your client talks to the gateway, and your devices talk to the gateway. Nothing ever connects into a device.",
+      "client": {
+        "title": "Your application",
+        "body": "Any OpenAI client or plain HTTP call, authenticated with an API key."
+      },
+      "leg1": "HTTPS + SSE",
+      "leg1Sub": "client-initiated, per request",
+      "gateway": {
+        "title": "Gateway",
+        "body": "A Rust edge that handles every request in four steps.",
+        "steps": [
+          "Authenticate the API key",
+          "Check the limits",
+          "Route to a healthy node in the pool",
+          "Meter tokens in and out"
+        ]
+      },
+      "leg2": "wss + protobuf",
+      "leg2Sub": "device-initiated, long-lived",
+      "node": {
+        "title": "Your device",
+        "body": "Runs the model with LiteRT-LM and streams tokens back over its single connection."
+      }
+    },
+    "principles": {
+      "eyebrow": "Principles",
+      "title": "Built to be trusted with your prompts",
+      "subtitle": "Security and privacy are part of the architecture, not a feature list.",
+      "items": {
+        "byod": {
+          "title": "Your devices, your data",
+          "body": "Compute comes from hardware you own and enroll, so prompts never run on strangers' devices."
+        },
+        "outbound": {
+          "title": "Outbound only",
+          "body": "Devices dial out over TLS. There is no port to open and no inbound access to a phone or a laptop."
+        },
+        "identity": {
+          "title": "Verified identities",
+          "body": "Every device generates its own key and proves it on connect. Devices pin the gateway's key and check it independently of the certificate chain."
+        },
+        "keys": {
+          "title": "Keys never stored in clear",
+          "body": "API keys are stored only as hashes and shown once. Device credentials can be revoked one by one."
+        },
+        "tenants": {
+          "title": "Tenant isolation",
+          "body": "Every query, device stream and registry entry is scoped to an organisation."
+        },
+        "privacy": {
+          "title": "No prompt logging",
+          "body": "Prompts and completions are never logged. Benchmarks only use prompts we supply."
+        }
+      }
+    },
+    "nodes": {
+      "eyebrow": "Devices",
+      "title": "Runs on what you have",
+      "subtitle": "Every node enrolls with the same short code and serves the same way.",
+      "items": {
+        "mobile": {
+          "title": "Android phone",
+          "body": "A background service keeps serving with the screen off, and starts on boot."
+        },
+        "desktop": {
+          "title": "Desktop app",
+          "body": "Linux, macOS (Apple silicon) and Windows. Lives in the tray and updates itself."
+        },
+        "cli": {
+          "title": "Command line",
+          "body": "A headless node for servers and Raspberry Pis, installed with one command, optionally as a service."
+        },
+        "web": {
+          "title": "Web node",
+          "body": "Nothing to install: a browser tab serves with WebGPU for as long as it stays open."
+        }
+      }
+    },
+    "model": {
+      "eyebrow": "Business model",
+      "title": "Bring your own devices",
+      "body": "SplitCortex is a SaaS for your own device fleet: you enroll devices into your organisation's pools and we run the control plane and gateway. Pricing is per device or pool, with a free tier.",
+      "not": {
+        "marketplace": {
+          "title": "No public marketplace",
+          "body": "We do not match strangers' devices with strangers' prompts. Your prompts stay on hardware you trust."
+        },
+        "selling": {
+          "title": "No resold inference",
+          "body": "We do not sell inference from our own devices. Compute is always the customer's."
+        }
+      }
+    },
+    "stack": {
+      "eyebrow": "Technology",
+      "title": "The stack",
+      "subtitle": "Chosen for a small, predictable footprint.",
+      "items": [
+        "Rust gateway",
+        "TypeScript control plane",
+        "LiteRT-LM engine",
+        "Protobuf over wss",
+        "PostgreSQL",
+        "Dex (OIDC)",
+        "React and Fluent UI",
+        "React Native and Expo",
+        "Tauri 2"
+      ]
+    },
+    "roadmap": {
+      "eyebrow": "What is next",
+      "title": "Roadmap",
+      "body": "Larger models than one device can hold are on our research list, as an opt-in local cluster mode for devices on the same network. Never across the internet.",
+      "items": ["Local cluster mode", "More node platforms", "Invite-only member devices"]
+    },
+    "cta": {
+      "title": "See it for yourself",
+      "body": "Create an organisation and enroll your first device.",
+      "button": "Open the app"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -160,7 +381,9 @@
     "dangerZone": "Danger zone",
     "delete": "Delete organisation",
     "deleteTitle": "Delete {{name}}?",
-    "deleteMessage": "This permanently deletes the organisation with its pools, memberships and usage history."
+    "deleteMessage": "This permanently deletes the organisation with its pools, memberships and usage history.",
+    "subtitle": "Everything you run belongs to an organisation: its devices, models, keys and people.",
+    "settingsSubtitle": "Rename the organisation, set its rate limits or delete it."
   },
   "pools": {
     "live": "At least one node is online",
@@ -206,7 +429,8 @@
     "noModelsToAdd": "No other ready models",
     "addModel": "Set model",
     "modelAdded": "The pool now serves this model.",
-    "removeModel": "Stop serving"
+    "removeModel": "Stop serving",
+    "subtitle": "A pool is a group of devices that all serve the same model."
   },
   "members": {
     "title": "Members",
@@ -224,7 +448,8 @@
     "leave": "Leave",
     "leaveTitle": "Leave this organisation?",
     "leaveMessage": "You lose access unless another admin adds you again.",
-    "left": "You left the organisation."
+    "left": "You left the organisation.",
+    "subtitle": "People who can work in this organisation, and what they may do."
   },
   "usage": {
     "title": "Usage",
@@ -246,7 +471,8 @@
       "pool": "Pool",
       "model": "Model",
       "key": "API key"
-    }
+    },
+    "subtitle": "Requests and tokens served, over time."
   },
   "orgNav": {
     "current": "Organisation",
@@ -353,7 +579,8 @@
     "source": {
       "huggingface": "Hugging Face",
       "upload": "Uploaded"
-    }
+    },
+    "subtitle": "The model files your pools serve, from Hugging Face or your own upload."
   },
   "apiKeys": {
     "title": "API keys",
@@ -398,7 +625,8 @@
     "lastUsed": "Last used",
     "neverUsed": "Never",
     "expires": "Expires",
-    "adminOnly": "API keys are managed by organisation admins."
+    "adminOnly": "API keys are managed by organisation admins.",
+    "subtitle": "Keys your applications use to call the gateway. Secrets are shown only once."
   },
   "enroll": {
     "add": "Add device",

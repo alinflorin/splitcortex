@@ -5,7 +5,6 @@ import {
   ProgressBar,
   Select,
   Subtitle1,
-  Title2,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
@@ -15,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDeleteNode, useNode, useUpdateNode } from '../../api/hooks';
 import type { Node } from '../../api/schemas';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { QueryBoundary } from '../../components/QueryBoundary';
 import { CardList, ItemCard, Stat, StatRow } from '../../components/cards/cards';
 import { useConfirm } from '../../components/feedback/useConfirm';
@@ -223,27 +223,29 @@ export function NodePage() {
               <Link to={`/organisations/${org.id}/pools/${node.poolId}`} className={styles.back}>
                 ← {t('nodes.backToPool')}
               </Link>
-              <div className={styles.header}>
-                <Title2 className={styles.title}>{node.name}</Title2>
-                <NodeStatusBadge status={node.status} />
-                {admin && (
-                  <div className={styles.actions}>
-                    {!node.approved && (
-                      <Button
-                        appearance="primary"
-                        icon={<CheckmarkCircle20Regular />}
-                        disabled={update.isPending}
-                        onClick={approve}
-                      >
-                        {t('nodes.approve')}
+              <PageHeader
+                eyebrow={<NodeStatusBadge status={node.status} />}
+                title={node.name}
+                actions={
+                  admin && (
+                    <>
+                      {!node.approved && (
+                        <Button
+                          appearance="primary"
+                          icon={<CheckmarkCircle20Regular />}
+                          disabled={update.isPending}
+                          onClick={approve}
+                        >
+                          {t('nodes.approve')}
+                        </Button>
+                      )}
+                      <Button icon={<Delete20Regular />} onClick={() => void revoke(node)}>
+                        {t('nodes.revoke')}
                       </Button>
-                    )}
-                    <Button icon={<Delete20Regular />} onClick={() => void revoke(node)}>
-                      {t('nodes.revoke')}
-                    </Button>
-                  </div>
-                )}
-              </div>
+                    </>
+                  )
+                }
+              />
 
               <section className={styles.section}>
                 <Subtitle1>{t('nodes.live')}</Subtitle1>

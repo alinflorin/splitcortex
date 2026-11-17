@@ -39,7 +39,7 @@ const useStyles = makeStyles({
 });
 
 /** The two addresses a client needs: the gateway (OpenAI format, for API keys) and the control plane API. */
-export function Endpoints() {
+export function Endpoints({ bare = false }: { bare?: boolean }) {
   const styles = useStyles();
   const { t } = useTranslation();
   const toast = useToast();
@@ -60,12 +60,14 @@ export function Endpoints() {
 
   return (
     <section className={styles.root}>
-      <div className={styles.head}>
-        <Text weight="semibold" size={500}>
-          {t('endpoints.title')}
-        </Text>
-        <Body1 className={styles.muted}>{t('endpoints.body')}</Body1>
-      </div>
+      {!bare && (
+        <div className={styles.head}>
+          <Text weight="semibold" size={500}>
+            {t('endpoints.title')}
+          </Text>
+          <Body1 className={styles.muted}>{t('endpoints.body')}</Body1>
+        </div>
+      )}
       <div className={styles.grid}>
         {items.map(({ key, url }) => (
           <article key={key} className={styles.card}>

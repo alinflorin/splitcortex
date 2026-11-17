@@ -100,7 +100,7 @@ function AppCard({
  * Where to run a node: the phone app, the desktop app and the web node. They all behave the same way (enroll with a
  * code from "Add device"); the web node is only a link here, never opened with a code filled in.
  */
-export function AppDownloads() {
+export function AppDownloads({ bare = false }: { bare?: boolean }) {
   const styles = useStyles();
   const { t } = useTranslation();
   const toast = useToast();
@@ -134,12 +134,14 @@ export function AppDownloads() {
 
   return (
     <section className={styles.root}>
-      <div className={styles.head}>
-        <Text weight="semibold" size={500}>
-          {t('apps.title')}
-        </Text>
-        <Body1 className={styles.muted}>{t('apps.body')}</Body1>
-      </div>
+      {!bare && (
+        <div className={styles.head}>
+          <Text weight="semibold" size={500}>
+            {t('apps.title')}
+          </Text>
+          <Body1 className={styles.muted}>{t('apps.body')}</Body1>
+        </div>
+      )}
       <div className={styles.grid}>
         <AppCard
           icon={<Phone24Regular />}

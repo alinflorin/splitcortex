@@ -7,6 +7,7 @@ import { useApiKeys, usePools, useRevokeApiKey } from '../../api/hooks';
 import { apiKeyState } from '../../api/schemas';
 import type { ApiKey, ApiKeyState } from '../../api/schemas';
 import { QueryBoundary } from '../../components/QueryBoundary';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { CardList, ItemCard, Stat, StatRow } from '../../components/cards/cards';
 import { useConfirm } from '../../components/feedback/useConfirm';
 import { useToast } from '../../components/feedback/useToast';
@@ -17,7 +18,6 @@ import { ApiKeySecretDialog } from './ApiKeySecretDialog';
 import { useOrganisationContext } from './OrganisationLayout';
 
 const useStyles = makeStyles({
-  toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: tokens.spacingVerticalL },
   muted: { color: tokens.colorNeutralForeground3 },
 });
 
@@ -83,11 +83,18 @@ export function ApiKeysPage() {
 
   return (
     <>
-      <div className={styles.toolbar}>
-        <Button appearance="primary" icon={<Add24Regular />} onClick={() => setCreating(true)}>
-          {t('apiKeys.new')}
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow={org.name}
+        title={t('apiKeys.title')}
+        subtitle={t('apiKeys.subtitle')}
+        actions={
+          <>
+            <Button appearance="primary" icon={<Add24Regular />} onClick={() => setCreating(true)}>
+              {t('apiKeys.new')}
+            </Button>
+          </>
+        }
+      />
       <QueryBoundary query={query}>
         {(keys) =>
           keys.length === 0 ? (

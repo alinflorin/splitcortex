@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Badge, Body1, Button, Title1, makeStyles, tokens } from '@fluentui/react-components';
+import { Badge, Body1, Button, makeStyles, tokens } from '@fluentui/react-components';
 import { Add24Regular } from '@fluentui/react-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -9,6 +9,7 @@ import { useCreateOrganisation, useOrganisations } from '../../api/hooks';
 import { organisationFormSchema } from '../../api/schemas';
 import type { OrganisationForm } from '../../api/schemas';
 import { QueryBoundary } from '../../components/QueryBoundary';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { CardList, ItemCard } from '../../components/cards/cards';
 import { FormDialog } from '../../components/forms/FormDialog';
 import { TextField } from '../../components/forms/TextField';
@@ -16,14 +17,6 @@ import { useToast } from '../../components/feedback/useToast';
 import { slugify } from '../../lib/slugify';
 
 const useStyles = makeStyles({
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalL,
-    flexWrap: 'wrap',
-    marginBottom: tokens.spacingVerticalXL,
-  },
   muted: { color: tokens.colorNeutralForeground3 },
 });
 
@@ -66,12 +59,15 @@ export function OrganisationsPage() {
 
   return (
     <>
-      <div className={styles.header}>
-        <Title1>{t('organisations.title')}</Title1>
-        <Button appearance="primary" icon={<Add24Regular />} onClick={() => setOpen(true)}>
-          {t('organisations.new')}
-        </Button>
-      </div>
+      <PageHeader
+        title={t('organisations.title')}
+        subtitle={t('organisations.subtitle')}
+        actions={
+          <Button appearance="primary" icon={<Add24Regular />} onClick={() => setOpen(true)}>
+            {t('organisations.new')}
+          </Button>
+        }
+      />
 
       <QueryBoundary query={query}>
         {(orgs) =>

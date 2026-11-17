@@ -1,9 +1,10 @@
-import { Button, Field, Input, Text, Title1, makeStyles, tokens } from '@fluentui/react-components';
+import { Button, Field, Input, makeStyles, tokens } from '@fluentui/react-components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { useCurrentUser } from '../auth/useCurrentUser';
+import { PageHeader } from '../components/layout/PageHeader';
 import { useToast } from '../components/feedback/useToast';
 
 // Messages are i18n keys; they are translated where they are rendered.
@@ -27,7 +28,7 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalM,
-    maxWidth: '480px',
+    maxWidth: '560px',
   },
   muted: { color: tokens.colorNeutralForeground3 },
   form: {
@@ -65,13 +66,11 @@ export function Settings() {
 
   return (
     <div className={styles.root}>
-      <Title1>{t('settings.title')}</Title1>
-      <Text className={styles.muted}>{t('settings.subtitle')}</Text>
-      {user?.email && (
-        <Text className={styles.muted} size={200}>
-          {t('settings.signedInAs', { email: user.email })}
-        </Text>
-      )}
+      <PageHeader
+        title={t('settings.title')}
+        subtitle={t('settings.subtitle')}
+        eyebrow={user?.email ? t('settings.signedInAs', { email: user.email }) : undefined}
+      />
 
       <form className={styles.form} noValidate onSubmit={(e) => void handleSubmit(onSubmit)(e)}>
         <Controller

@@ -67,21 +67,91 @@
   },
   "home": {
     "title": "Pune dispozitivele nefolosite la treabă",
-    "subtitle": "Transformă dispozitivele nefolosite în noduri de inferență, grupează-le în pool-uri și servește modele printr-un singur API.",
+    "subtitle": "Transformă telefoanele, laptopurile și Raspberry Pi-urile pe care le ai deja în noduri de inferență. Grupează-le în pool-uri și servește modele printr-un singur API compatibil OpenAI.",
     "welcome": "Bine ai revenit, {{name}}",
-    "cards": {
-      "pools": {
-        "title": "Pool-uri",
-        "body": "Grupează dispozitivele pe organizație și servește un set de modele din fiecare pool."
-      },
-      "nodes": {
-        "title": "Noduri",
-        "body": "Înrolează un dispozitiv cu un cod scurt. Se conectează către gateway, fără acces de intrare."
-      },
-      "api": {
-        "title": "API compatibil OpenAI",
-        "body": "Schimbă doar URL-ul de bază și cheia API în clientul tău existent."
+    "hero": {
+      "badge": "Adu-ți propriile dispozitive",
+      "titleA": "Dispozitivele tale.",
+      "titleB": "Cloud-ul tău privat de AI.",
+      "ctaStart": "Începe acum",
+      "ctaOrgs": "Deschide organizațiile",
+      "ctaHow": "Cum funcționează",
+      "phone": "Telefon",
+      "laptop": "Laptop",
+      "pi": "Raspberry Pi",
+      "browser": "Browser",
+      "gateway": "Gateway",
+      "yourApp": "Aplicația ta"
+    },
+    "trust": [
+      "API compatibil OpenAI",
+      "Conexiuni doar de ieșire",
+      "Chei per dispozitiv",
+      "Rulează pe telefoane, laptopuri, Pi-uri și în browser"
+    ],
+    "how": {
+      "eyebrow": "Cum funcționează",
+      "title": "De la hardware nefolosit la un API, în trei pași",
+      "subtitle": "Fără servere de închiriat, fără porturi de deschis.",
+      "steps": {
+        "one": {
+          "title": "Înrolează-ți dispozitivele",
+          "body": "Creează un cod scurt în aplicație și scrie-l sau scanează-i QR-ul cu dispozitivul. Dispozitivul se conectează către gateway și e gata."
+        },
+        "two": {
+          "title": "Alege un model și un pool",
+          "body": "Adaugă un model de pe Hugging Face sau încarcă un fișier .litertlm, apoi atribuie-l unui pool. Fiecare dispozitiv din pool îl descarcă și îl servește."
+        },
+        "three": {
+          "title": "Apelează API-ul",
+          "body": "Creează o cheie API și îndreaptă orice client OpenAI spre gateway. Cererile sunt distribuite între dispozitivele sănătoase."
+        }
       }
+    },
+    "features": {
+      "eyebrow": "Totul inclus",
+      "title": "O platformă completă de servire, nu doar o conexiune",
+      "subtitle": "Planul de control și gateway-ul rulează pentru tine. Tu aduci puterea de calcul.",
+      "items": {
+        "pools": {
+          "title": "Pool-uri și modele",
+          "body": "Grupează dispozitivele pe organizație. Fiecare pool servește un model, replicat pe fiecare dispozitiv."
+        },
+        "enroll": {
+          "title": "Înrolare cu un cod scurt",
+          "body": "Telefoane, laptopuri, servere și file de browser se alătură în câteva secunde, cu aprobare opțională din partea adminului."
+        },
+        "api": {
+          "title": "API compatibil OpenAI",
+          "body": "Schimbi doar URL-ul de bază și cheia API. Sunt suportate streaming, imagini și audio."
+        },
+        "security": {
+          "title": "Sigur prin construcție",
+          "body": "Fiecare dispozitiv are propria cheie, gateway-ul e verificat independent de TLS, iar cheile API sunt stocate sub formă de hash."
+        },
+        "limits": {
+          "title": "Limite de rată",
+          "body": "Plafonează cererile și tokenii per cheie sau per organizație și primește un 429 clar când limita e atinsă."
+        },
+        "insights": {
+          "title": "Consum și benchmark-uri",
+          "body": "Vezi tokenii pe cheie și pe pool și măsoară latența și tokenii pe secundă pe dispozitivele tale reale."
+        }
+      }
+    },
+    "code": {
+      "title": "Funcționează cu uneltele pe care le folosești deja",
+      "body": "Același format de cerere, același streaming. Schimbi URL-ul de bază și gata."
+    },
+    "run": {
+      "eyebrow": "Pornește un nod",
+      "title": "Alege unde rulezi un nod",
+      "subtitle": "Instalează o aplicație sau nodul din linia de comandă, ori deschide nodul web în browser. Fiecare se alătură unui pool cu un cod din Adaugă dispozitiv."
+    },
+    "cta": {
+      "title": "Gata să-ți pui dispozitivele la treabă?",
+      "body": "Creează o organizație, înrolează un dispozitiv și fă prima cerere în câteva minute.",
+      "about": "Află mai multe"
     }
   },
   "endpoints": {
@@ -101,9 +171,164 @@
   },
   "about": {
     "title": "Despre SplitCortex",
-    "p1": "SplitCortex este o platformă pentru refolosirea dispozitivelor mobile ca noduri de inferență.",
-    "p2": "Dispozitivele păstrează o conexiune sigură către gateway, care autentifică cererile, aplică limitele, distribuie sarcina între nodurile sănătoase și măsoară consumul.",
-    "p3": "Modelele sunt replicate pe fiecare nod dintr-un pool, iar fiecare cheie API este legată de exact un pool."
+    "hero": {
+      "eyebrow": "Despre",
+      "highlight": "putere de calcul nefolosită, pusă la treabă",
+      "lead": "SplitCortex este o platformă care refolosește dispozitivele pe care le ai deja ca noduri de inferență. Noi rulăm planul de control și gateway-ul; tu aduci telefoanele, laptopurile și Raspberry Pi-urile."
+    },
+    "stats": {
+      "nodes": {
+        "value": "4",
+        "label": "moduri de a rula un nod"
+      },
+      "inbound": {
+        "value": "0",
+        "label": "porturi de deschis"
+      },
+      "api": {
+        "value": "1",
+        "label": "API în format OpenAI"
+      },
+      "engine": {
+        "value": "LiteRT",
+        "label": "motor pe dispozitiv"
+      }
+    },
+    "story": {
+      "eyebrow": "De ce existăm",
+      "title": "Miliarde de dispozitive capabile stau degeaba",
+      "problemTitle": "Problema",
+      "problem": "Telefoanele și computerele mici rulează acum modele de limbaj capabile, dar cele mai multe își petrec ziua nefolosite, într-un sertar sau pe birou. GPU-urile din datacenter sunt scumpe, iar trimiterea prompturilor private pe hardware străin nu e mereu o opțiune.",
+      "answerTitle": "Răspunsul nostru",
+      "answer": "Transformă acele dispozitive într-un pool pe care îl controlezi. Fiecare dispozitiv păstrează o conexiune criptată către gateway, care primește cereri în format OpenAI și le trimite unui dispozitiv sănătos din pool-ul tău. Hardware-ul tău, modelele tale, un singur API familiar."
+    },
+    "flow": {
+      "eyebrow": "Pe dinăuntru",
+      "title": "Cum călătorește o cerere",
+      "subtitle": "Două segmente separate, intenționat: clientul vorbește cu gateway-ul, iar dispozitivele vorbesc cu gateway-ul. Nimic nu se conectează vreodată într-un dispozitiv.",
+      "client": {
+        "title": "Aplicația ta",
+        "body": "Orice client OpenAI sau un simplu apel HTTP, autentificat cu o cheie API."
+      },
+      "leg1": "HTTPS + SSE",
+      "leg1Sub": "inițiat de client, per cerere",
+      "gateway": {
+        "title": "Gateway",
+        "body": "Un edge în Rust care tratează fiecare cerere în patru pași.",
+        "steps": [
+          "Autentifică cheia API",
+          "Verifică limitele",
+          "Alege un nod sănătos din pool",
+          "Măsoară tokenii de intrare și ieșire"
+        ]
+      },
+      "leg2": "wss + protobuf",
+      "leg2Sub": "inițiat de dispozitiv, de lungă durată",
+      "node": {
+        "title": "Dispozitivul tău",
+        "body": "Rulează modelul cu LiteRT-LM și trimite tokenii înapoi pe singura lui conexiune."
+      }
+    },
+    "principles": {
+      "eyebrow": "Principii",
+      "title": "Construit ca să i te poată încredința prompturile",
+      "subtitle": "Securitatea și confidențialitatea fac parte din arhitectură, nu dintr-o listă de funcții.",
+      "items": {
+        "byod": {
+          "title": "Dispozitivele tale, datele tale",
+          "body": "Puterea de calcul vine de la hardware pe care îl deții și îl înrolezi, deci prompturile nu rulează pe dispozitive străine."
+        },
+        "outbound": {
+          "title": "Doar conexiuni de ieșire",
+          "body": "Dispozitivele inițiază conexiunea prin TLS. Nu există porturi de deschis și nici acces dinspre exterior către un telefon sau laptop."
+        },
+        "identity": {
+          "title": "Identități verificate",
+          "body": "Fiecare dispozitiv își generează propria cheie și o dovedește la conectare. Dispozitivele fixează cheia gateway-ului și o verifică independent de lanțul de certificate."
+        },
+        "keys": {
+          "title": "Chei niciodată în clar",
+          "body": "Cheile API sunt stocate doar ca hash și afișate o singură dată. Credențialele dispozitivelor se pot revoca individual."
+        },
+        "tenants": {
+          "title": "Izolare între organizații",
+          "body": "Fiecare interogare, flux de dispozitiv și intrare din registru este limitată la o organizație."
+        },
+        "privacy": {
+          "title": "Fără jurnalizarea prompturilor",
+          "body": "Prompturile și răspunsurile nu sunt niciodată jurnalizate. Benchmark-urile folosesc doar prompturi furnizate de noi."
+        }
+      }
+    },
+    "nodes": {
+      "eyebrow": "Dispozitive",
+      "title": "Rulează pe ce ai",
+      "subtitle": "Fiecare nod se înrolează cu același cod scurt și servește la fel.",
+      "items": {
+        "mobile": {
+          "title": "Telefon Android",
+          "body": "Un serviciu de fundal continuă să servească cu ecranul stins și pornește la boot."
+        },
+        "desktop": {
+          "title": "Aplicație desktop",
+          "body": "Linux, macOS (Apple silicon) și Windows. Stă în bara de sistem și se actualizează singură."
+        },
+        "cli": {
+          "title": "Linie de comandă",
+          "body": "Un nod fără interfață pentru servere și Raspberry Pi, instalat cu o comandă, opțional ca serviciu."
+        },
+        "web": {
+          "title": "Nod web",
+          "body": "Nimic de instalat: o filă de browser servește cu WebGPU cât timp rămâne deschisă."
+        }
+      }
+    },
+    "model": {
+      "eyebrow": "Model de business",
+      "title": "Adu-ți propriile dispozitive",
+      "body": "SplitCortex este un SaaS pentru flota ta de dispozitive: înrolezi dispozitive în pool-urile organizației, iar noi rulăm planul de control și gateway-ul. Prețul este per dispozitiv sau pool, cu un nivel gratuit.",
+      "not": {
+        "marketplace": {
+          "title": "Fără piață publică",
+          "body": "Nu potrivim dispozitivele unor străini cu prompturile altor străini. Prompturile tale rămân pe hardware în care ai încredere."
+        },
+        "selling": {
+          "title": "Fără inferență revândută",
+          "body": "Nu vindem inferență de pe dispozitivele noastre. Puterea de calcul este mereu a clientului."
+        }
+      }
+    },
+    "stack": {
+      "eyebrow": "Tehnologie",
+      "title": "Stack-ul",
+      "subtitle": "Ales pentru un consum mic și previzibil.",
+      "items": [
+        "Gateway în Rust",
+        "Plan de control în TypeScript",
+        "Motor LiteRT-LM",
+        "Protobuf peste wss",
+        "PostgreSQL",
+        "Dex (OIDC)",
+        "React și Fluent UI",
+        "React Native și Expo",
+        "Tauri 2"
+      ]
+    },
+    "roadmap": {
+      "eyebrow": "Ce urmează",
+      "title": "Foaia de parcurs",
+      "body": "Modelele mai mari decât încape pe un dispozitiv sunt pe lista noastră de cercetare, ca mod local de cluster opțional pentru dispozitive din aceeași rețea. Niciodată peste internet.",
+      "items": [
+        "Mod local de cluster",
+        "Mai multe platforme de noduri",
+        "Dispozitive ale membrilor, doar pe invitație"
+      ]
+    },
+    "cta": {
+      "title": "Vezi cu ochii tăi",
+      "body": "Creează o organizație și înrolează primul dispozitiv.",
+      "button": "Deschide aplicația"
+    }
   },
   "settings": {
     "title": "Setări",
@@ -160,7 +385,9 @@
     "dangerZone": "Zonă periculoasă",
     "delete": "Șterge organizația",
     "deleteTitle": "Ștergi {{name}}?",
-    "deleteMessage": "Șterge definitiv organizația împreună cu pool-urile, membrii și istoricul de utilizare."
+    "deleteMessage": "Șterge definitiv organizația împreună cu pool-urile, membrii și istoricul de utilizare.",
+    "subtitle": "Tot ce rulezi aparține unei organizații: dispozitivele, modelele, cheile și oamenii ei.",
+    "settingsSubtitle": "Redenumește organizația, setează limitele sau șterge-o."
   },
   "pools": {
     "live": "Cel puțin un nod este online",
@@ -206,7 +433,8 @@
     "noModelsToAdd": "Nu există alte modele gata",
     "addModel": "Setează modelul",
     "modelAdded": "Pool-ul servește acum acest model.",
-    "removeModel": "Nu mai servi"
+    "removeModel": "Nu mai servi",
+    "subtitle": "Un pool este un grup de dispozitive care servesc toate același model."
   },
   "members": {
     "title": "Membri",
@@ -224,7 +452,8 @@
     "leave": "Părăsește",
     "leaveTitle": "Părăsești această organizație?",
     "leaveMessage": "Pierzi accesul dacă un administrator nu te adaugă din nou.",
-    "left": "Ai părăsit organizația."
+    "left": "Ai părăsit organizația.",
+    "subtitle": "Oamenii care pot lucra în această organizație și ce au voie să facă."
   },
   "usage": {
     "title": "Utilizare",
@@ -246,7 +475,8 @@
       "pool": "Pool",
       "model": "Model",
       "key": "Cheie API"
-    }
+    },
+    "subtitle": "Cereri și tokeni serviți, în timp."
   },
   "orgNav": {
     "current": "Organizație",
@@ -353,7 +583,8 @@
     "source": {
       "huggingface": "Hugging Face",
       "upload": "Încărcat"
-    }
+    },
+    "subtitle": "Fișierele de model servite de pool-uri, de pe Hugging Face sau încărcate de tine."
   },
   "apiKeys": {
     "title": "Chei API",
@@ -398,7 +629,8 @@
     "lastUsed": "Ultima utilizare",
     "neverUsed": "Niciodată",
     "expires": "Expiră",
-    "adminOnly": "Cheile API sunt gestionate de administratorii organizației."
+    "adminOnly": "Cheile API sunt gestionate de administratorii organizației.",
+    "subtitle": "Cheile folosite de aplicațiile tale pentru a apela gateway-ul. Secretul se arată o singură dată."
   },
   "enroll": {
     "add": "Adaugă dispozitiv",

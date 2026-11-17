@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  Badge,
-  Button,
-  Dropdown,
-  Field,
-  Option,
-  makeStyles,
-  tokens,
-} from '@fluentui/react-components';
+import { Badge, Button, Dropdown, Field, Option, makeStyles } from '@fluentui/react-components';
 import { Add24Regular, Delete20Regular } from '@fluentui/react-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -18,6 +10,7 @@ import { addMemberFormSchema } from '../../api/schemas';
 import type { AddMemberForm, Member, OrgRole } from '../../api/schemas';
 import { useCurrentUser } from '../../auth/useCurrentUser';
 import { QueryBoundary } from '../../components/QueryBoundary';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { CardList, ItemCard } from '../../components/cards/cards';
 import { useConfirm } from '../../components/feedback/useConfirm';
 import { useToast } from '../../components/feedback/useToast';
@@ -27,7 +20,6 @@ import { assignableRoles, canManage, isAdmin } from '../../lib/roles';
 import { useOrganisationContext } from './OrganisationLayout';
 
 const useStyles = makeStyles({
-  toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: tokens.spacingVerticalL },
   roleDropdown: { minWidth: '120px' },
 });
 
@@ -95,13 +87,20 @@ export function MembersTab() {
 
   return (
     <>
-      {admin && (
-        <div className={styles.toolbar}>
-          <Button appearance="primary" icon={<Add24Regular />} onClick={() => setOpen(true)}>
-            {t('members.add')}
-          </Button>
-        </div>
-      )}
+      <PageHeader
+        eyebrow={org.name}
+        title={t('members.title')}
+        subtitle={t('members.subtitle')}
+        actions={
+          admin ? (
+            <>
+              <Button appearance="primary" icon={<Add24Regular />} onClick={() => setOpen(true)}>
+                {t('members.add')}
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
 
       <QueryBoundary query={query}>
         {(members) => (

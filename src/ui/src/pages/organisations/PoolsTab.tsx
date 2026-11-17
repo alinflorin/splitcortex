@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePools } from '../../api/hooks';
 import type { Pool } from '../../api/schemas';
 import { QueryBoundary } from '../../components/QueryBoundary';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { CardList, ItemCard } from '../../components/cards/cards';
 import { isAdmin } from '../../lib/roles';
 import { useOrganisationContext } from './OrganisationLayout';
@@ -21,7 +22,6 @@ import { PoolFormDialog } from './PoolFormDialog';
 import { useDeletePoolAction } from './useDeletePoolAction';
 
 const useStyles = makeStyles({
-  toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: tokens.spacingVerticalL },
   dot: {
     width: '10px',
     height: '10px',
@@ -46,13 +46,24 @@ export function PoolsTab() {
 
   return (
     <>
-      {admin && (
-        <div className={styles.toolbar}>
-          <Button appearance="primary" icon={<Add24Regular />} onClick={() => setEditing('new')}>
-            {t('pools.new')}
-          </Button>
-        </div>
-      )}
+      <PageHeader
+        eyebrow={org.name}
+        title={t('pools.title')}
+        subtitle={t('pools.subtitle')}
+        actions={
+          admin ? (
+            <>
+              <Button
+                appearance="primary"
+                icon={<Add24Regular />}
+                onClick={() => setEditing('new')}
+              >
+                {t('pools.new')}
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
 
       <QueryBoundary query={query}>
         {(pools) =>

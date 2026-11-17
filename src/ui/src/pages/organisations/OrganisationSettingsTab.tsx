@@ -11,6 +11,7 @@ import { useConfirm } from '../../components/feedback/useConfirm';
 import { useToast } from '../../components/feedback/useToast';
 import { LimitsFields } from '../../components/forms/LimitsFields';
 import { TextField } from '../../components/forms/TextField';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { ItemCard } from '../../components/cards/cards';
 import { invalidLimits, limitsToText, textToLimits } from '../../lib/limits';
 import { isAdmin } from '../../lib/roles';
@@ -96,6 +97,11 @@ export function OrganisationSettingsTab() {
 
   return (
     <div className={styles.root}>
+      <PageHeader
+        eyebrow={org.name}
+        title={t('settings.title')}
+        subtitle={t('organisations.settingsSubtitle')}
+      />
       <form className={styles.form} noValidate onSubmit={(e) => void submit(e)}>
         <TextField control={form.control} name="name" label={t('organisations.name')} />
         <TextField control={form.control} name="slug" label={t('organisations.slug')} />

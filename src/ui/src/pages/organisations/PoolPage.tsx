@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Badge, Button, Subtitle1, Title2, makeStyles, tokens } from '@fluentui/react-components';
+import { Badge, Button, Subtitle1, makeStyles, tokens } from '@fluentui/react-components';
 import { Delete20Regular, Edit20Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { usePool } from '../../api/hooks';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { QueryBoundary } from '../../components/QueryBoundary';
 import { ItemCard, Stat, StatRow } from '../../components/cards/cards';
 import { isAdmin } from '../../lib/roles';
@@ -48,29 +49,33 @@ export function PoolPage() {
       <QueryBoundary query={query}>
         {(pool) => (
           <>
-            <div className={styles.header}>
-              <Title2 className={styles.title}>{pool.name}</Title2>
-              <Badge appearance="tint" color={pool.requireApproval ? 'warning' : 'subtle'}>
-                {t(pool.requireApproval ? 'pools.approvalOn' : 'pools.approvalOff')}
-              </Badge>
-              {admin && (
-                <div className={styles.actions}>
-                  <Button icon={<Edit20Regular />} onClick={() => setEditing(true)}>
-                    {t('common.edit')}
-                  </Button>
-                  <Button
-                    icon={<Delete20Regular />}
-                    onClick={() =>
-                      void deletePool(pool).then(
-                        (deleted) => deleted && navigate(`/organisations/${org.id}/pools`),
-                      )
-                    }
-                  >
-                    {t('common.delete')}
-                  </Button>
-                </div>
-              )}
-            </div>
+            <PageHeader
+              eyebrow={
+                <Badge appearance="tint" color={pool.requireApproval ? 'warning' : 'subtle'}>
+                  {t(pool.requireApproval ? 'pools.approvalOn' : 'pools.approvalOff')}
+                </Badge>
+              }
+              title={pool.name}
+              actions={
+                admin && (
+                  <>
+                    <Button icon={<Edit20Regular />} onClick={() => setEditing(true)}>
+                      {t('common.edit')}
+                    </Button>
+                    <Button
+                      icon={<Delete20Regular />}
+                      onClick={() =>
+                        void deletePool(pool).then(
+                          (deleted) => deleted && navigate(`/organisations/${org.id}/pools`),
+                        )
+                      }
+                    >
+                      {t('common.delete')}
+                    </Button>
+                  </>
+                )
+              }
+            />
 
             <ItemCard title={t('pools.details')}>
               <StatRow>
