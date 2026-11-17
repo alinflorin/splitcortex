@@ -79,16 +79,20 @@ test('creates an API key, shows its secret once, then revokes it', async ({ page
 });
 
 test('deletes a pool after confirming', async ({ page }) => {
-  const pool = await ws.cp.createPool(ws.org.id, 'ui-delete-me');
+  // An organisation of its own with one pool, so the only Delete button is the one under test.
+  const org = await ws.cp.createOrg();
+  created.push(org.id);
+  const pool = await ws.cp.createPool(org.id, 'ui-delete-me');
   await signIn(page);
-  await page.goto(`/organisations/${ws.org.id}/pools`);
+  await page.goto(`/organisations/${org.id}/pools`);
   await expect(page.getByText('ui-delete-me')).toBeVisible();
-  const card = page.locator('div', { hasText: 'ui-delete-me' }).last();
-  await card.getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('button', { name: 'Delete' }).click();
   await page
+    .getByRole('dialog')
     .getByRole('button', { name: /Delete|Confirm/ })
-    .last()
     .click();
   await expect(page.getByText('ui-delete-me')).toHaveCount(0);
-  expect(pool.id).toBeTruthy();
+  expect(await ws.cp.send('GET', `/organisations/${org.id}/pools/${pool.id}`)).toMatchObject({
+    status: 404,
+  });
 });
