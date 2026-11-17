@@ -57,6 +57,20 @@ test.afterAll(async () => {
   if (sandbox) rmSync(sandbox, { recursive: true, force: true });
 });
 
+/** Waits for text on screen; on failure shows what the window said and attaches a screenshot. */
+async function expectOnScreen(text: RegExp) {
+  const body = () => app.$('body').getText();
+  try {
+    await app.waitUntil(async () => text.test(await body()), { timeout: 30_000, interval: 500 });
+  } catch {
+    await test.info().attach('window', {
+      body: Buffer.from(await app.takeScreenshot(), 'base64'),
+      contentType: 'image/png',
+    });
+    throw new Error(`Expected ${text} on screen, the window says:\n${await body()}`);
+  }
+}
+
 const urlInput = () => app.$('input[placeholder="https://app.example.com/api"]');
 const codeInput = () => app.$('input[placeholder="XXXX-XXXXXX"]');
 
@@ -69,7 +83,7 @@ test('rejects a wrong code', async () => {
   await urlInput().setValue(apiUrl);
   await codeInput().setValue('ZZZZZZZZZZ');
   await app.$('button=Join').click();
-  await app.$('*=not valid, has expired or was already used').waitForExist({ timeout: 30_000 });
+  await expectOnScreen(/not valid, has expired or was already used/);
 });
 
 test('enrolls with a code from the pool', async () => {

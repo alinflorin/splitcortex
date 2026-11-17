@@ -30,16 +30,25 @@ test.afterAll(async () => {
   await ws?.cleanup();
 });
 
-const maestro = (flow: string, vars: Record<string, string>) =>
-  run(
-    'maestro',
-    [
-      'test',
-      ...Object.entries(vars).flatMap(([k, v]) => ['-e', `${k}=${v}`]),
-      resolve('maestro', flow),
-    ],
-    { timeout: 240_000 },
-  );
+// Screenshots, recordings and Maestro's debug output land in test-results/maestro (uploaded by the workflow on failure).
+async function maestro(flow: string, vars: Record<string, string>) {
+  const out = resolve('test-results', 'maestro', flow.replace(/\.yaml$/, ''));
+  const args = [
+    'test',
+    '--test-output-dir',
+    out,
+    '--debug-output',
+    out,
+    ...Object.entries(vars).flatMap(([k, v]) => ['-e', `${k}=${v}`]),
+    resolve('maestro', flow),
+  ];
+  try {
+    return await run('maestro', args, { timeout: 240_000 });
+  } catch (e) {
+    const { stdout = '', stderr = '' } = e as { stdout?: string; stderr?: string };
+    throw new Error(`maestro ${flow} failed:\n${(stdout + stderr).slice(-3000)}`);
+  }
+}
 
 test('a wrong code is refused with the generic message', async () => {
   await maestro('wrong-code.yaml', { API_URL: apiUrl });

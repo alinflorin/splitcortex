@@ -1,15 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { apiUrl, appUrl, dexUrl, webNodeUrl } from '../../src/env.ts';
+import { apiUrl, appUrl, dexUrl } from '../../src/env.ts';
 
 test.describe('deployment smoke', () => {
   test('web app is served and reports its version', async ({ request }) => {
     expect((await request.get(`${appUrl}/healthz`)).ok()).toBe(true);
     const v = (await (await request.get(`${appUrl}/version.json`)).json()) as { version: string };
     expect(v.version).toBeTruthy();
-  });
-
-  test('web node is served', async ({ request }) => {
-    expect((await request.get(`${webNodeUrl}/healthz`)).ok()).toBe(true);
   });
 
   test('control plane is up and rejects calls without a token', async ({ request }) => {

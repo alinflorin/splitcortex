@@ -11,6 +11,7 @@
     "dev": "node scripts/dev.mjs",
     "test": "playwright test",
     "test:platform": "playwright test --project=platform",
+    "test:web-node": "playwright test --project=web-node",
     "test:cli": "playwright test --project=cli",
     "test:desktop": "playwright test --project=desktop",
     "test:mobile": "playwright test --project=mobile"
