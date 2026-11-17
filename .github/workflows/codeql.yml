@@ -1,19 +1,10 @@
-# .github/workflows/codeql.yml
+# CodeQL runs weekly and on demand only (not on push or pull request).
 name: "CodeQL"
 
 on:
-  push:
-    branches: ["main"]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
-  pull_request:
-    branches: ["main"]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
   schedule:
     - cron: "40 0 * * 3"
+  workflow_dispatch:
 
 concurrency:
   group: codeql-${{ github.ref }}
@@ -36,19 +27,12 @@ jobs:
         include:
           # workflows under .github/workflows
           - language: actions
-            build-mode: none
           # ui, web-node, desktop-node (web side), control-plane, mobile-node
           - language: javascript-typescript
-            build-mode: none
           # gateway, cli-node, desktop-node/src-tauri
           - language: rust
-            build-mode: none
-          # the local Expo module (Android foreground service, telemetry)
-          - language: java-kotlin
-            build-mode: none
           # scripts/fetch-litert.py
           - language: python
-            build-mode: none
 
     steps:
       - name: Checkout repository
@@ -58,10 +42,83 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
+          build-mode: none
           queries: security-extended
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
+
+  # Kotlin (the local Expo module: Android foreground service, telemetry) cannot be analyzed
+  # without a build, so this job generates the android/ project (git-ignored) and builds it
+  # under the CodeQL tracer. Same toolchain steps as mobile-node.yaml.
+  analyze-kotlin:
+    name: Analyze (java-kotlin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    defaults:
+      run:
+        working-directory: src/mobile-node
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: src/mobile-node/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: src/mobile-node/pnpm-lock.yaml
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+      - run: pnpm install --frozen-lockfile
+      # Generates the native android/ project (git-ignored, never committed).
+      - run: pnpm exec expo prebuild --platform android --no-install
+
+      # Same retrying NDK install as mobile-node.yaml (Gradle's own auto-install has no retry).
+      - name: Install Android NDK
+        env:
+          NDK_VERSION: 27.1.12297006
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          for attempt in 1 2 3 4; do
+            rm -rf "$ANDROID_HOME/ndk/$NDK_VERSION"
+            if yes | "$SDKMANAGER" --install "ndk;$NDK_VERSION" \
+              && [ -f "$ANDROID_HOME/ndk/$NDK_VERSION/source.properties" ]; then
+              exit 0
+            fi
+            echo "::warning::NDK install attempt $attempt failed, retrying"
+            sleep $((attempt * 10))
+          done
+          echo "::error::could not install NDK $NDK_VERSION"
+          exit 1
+
+      # Initialized after the project exists and the toolchain is installed, right before the build.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+          build-mode: manual
+          queries: security-extended
+
+      # --no-daemon and --no-build-cache so every Kotlin file is compiled under the tracer.
+      - name: Build
+        working-directory: src/mobile-node/android
+        run: ./gradlew assembleDebug --no-daemon --no-build-cache
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:java-kotlin"
