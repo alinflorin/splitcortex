@@ -98,6 +98,8 @@ async function run(m: Record<string, unknown>): Promise<unknown> {
 }
 
 self.onmessage = (e: MessageEvent<Record<string, unknown>>) => {
+  // Only the page that created this worker talks to it: same-origin messages have an empty origin.
+  if (e.origin !== '') return;
   const id = e.data.id;
   run(e.data).then(
     (result) => self.postMessage({ id, ok: true, result }),

@@ -5,7 +5,14 @@
 // Without a triple it uses the host's. A target Google publishes no library for (macOS x86_64) gets nothing: the app
 // builds, but the engine reports that it is unavailable. --required fails on such a target instead.
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -55,8 +62,10 @@ const cache = join(root, '..', '.cache');
 mkdirSync(cache, { recursive: true });
 const zipPath = join(cache, `${VERSION}-${ASSET}`);
 let zip;
-if (existsSync(zipPath)) {
-  zip = new Uint8Array(await import('node:fs/promises').then((m) => m.readFile(zipPath)));
+try {
+  zip = new Uint8Array(readFileSync(zipPath));
+} catch {
+  // not cached yet
 }
 if (!zip || createHash('sha256').update(zip).digest('hex') !== SHA256) {
   console.log(`Downloading ${URL}`);
@@ -66,7 +75,10 @@ if (!zip || createHash('sha256').update(zip).digest('hex') !== SHA256) {
   const got = createHash('sha256').update(zip).digest('hex');
   if (got !== SHA256)
     throw new Error(`Checksum mismatch for ${ASSET}: expected ${SHA256}, got ${got}`);
-  writeFileSync(zipPath, zip);
+  // Write next to the target and rename, so a concurrent run never sees a half-written cache file.
+  const tmp = `${zipPath}.${process.pid}.tmp`;
+  writeFileSync(tmp, zip);
+  renameSync(tmp, zipPath);
 }
 const [inside, outName] = entry;
 const files = unzipSync(zip, { filter: (f) => f.name === inside });
