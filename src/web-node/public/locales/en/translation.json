@@ -28,6 +28,11 @@
     "code": "Join code",
     "submit": "Join",
     "joining": "Joining…",
+    "scan": "Scan QR code",
+    "scanStop": "Stop scanning",
+    "scanErrors": {
+      "camera": "The camera could not be used. Allow camera access for this page, or type the code."
+    },
     "errors": {
       "invalidFormat": "Enter the code as XXXX-XXXXXX.",
       "invalidCode": "This code is not valid, has expired or was already used. Create a new one in the web app.",

@@ -214,6 +214,9 @@ importers:
       i18next-http-backend:
         specifier: ^4.0.10
         version: 4.0.10
+      jsqr:
+        specifier: ^1.4.0
+        version: 1.4.0
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -1677,6 +1680,9 @@ packages:
     peerDependenciesMeta:
       '@napi-rs/canvas':
         optional: true
+
+  jsqr@1.4.0:
+    resolution: {integrity: sha512-dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLey/w5vMcLBXRgOJsbXpdN9HzU/A==}
 
   keyborg@3.498.0:
     resolution: {integrity: sha512-EM963ckIg3nCaqF631tWKfy5+t3Lc5/zQ6bj0zucaZnChzeJbXa69W0cE7j09erYZO7s5/dupxyVqPSL8mdxEQ==}
@@ -3704,6 +3710,8 @@ snapshots:
       xml-name-validator: 5.0.0
     transitivePeerDependencies:
       - '@noble/hashes'
+
+  jsqr@1.4.0: {}
 
   keyborg@3.498.0: {}
 

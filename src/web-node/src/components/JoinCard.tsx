@@ -9,17 +9,20 @@ import {
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
+import { QrCode20Regular } from '@fluentui/react-icons';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { EnrollError, enroll, type EnrollErrorKind } from '../enrollment/client';
 import { formatCodeInput, parseCode } from '../enrollment/crypto';
+import { codeFromScan } from '../enrollment/link';
 import { getOrCreateIdentity } from '../enrollment/identity';
 import { saveEnrollment } from '../enrollment/store';
 import { APP_VERSION, enrollmentUrl } from '../lib/config';
 import { webDeviceInfo } from '../lib/device';
 import { Panel } from './Panel';
+import { QrScanner } from './QrScanner';
 
 const useStyles = makeStyles({
   form: {
@@ -43,6 +46,8 @@ export function JoinCard({ initialCode, onJoined }: { initialCode: string; onJoi
   const styles = useStyles();
   const { t } = useTranslation();
   const [failure, setFailure] = useState<EnrollErrorKind | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanProblem, setScanProblem] = useState<'camera' | null>(null);
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     mode: 'onTouched',
@@ -93,6 +98,42 @@ export function JoinCard({ initialCode, onJoined }: { initialCode: string; onJoi
             spellCheck={false}
           />
         </Field>
+        {scanning ? (
+          <>
+            <QrScanner
+              onScan={(data) => {
+                const code = codeFromScan(data);
+                if (!code) return; // not ours: keep looking
+                form.setValue('code', code, { shouldValidate: true });
+                setScanning(false);
+              }}
+              onError={() => {
+                setScanning(false);
+                setScanProblem('camera');
+              }}
+            />
+            <div>
+              <Button onClick={() => setScanning(false)}>{t('join.scanStop')}</Button>
+            </div>
+          </>
+        ) : (
+          <div>
+            <Button
+              icon={<QrCode20Regular />}
+              onClick={() => {
+                setScanProblem(null);
+                setScanning(true);
+              }}
+            >
+              {t('join.scan')}
+            </Button>
+          </div>
+        )}
+        {scanProblem && (
+          <MessageBar intent="warning">
+            <MessageBarBody>{t(`join.scanErrors.${scanProblem}`)}</MessageBarBody>
+          </MessageBar>
+        )}
         {failure && (
           <MessageBar intent="error">
             <MessageBarBody>{t(`join.errors.${failure}`)}</MessageBarBody>

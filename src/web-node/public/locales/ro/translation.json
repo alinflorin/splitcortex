@@ -28,6 +28,11 @@
     "code": "Cod de înrolare",
     "submit": "Alătură-te",
     "joining": "Se alătură…",
+    "scan": "Scanează codul QR",
+    "scanStop": "Oprește scanarea",
+    "scanErrors": {
+      "camera": "Camera nu a putut fi folosită. Permite accesul la cameră pentru această pagină sau scrie codul."
+    },
     "errors": {
       "invalidFormat": "Introdu codul ca XXXX-XXXXXX.",
       "invalidCode": "Codul nu este valid, a expirat sau a fost deja folosit. Creează unul nou în aplicația web.",
