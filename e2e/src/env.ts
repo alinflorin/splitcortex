@@ -11,6 +11,8 @@ try {
 //   E2E_APP_URL       web app origin (default the local stack, https://app.splitcortex.127.0.0.1.nip.io)
 //   E2E_DEX_URL       default: the app host with `app.` -> `dex.` (same rule as the web app)
 //   E2E_WEB_NODE_URL  default: the app host with `app.` -> `web-node.`
+//   E2E_GATEWAY_URL   default: the app host with `app.` -> `gateway.`
+//   E2E_MODEL_DIR     where the test model is cached between runs (default e2e/.cache/models)
 //   E2E_EMAIL / E2E_PASSWORD  the Dex password user (Google login cannot be scripted). Local: any user of
 //                    values-local.yaml (from e2e/.env, else `pnpm dev` asks). Stg: the `stg` environment secrets of the same names.
 const origin = (url: string) => new URL(url).origin;
@@ -26,6 +28,8 @@ function sibling(prefix: string, keepPort: boolean): string {
 
 export const dexUrl = origin(process.env.E2E_DEX_URL || sibling('dex', false));
 export const webNodeUrl = origin(process.env.E2E_WEB_NODE_URL || sibling('web-node', true));
+/** The gateway (OpenAI-format `/v1/*` for clients, `/node` for devices) is the `gateway.` sibling of the app host. */
+export const gatewayUrl = origin(process.env.E2E_GATEWAY_URL || sibling('gateway', false));
 /** The control plane lives at /api on the web app host. */
 export const apiUrl = `${appUrl}/api`;
 

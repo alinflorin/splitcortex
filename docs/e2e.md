@@ -6,11 +6,13 @@ Summary in [CLAUDE.md](../CLAUDE.md). One pnpm project, one runner (**Playwright
 | --- | --- | --- |
 | `platform` | web app (Dex login, org/pool pages), deployment smoke (`/version.json`, `/api` 401, Dex discovery, sign-in redirect) | Chromium |
 | `web-node` | the web node: served, join form, a browser tab enrolls with a code, a used code is refused | Chromium (one fresh context per device) |
-| `cli` | the real `splitcortex-node` binary: `join` (wrong code, real code, already enrolled), node appears in the control plane, `run` goes online then offline, `leave` | child processes with `SPLITCORTEX_HOME` in a temp dir |
+| `cli` | the real `splitcortex-node` binary: `join` (wrong code, real code, already enrolled), node appears in the control plane, `run` goes online then offline, `leave` (`cli.spec.ts`); **inference** (`inference.spec.ts`): the node downloads the pool's model, serves an OpenAI chat completion (JSON and SSE) through the gateway, `/v1/models`, 401/404; **keys, limits, isolation, metering** (`keys-limits.spec.ts`): revoked key refused, pool-scoped key, 429 in the OpenAI error shape, another org sees nothing, usage per key recorded. Both specs start their own node through `tests/cli/node.ts` | child processes with `SPLITCORTEX_HOME` in a temp dir |
 | `desktop` | the real Tauri app: join form, wrong code, enroll | `tauri-driver` + WebdriverIO `remote()` (Playwright is only the runner). Linux/Windows; macOS has no driver |
 | `mobile` | the real Android app: wrong code, enroll | Maestro flows in `maestro/` on an emulator or USB device |
 
-Not covered yet: serving an inference request (needs a model; the engine is the real LiteRT-LM), benchmarks, limits. Next step: a tiny model per pool and an OpenAI call through the gateway.
+**Inference test model**: SmolLM2 135M Instruct (`litert-community/SmolLM2-135M-Instruct`, ~143 MB, Apache-2.0, not gated). `src/model.ts` reuses `e2e/.cache/models/` (git-ignored; `E2E_MODEL_DIR` moves it; the workflow caches it) and downloads it from Hugging Face when missing; the suite uploads it to the throwaway org through the control plane's multipart upload, assigns it to the pool, creates an API key and calls `<gateway>/v1/*` (`E2E_GATEWAY_URL`, default the `gateway.` sibling of the app host). Assertions are about structure (status, shape, token counts), never the text.
+
+Not covered yet: benchmarks, node revoke/reconnect, enrollment edge cases (attempt limit, approval), web app UI flows, the other node kinds serving.
 
 ## Running
 
@@ -30,4 +32,4 @@ A suite whose binary/device is missing **skips locally and fails in CI**: `E2E_C
 
 ## Unverified
 
-Written without a running stack: the Dex headless login (against the real Dex pages), Playwright selectors for the web app, the desktop and mobile selectors/flows, the workflow itself. Expect a first round of fixes.
+Written without a running stack (the inference spec too: whether SmolLM2 loads through the C API on CPU is unconfirmed): the Dex headless login (against the real Dex pages), Playwright selectors for the web app, the desktop and mobile selectors/flows, the workflow itself. Expect a first round of fixes.
