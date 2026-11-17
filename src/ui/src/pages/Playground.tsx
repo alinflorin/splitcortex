@@ -76,9 +76,10 @@ const useStyles = makeStyles({
   keyRow: {
     display: 'flex',
     gap: tokens.spacingHorizontalS,
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     flexWrap: 'wrap',
   },
+  keyButton: { marginTop: '22px' },
   grow: { flexGrow: 1, minWidth: '220px' },
   thread: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
   turn: {
@@ -253,7 +254,12 @@ export function Playground() {
               </Field>
             )}
           />
-          <Button type="submit" appearance="primary" disabled={connecting || busy}>
+          <Button
+            type="submit"
+            appearance="primary"
+            className={styles.keyButton}
+            disabled={connecting || busy}
+          >
             {t(models ? 'playground.reconnect' : 'playground.connect')}
           </Button>
         </form>
