@@ -15,6 +15,7 @@ Rust 2024, `tokio`, `tokio-tungstenite` (wss), `reqwest` (**rustls with OS root 
 ## State and engine
 
 - Data dir (`directories` crate; `SPLITCORTEX_HOME` overrides; `<home>/data`, `<home>/cache`): `models/`, `secrets/device-key` (mode 0600, dir 0700 on Unix; Windows relies on profile ACL), `enrollment.json`, `settings.json`, `backend-bench.json`. Software Ed25519 key like the other nodes.
+- **Image/audio input**: same as the desktop node (`create_best`, media on first, `Engine::modalities()` into `ModelState.modalities`; protocol `parts` are base64-encoded into `engine::Part`s). A fix in one is a fix in the other.
 - Engine binding and policy are the desktop node's (C API, fallbacks, unchecked points: see [desktop-node.md](desktop-node.md)). Library found in `litert/` **next to the executable** (symlinks resolved) or via `SPLITCORTEX_LITERT_LIB`. `cargo test` loads it when `fetch-litert.py` was run.
 - One request at a time (`busy` otherwise); chunks/done/error carry `seq` and stay in an outbox 60 s for `Resume`/`ResumeAck`; running requests are given up after 40 s without a gateway.
 

@@ -137,11 +137,21 @@ describe('nodes', () => {
       .returning();
     await t.db
       .insert(nodeStatus)
-      .values({ nodeId: node!.id, connected: true, backend: 'gpu', maxContextTokens: 4096 });
+      .values({
+        nodeId: node!.id,
+        connected: true,
+        backend: 'gpu',
+        maxContextTokens: 4096,
+        modalities: 'image,audio',
+      });
     const url = `/organisations/${orgId}/nodes/${node!.id}`;
     const fresh = (await call('GET', url, member)).json();
     expect(fresh).toMatchObject({ computeBackend: null, maxContextTokens: null });
-    expect(fresh.live).toMatchObject({ backend: 'gpu', maxContextTokens: 4096 });
+    expect(fresh.live).toMatchObject({
+      backend: 'gpu',
+      maxContextTokens: 4096,
+      modalities: ['image', 'audio'],
+    });
 
     expect((await call('PATCH', url, member, { computeBackend: 'cpu' })).statusCode).toBe(403);
     const set = await call('PATCH', url, 'own@c.io', {

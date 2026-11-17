@@ -4,7 +4,7 @@
 use crate::connection::{ConnState, Connection, Event, Options, TrustedKeys};
 use crate::crypto::{b64, unb64};
 use crate::engine::compute::{Backend, ComputeEngine, Prefs, Source};
-use crate::engine::{Engine, GenerateReq, Message};
+use crate::engine::{Engine, GenerateReq, Message, Part};
 use crate::enroll::{
     StoredEnrollment, get_or_create_identity, http_client, load_enrollment, refresh_enrollment,
     save_enrollment,
@@ -310,6 +310,12 @@ pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<()> {
                     phase: phase(s.phase) as i32,
                     progress_bytes: s.progress_bytes,
                     error: s.error.clone().unwrap_or_default(),
+                    // What the loaded model accepts besides text; the gateway routes media only to nodes that list it.
+                    modalities: if s.phase == Phase::Ready {
+                        shared.engine.modalities().into_iter().map(String::from).collect()
+                    } else {
+                        Vec::new()
+                    },
                 }));
                 if s.phase == Phase::Ready {
                     shared.send_telemetry(); // the gateway routes by context size
@@ -429,6 +435,27 @@ async fn apply_admin_config(shared: &Shared, c: proto::NodeConfig) {
     shared.send_telemetry(); // the gateway routes by context size
 }
 
+/// The engine's form of a protocol message: plain text, or the typed parts when it carries media.
+fn to_message(m: &proto::ChatMessage) -> Message {
+    use base64::Engine as _;
+    use proto::content_part::Part as P;
+    let b64 = |d: &[u8]| base64::engine::general_purpose::STANDARD.encode(d);
+    let parts = m
+        .parts
+        .iter()
+        .filter_map(|p| match p.part.as_ref()? {
+            P::Text(t) => Some(Part::Text { text: t.clone() }),
+            P::Image(i) => Some(Part::Image { data: b64(&i.data) }),
+            P::Audio(a) => Some(Part::Audio { data: b64(&a.data) }),
+        })
+        .collect();
+    Message {
+        role: m.role.clone(),
+        content: m.content.clone(),
+        parts,
+    }
+}
+
 async fn serve(shared: Arc<Shared>, req: proto::InferenceRequest) {
     let id = req.request_id.clone();
     let cancel = Arc::new(AtomicBool::new(false));
@@ -436,14 +463,7 @@ async fn serve(shared: Arc<Shared>, req: proto::InferenceRequest) {
     let (tx, mut rx) = mpsc::unbounded_channel::<String>();
     let started = Instant::now();
     let gen_req = GenerateReq {
-        messages: req
-            .messages
-            .iter()
-            .map(|m| Message {
-                role: m.role.clone(),
-                content: m.content.clone(),
-            })
-            .collect(),
+        messages: req.messages.iter().map(to_message).collect(),
         max_tokens: req.max_tokens.min(i32::MAX as u32) as i32,
         temperature: req.temperature,
         top_p: req.top_p,

@@ -25,6 +25,8 @@ pub struct AppState {
     /// `host:port` other gateways forward requests to (None = running alone).
     pub advertise: Option<String>,
     pub internal_token: String,
+    /// Most media bytes (decoded) one chat request may carry.
+    pub max_media_bytes: usize,
     pub http: crate::cluster::HttpClient,
     pub changed: Arc<Notify>,
     pub cache_ready: watch::Receiver<bool>,
@@ -34,4 +36,11 @@ pub struct AppState {
     pub unknown_keys: Mutex<HashMap<String, Instant>>,
     /// Last time `last_used_at` was written per key (throttle).
     pub key_touched: Mutex<HashMap<Uuid, Instant>>,
+}
+
+impl AppState {
+    /// What a chat request body may be: the media as base64 plus the JSON around it.
+    pub fn max_body_bytes(&self) -> usize {
+        self.max_media_bytes / 3 * 4 + (1 << 20)
+    }
 }

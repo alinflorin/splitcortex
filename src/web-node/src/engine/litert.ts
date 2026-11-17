@@ -1,10 +1,12 @@
 import type {
   Backend,
+  ChatMessage,
   ComputePrefs,
   DeviceCaps,
   Engine,
   GenerateRequest,
   GenerateResult,
+  Modality,
 } from './types';
 
 /**
@@ -16,14 +18,22 @@ import type {
 interface LiteChunk {
   content?: { type?: string; text?: string }[];
 }
+type LitePart =
+  | { type: 'text'; text: string }
+  | { type: 'image'; data: Uint8Array }
+  | { type: 'audio'; data: Uint8Array };
+interface LiteMessage {
+  role: string;
+  content: string | LitePart[];
+}
 interface LiteConversation {
-  sendMessageStreaming(message: { role: string; content: string }): AsyncIterable<LiteChunk>;
+  sendMessageStreaming(message: LiteMessage): AsyncIterable<LiteChunk>;
   cancel(): void;
   delete(): Promise<void>;
 }
 interface LiteEngine {
   createConversation(config?: {
-    preface?: { messages?: { role: string; content: string }[] };
+    preface?: { messages?: LiteMessage[] };
     sessionConfig?: {
       maxOutputTokens?: number;
       samplerParams?: { type?: number; temperature?: number; p?: number };
@@ -37,7 +47,10 @@ export interface LiteModule {
     create(settings: {
       model: Blob;
       backend?: number;
-      mainExecutorSettings?: { maxNumTokens?: number };
+      /** Encoders for image / audio input; unset = that input is off. */
+      visionBackend?: number;
+      audioBackend?: number;
+      mainExecutorSettings?: { maxNumTokens?: number; maxNumImages?: number };
     }): Promise<LiteEngine>;
   };
   Backend: { CPU: number; GPU: number };
@@ -48,6 +61,8 @@ export interface LiteModule {
 export const DEFAULT_CONTEXT = 4096;
 const BENCH_PROMPT = 'Count from one to one hundred in words.';
 const BENCH_TOKENS = 40;
+/** Images one conversation may hold (the vision encoder reserves room for them up front). */
+const MAX_IMAGES = 8;
 /** Where the build serves the LiteRT-LM WASM runtime (vite.config.ts copies it there). */
 export const WASM_PATH = '/litertlm/';
 
@@ -67,6 +82,16 @@ export interface LiteRtEngineOptions {
   nav?: GpuNavigator;
 }
 
+/** The engine's form of a message: plain text stays a string, media becomes typed parts. */
+const toLite = (m: ChatMessage): LiteMessage => ({
+  role: m.role,
+  content: m.parts
+    ? m.parts.map((p) =>
+        p.type === 'text' ? { type: 'text', text: p.text } : { type: p.type, data: p.data },
+      )
+    : m.content,
+});
+
 /** The text of a streamed chunk (`content` parts of type `text`). */
 const textOf = (chunk: LiteChunk) =>
   (chunk.content ?? [])
@@ -79,7 +104,7 @@ export class LiteRtEngine implements Engine {
   private mod: LiteModule | null = null;
   private wasmReady: Promise<unknown> | null = null;
   private busy = false;
-  private active: { backend: Backend; ctx: number } | null = null;
+  private active: { backend: Backend; ctx: number; modalities: Modality[] } | null = null;
   private caps: Promise<DeviceCaps> | null = null;
   private current: LiteConversation | null = null;
 
@@ -97,6 +122,9 @@ export class LiteRtEngine implements Engine {
   }
   get maxContextTokens() {
     return this.active?.ctx ?? 0;
+  }
+  get modalities(): readonly Modality[] {
+    return this.active?.modalities ?? [];
   }
 
   /** WebGPU present and a real (not software fallback) adapter; RAM from `navigator.deviceMemory` (Chromium, capped at 8 GB). */
@@ -131,12 +159,23 @@ export class LiteRtEngine implements Engine {
     const ctx = opts.maxContextTokens ?? DEFAULT_CONTEXT;
     // The file comes from OPFS as a lazily read File: the runtime streams it, it is never one big JS buffer.
     const model = await this.o.openModel(name);
-    this.lite = await mod.Engine.create({
-      model,
-      backend: backend === 'gpu' ? mod.Backend.GPU : mod.Backend.CPU,
-      mainExecutorSettings: { maxNumTokens: ctx },
-    });
-    this.active = { backend, ctx };
+    const main = backend === 'gpu' ? mod.Backend.GPU : mod.Backend.CPU;
+    const settings = { model, backend: main, mainExecutorSettings: { maxNumTokens: ctx } };
+    // Image and audio input need the model's encoders. Try with them; a text-only model (or a device without the
+    // memory for the encoders) loads again as text only, and the node then tells the gateway so.
+    let modalities: Modality[] = ['image', 'audio'];
+    try {
+      this.lite = await mod.Engine.create({
+        ...settings,
+        visionBackend: main,
+        audioBackend: main,
+        mainExecutorSettings: { maxNumTokens: ctx, maxNumImages: MAX_IMAGES },
+      });
+    } catch {
+      modalities = [];
+      this.lite = await mod.Engine.create(settings);
+    }
+    this.active = { backend, ctx, modalities };
   }
 
   async unload() {
@@ -201,7 +240,7 @@ export class LiteRtEngine implements Engine {
       }
       const conv = await this.lite.createConversation({
         preface: {
-          messages: req.messages.slice(0, -1).map((m) => ({ role: m.role, content: m.content })),
+          messages: req.messages.slice(0, -1).map(toLite),
         },
         sessionConfig,
       });
@@ -210,10 +249,7 @@ export class LiteRtEngine implements Engine {
       signal.addEventListener('abort', onAbort);
       let produced = 0;
       try {
-        for await (const chunk of conv.sendMessageStreaming({
-          role: last.role,
-          content: last.content,
-        })) {
+        for await (const chunk of conv.sendMessageStreaming(toLite(last))) {
           if (signal.aborted) break;
           const text = textOf(chunk);
           if (!text) continue;

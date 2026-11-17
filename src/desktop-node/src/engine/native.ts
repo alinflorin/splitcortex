@@ -1,11 +1,13 @@
 import { tauriApi, type NativeApi } from '../native/ipc';
 import type {
   Backend,
+  ChatMessage,
   ComputePrefs,
   DeviceCaps,
   Engine,
   GenerateRequest,
   GenerateResult,
+  Modality,
 } from './types';
 
 /**
@@ -19,8 +21,28 @@ export const DEFAULT_CONTEXT = 4096;
 const BENCH_PROMPT = 'Count from one to one hundred in words.';
 const BENCH_TOKENS = 40;
 
+const toBase64 = (bytes: Uint8Array) => {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+
+/** The native form of a message: media bytes travel as base64 inside the JSON arguments. */
+const toNative = (m: ChatMessage) => ({
+  role: m.role,
+  content: m.content,
+  ...(m.parts && {
+    parts: m.parts.map((p) =>
+      p.type === 'text'
+        ? { type: 'text' as const, text: p.text }
+        : { type: p.type, data: toBase64(p.data) },
+    ),
+  }),
+});
+
 export class NativeEngine implements Engine {
-  private active: { backend: Backend; ctx: number } | null = null;
+  private active: { backend: Backend; ctx: number; modalities: Modality[] } | null = null;
   private busy = false;
   private caps: Promise<DeviceCaps> | null = null;
 
@@ -34,6 +56,9 @@ export class NativeEngine implements Engine {
   }
   get maxContextTokens() {
     return this.active?.ctx ?? 0;
+  }
+  get modalities(): readonly Modality[] {
+    return this.active?.modalities ?? [];
   }
 
   capabilities(): Promise<DeviceCaps> {
@@ -51,7 +76,11 @@ export class NativeEngine implements Engine {
       opts.maxContextTokens ?? DEFAULT_CONTEXT,
       opts.enableMtp ?? false,
     );
-    this.active = { backend: loaded.backend, ctx: loaded.maxContextTokens };
+    this.active = {
+      backend: loaded.backend,
+      ctx: loaded.maxContextTokens,
+      modalities: loaded.modalities,
+    };
   }
 
   async unload() {
@@ -100,7 +129,7 @@ export class NativeEngine implements Engine {
       if (signal.aborted) return { finishReason: 'stop' };
       await this.api.engineGenerate(
         {
-          messages: req.messages.map((m) => ({ role: m.role, content: m.content })),
+          messages: req.messages.map(toNative),
           maxTokens: req.maxTokens,
           temperature: req.temperature,
           topP: req.topP,

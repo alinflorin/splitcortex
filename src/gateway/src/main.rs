@@ -94,6 +94,7 @@ async fn main() -> Result<()> {
         instance_id: cfg.instance_id.clone(),
         advertise: cfg.advertise.clone(),
         internal_token: cfg.internal_token.clone(),
+        max_media_bytes: cfg.max_media_bytes,
         http: cluster::http_client(),
         changed: changed.clone(),
         cache_ready: ready_rx,

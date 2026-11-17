@@ -3,6 +3,7 @@ import { fromB64, toB64 } from '../enrollment/crypto';
 import { getOrCreateIdentity } from '../enrollment/identity';
 import { loadEnrollment, saveEnrollment } from '../enrollment/store';
 import type { ComputePrefs, TunableEngine } from '../engine/types';
+import { toChatMessage } from '../engine/messages';
 import { APP_VERSION } from '../lib/config';
 import { browserHost, UNKNOWN_TELEMETRY, type Host } from './host';
 import { OpfsModelFiles, type ModelFiles } from '../models/files';
@@ -345,6 +346,8 @@ export class NodeRuntime {
         phase: PHASE[m.phase],
         progressBytes: BigInt(Math.round(m.progressBytes)),
         error: m.error ?? '',
+        // What the loaded model accepts besides text; the gateway routes media only to nodes that list it.
+        modalities: m.phase === 'ready' ? [...this.engine.modalities] : [],
       }),
     });
   }
@@ -370,7 +373,7 @@ export class NodeRuntime {
     try {
       const result = await this.engine.generate(
         {
-          messages: req.messages.map((m) => ({ role: m.role, content: m.content })),
+          messages: req.messages.map(toChatMessage),
           maxTokens: req.maxTokens,
           temperature: req.temperature,
           topP: req.topP,

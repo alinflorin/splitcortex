@@ -146,6 +146,8 @@ export const nodeSchema = z.object({
       /** What the engine actually runs on and its context window. */
       backend: z.enum(['cpu', 'gpu']).nullable(),
       maxContextTokens: z.number().nullable(),
+      /** Inputs the loaded model accepts besides text. */
+      modalities: z.array(z.enum(['image', 'audio'])),
     })
     .nullable(),
 });

@@ -33,6 +33,31 @@ pub enum NodeEvent {
     Disconnected,
 }
 
+/// Input modalities beyond text, as bits (what a node lists in `ModelState.modalities`).
+pub const IMAGE: u32 = 1;
+pub const AUDIO: u32 = 2;
+
+/// The bits of the names a node reported; unknown names are ignored.
+pub fn modalities_from(names: &[String]) -> u32 {
+    names.iter().fold(0, |m, n| match n.as_str() {
+        "image" => m | IMAGE,
+        "audio" => m | AUDIO,
+        _ => m,
+    })
+}
+
+/// The names of the bits, in a fixed order (for `/v1/models` and the status table).
+pub fn modality_names(mods: u32) -> Vec<&'static str> {
+    let mut v = Vec::new();
+    if mods & IMAGE != 0 {
+        v.push("image");
+    }
+    if mods & AUDIO != 0 {
+        v.push("audio");
+    }
+    v
+}
+
 pub struct NodeConn {
     pub conn_id: Uuid,
     pub node_id: Uuid,
@@ -51,6 +76,8 @@ pub struct NodeConn {
     pub assignment_sent: std::sync::atomic::AtomicBool,
     /// The engine's context window in tokens as reported by the node (0 = unknown).
     pub ctx_tokens: AtomicU32,
+    /// What the ready model accepts besides text (`IMAGE` | `AUDIO` bits), as reported with `ModelState`.
+    pub modalities: AtomicU32,
     /// The `NodeConfig` last sent on this connection (backend override, context override); None = not sent yet.
     pub config_sent: Mutex<Option<(String, u32, String, String)>>,
     /// The node reconnected while requests of its previous connection wait to be resumed: no new request is sent to it
@@ -157,11 +184,11 @@ impl Registry {
     }
 
     /// (eligible node count, in-flight sum) of a pool for `model`; used to choose between pools.
-    pub fn pool_load(&self, org: Uuid, pool: Uuid, model: Uuid, need: u32) -> (usize, u32) {
+    pub fn pool_load(&self, org: Uuid, pool: Uuid, model: Uuid, need: u32, mods: u32) -> (usize, u32) {
         let nodes = self.nodes.read().unwrap();
         let mut n = 0;
         let mut load = 0;
-        for c in nodes.values().filter(|c| eligible(c, org, pool, model, need)) {
+        for c in nodes.values().filter(|c| eligible(c, org, pool, model, need, mods)) {
             n += 1;
             load += c.load();
         }
@@ -183,20 +210,39 @@ impl Registry {
         range
     }
 
+    /// Whether any node of the pool has `model` ready (busy or not).
+    pub fn has_ready(&self, org: Uuid, pool: Uuid, model: Uuid) -> bool {
+        let nodes = self.nodes.read().unwrap();
+        nodes
+            .values()
+            .any(|c| c.org_id == org && c.pool_id == pool && *c.ready_model.lock().unwrap() == Some(model))
+    }
+
+    /// The modalities (bits) the nodes that have `model` ready accept together, busy or not.
+    pub fn modalities_of(&self, org: Uuid, pool: Uuid, model: Uuid) -> u32 {
+        let nodes = self.nodes.read().unwrap();
+        nodes
+            .values()
+            .filter(|c| c.org_id == org && c.pool_id == pool && *c.ready_model.lock().unwrap() == Some(model))
+            .fold(0, |m, c| m | c.modalities.load(Ordering::Relaxed))
+    }
+
     /// Picks an eligible node and reserves one in-flight slot on it.
+    #[allow(clippy::too_many_arguments)]
     pub fn pick(
         &self,
         org: Uuid,
         pool: Uuid,
         model: Uuid,
         need: u32,
+        mods: u32,
         balancing: &str,
         exclude: &[Uuid],
     ) -> Option<Arc<NodeConn>> {
         let nodes = self.nodes.read().unwrap();
         let cands: Vec<&Arc<NodeConn>> = nodes
             .values()
-            .filter(|c| eligible(c, org, pool, model, need) && !exclude.contains(&c.node_id))
+            .filter(|c| eligible(c, org, pool, model, need, mods) && !exclude.contains(&c.node_id))
             .collect();
         if cands.is_empty() {
             return None;
@@ -352,13 +398,14 @@ fn fits(c: &NodeConn, need: u32) -> bool {
     ctx == 0 || ctx >= need
 }
 
-fn eligible(c: &NodeConn, org: Uuid, pool: Uuid, model: Uuid, need: u32) -> bool {
+fn eligible(c: &NodeConn, org: Uuid, pool: Uuid, model: Uuid, need: u32, mods: u32) -> bool {
     c.org_id == org
         && c.pool_id == pool
         && c.load() < c.capacity
         && !c.resuming.load(Ordering::Relaxed)
         && *c.ready_model.lock().unwrap() == Some(model)
         && fits(c, need)
+        && c.modalities.load(Ordering::Relaxed) & mods == mods
 }
 
 fn score(c: &NodeConn) -> f64 {
@@ -385,6 +432,7 @@ mod tests {
             tps_bits: Default::default(),
             assignment_sent: Default::default(),
             ctx_tokens: Default::default(),
+            modalities: Default::default(),
             config_sent: Default::default(),
             resuming: Default::default(),
             since: std::time::Instant::now(),
@@ -401,14 +449,14 @@ mod tests {
         reg.register(conn(Uuid::new_v4(), pool, Some(model))); // another org (tenant isolation)
         reg.register(conn(org, Uuid::new_v4(), Some(model))); // another pool
 
-        let got = reg.pick(org, pool, model, 0, "weighted_p2c", &[]).expect("a node");
+        let got = reg.pick(org, pool, model, 0, 0, "weighted_p2c", &[]).expect("a node");
         assert_eq!(got.node_id, ready.node_id);
         // capacity 1: the slot is taken now
-        assert!(reg.pick(org, pool, model, 0, "weighted_p2c", &[]).is_none());
+        assert!(reg.pick(org, pool, model, 0, 0, "weighted_p2c", &[]).is_none());
         got.in_flight.fetch_sub(1, Ordering::AcqRel);
         // an excluded node is never picked (retry on another node)
         assert!(reg
-            .pick(org, pool, model, 0, "least_in_flight", &[ready.node_id])
+            .pick(org, pool, model, 0, 0, "least_in_flight", &[ready.node_id])
             .is_none());
     }
 
@@ -420,19 +468,47 @@ mod tests {
         small.ctx_tokens.store(2048, Ordering::Relaxed);
         reg.register(small.clone());
         assert_eq!(reg.context_range(org, pool, model), Some((2048, 2048)));
-        assert!(reg.pick(org, pool, model, 4000, "weighted_p2c", &[]).is_none());
-        assert_eq!(reg.pool_load(org, pool, model, 4000).0, 0);
+        assert!(reg.pick(org, pool, model, 4000, 0, "weighted_p2c", &[]).is_none());
+        assert_eq!(reg.pool_load(org, pool, model, 4000, 0).0, 0);
         let big = conn(org, pool, Some(model));
         big.ctx_tokens.store(8192, Ordering::Relaxed);
         reg.register(big.clone());
         assert_eq!(reg.context_range(org, pool, model), Some((2048, 8192)));
-        let got = reg.pick(org, pool, model, 4000, "random", &[]).expect("the big node");
+        let got = reg
+            .pick(org, pool, model, 4000, 0, "random", &[])
+            .expect("the big node");
         assert_eq!(got.node_id, big.node_id);
         // a node that has not reported a window is assumed to fit
         let unknown = conn(org, pool, Some(model));
         assert_eq!(reg.context_range(Uuid::new_v4(), pool, model), None);
         reg.register(unknown.clone());
-        assert!(reg.pool_load(org, pool, model, 1_000_000).0 >= 1);
+        assert!(reg.pool_load(org, pool, model, 1_000_000, 0).0 >= 1);
+    }
+
+    #[test]
+    fn media_only_goes_to_nodes_that_accept_it() {
+        let (org, pool, model) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let reg = Registry::default();
+        let text = conn(org, pool, Some(model));
+        reg.register(text.clone());
+        assert_eq!(reg.modalities_of(org, pool, model), 0);
+        assert!(reg.pick(org, pool, model, 0, IMAGE, "random", &[]).is_none());
+        assert_eq!(reg.pool_load(org, pool, model, 0, IMAGE).0, 0);
+        let vision = conn(org, pool, Some(model));
+        vision
+            .modalities
+            .store(modalities_from(&["image".into(), "bogus".into()]), Ordering::Relaxed);
+        reg.register(vision.clone());
+        assert_eq!(modality_names(reg.modalities_of(org, pool, model)), vec!["image"]);
+        let got = reg
+            .pick(org, pool, model, 0, IMAGE, "random", &[])
+            .expect("the vision node");
+        assert_eq!(got.node_id, vision.node_id);
+        got.in_flight.fetch_sub(1, Ordering::AcqRel);
+        // audio as well: this node has none
+        assert!(reg.pick(org, pool, model, 0, IMAGE | AUDIO, "random", &[]).is_none());
+        // text requests still go anywhere
+        assert!(reg.pick(org, pool, model, 0, 0, "random", &[]).is_some());
     }
 
     #[test]

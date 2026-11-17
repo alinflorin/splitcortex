@@ -49,6 +49,7 @@ function setup(fileBytes: Uint8Array = FILE) {
   const { disk, files } = memoryFiles();
   const statuses: ModelStatus[] = [];
   const engine: Engine = {
+    modalities: [],
     backend: null,
     maxContextTokens: 0,
     capabilities: async () => ({ gpuAvailable: false, emulator: false, totalMemoryMb: 0 }),

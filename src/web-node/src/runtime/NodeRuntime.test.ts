@@ -49,6 +49,7 @@ vi.mock('../protocol/connection', () => ({
 }));
 
 const engine: TunableEngine = {
+  modalities: ['image'],
   loaded: true,
   backend: 'gpu',
   maxContextTokens: 4096,
@@ -184,6 +185,70 @@ describe('NodeRuntime', () => {
       temperatureC: 31.5,
     });
     await rt.stop();
+  });
+
+  describe('multimodal input', () => {
+    const ready = { phase: 'ready', modelId: 'm1', name: 'm', progressBytes: 0, sizeBytes: 0 };
+
+    it('tells the gateway what the loaded model accepts besides text', async () => {
+      mockEnrollment = approved;
+      const { rt } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      const ms = mockSent.filter((m) => m.case === 'modelState').at(-1);
+      expect(ms?.value).toMatchObject({ modalities: ['image'] });
+      mockOnStatus?.({ ...ready, phase: 'loading' });
+      expect(mockSent.filter((m) => m.case === 'modelState').at(-1)?.value).toMatchObject({
+        modalities: [],
+      });
+      await rt.stop();
+    });
+
+    it('hands the engine a message with media as typed parts', async () => {
+      mockEnrollment = approved;
+      const { rt } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      const gen = vi.fn(async (..._args: unknown[]) => ({ finishReason: 'stop' as const }));
+      engine.generate = gen as unknown as TunableEngine['generate'];
+      const png = new Uint8Array([1, 2]);
+      mockOnBody?.({
+        case: 'inferenceRequest',
+        value: {
+          requestId: 'r9',
+          modelId: 'm1',
+          messages: [
+            { role: 'user', content: 'hello', parts: [] },
+            {
+              role: 'user',
+              content: 'look',
+              parts: [
+                { part: { case: 'text', value: 'look' } },
+                { part: { case: 'image', value: { mimeType: 'image/png', data: png } } },
+              ],
+            },
+          ],
+          maxTokens: 0,
+          temperature: 0,
+          topP: 0,
+        },
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(gen.mock.calls[0]?.[0]).toMatchObject({
+        messages: [
+          { role: 'user', content: 'hello' },
+          {
+            role: 'user',
+            content: 'look',
+            parts: [
+              { type: 'text', text: 'look' },
+              { type: 'image', mimeType: 'image/png', data: png },
+            ],
+          },
+        ],
+      });
+      await rt.stop();
+    });
   });
 
   describe('requests across a dropped connection', () => {

@@ -62,6 +62,7 @@ const node = (over: Partial<Node> = {}): Node => ({
     tokensPerSec: 21.5,
     backend: 'gpu',
     maxContextTokens: 4096,
+    modalities: ['image'],
   },
   ...over,
 });

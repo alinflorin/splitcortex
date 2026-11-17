@@ -4,7 +4,11 @@ import { DEFAULT_CONTEXT, NativeEngine } from './native';
 
 function fakeApi(over: Partial<NativeApi> = {}): NativeApi {
   return {
-    engineLoad: vi.fn(async (_n, backend, ctx) => ({ backend, maxContextTokens: ctx })),
+    engineLoad: vi.fn(async (_n, backend, ctx) => ({
+      backend,
+      maxContextTokens: ctx,
+      modalities: ['image' as const, 'audio' as const],
+    })),
     engineUnload: vi.fn(async () => undefined),
     engineGenerate: vi.fn(async (_req, onText) => {
       ['Hel', 'lo'].forEach(onText);
@@ -39,6 +43,45 @@ describe('NativeEngine', () => {
     await e.unload();
     expect(e.loaded).toBe(false);
     expect(e.backend).toBeNull();
+  });
+
+  it('reports what the model accepts and sends media as base64 parts', async () => {
+    const api = fakeApi();
+    const e = new NativeEngine(api);
+    expect(e.modalities).toEqual([]);
+    await e.load('m');
+    expect(e.modalities).toEqual(['image', 'audio']);
+    await e.generate(
+      {
+        ...req,
+        messages: [
+          {
+            role: 'user',
+            content: 'look',
+            parts: [
+              { type: 'text', text: 'look' },
+              { type: 'image', mimeType: 'image/png', data: new Uint8Array([1, 2]) },
+              { type: 'audio', mimeType: 'audio/wav', data: new Uint8Array([3]) },
+            ],
+          },
+        ],
+      },
+      () => undefined,
+      new AbortController().signal,
+    );
+    expect(vi.mocked(api.engineGenerate).mock.calls[0]?.[0].messages).toEqual([
+      {
+        role: 'user',
+        content: 'look',
+        parts: [
+          { type: 'text', text: 'look' },
+          { type: 'image', data: 'AQI=' },
+          { type: 'audio', data: 'Aw==' },
+        ],
+      },
+    ]);
+    await e.unload();
+    expect(e.modalities).toEqual([]);
   });
 
   it('streams text pieces and reports why it stopped', async () => {

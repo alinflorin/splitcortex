@@ -1,0 +1,24 @@
+{
+    "recommendations": [
+        "anthropic.claude-code",
+        "vadimcn.vscode-lldb",
+        "mikestead.dotenv",
+        "editorconfig.editorconfig",
+        "usernamehw.errorlens",
+        "dsznajder.es7-react-js-snippets",
+        "tamasfe.even-better-toml",
+        "github.vscode-github-actions",
+        "tim-koehler.helm-intellisense",
+        "ecmel.vscode-html-css",
+        "lokalise.i18n-ally",
+        "christian-kohler.npm-intellisense",
+        "christian-kohler.path-intellisense",
+        "esbenp.prettier-vscode",
+        "rust-lang.rust-analyzer",
+        "tauri-apps.tauri-vscode",
+        "tchoupinax.tilt",
+        "vitest.explorer",
+        "msjsdiag.vscode-react-native",
+        "expo.vscode-expo-tools"
+    ]
+}

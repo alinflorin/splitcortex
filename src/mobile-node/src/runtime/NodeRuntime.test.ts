@@ -47,6 +47,7 @@ jest.mock('../protocol/connection', () => ({
 }));
 
 const engine: TunableEngine = {
+  modalities: ['image'],
   loaded: true,
   backend: 'gpu',
   maxContextTokens: 4096,

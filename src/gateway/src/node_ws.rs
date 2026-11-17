@@ -129,6 +129,7 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
         tps_bits: Default::default(),
         assignment_sent: Default::default(),
         ctx_tokens: Default::default(),
+        modalities: Default::default(),
         config_sent: Default::default(),
         resuming: Default::default(),
         since: std::time::Instant::now(),
@@ -258,6 +259,13 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
             } else {
                 None
             };
+            // What the model accepts besides text counts only while it is the ready, assigned one.
+            let mods = if conn.ready_model.lock().unwrap().is_some() {
+                crate::registry::modalities_from(&s.modalities)
+            } else {
+                0
+            };
+            conn.modalities.store(mods, Ordering::Relaxed);
             update_model_status(app, node, &s).await;
         }
         Some(Body::Telemetry(t)) => {
@@ -266,11 +274,11 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
             let backend = (t.backend == "cpu" || t.backend == "gpu").then_some(t.backend.clone());
             let _ = sqlx::query(
                 "insert into node_status (node_id, connected, cpu_percent, memory_used_mb, battery_percent, charging, \
-                 temperature_c, in_flight, tokens_per_sec, backend, max_context_tokens, gateway_id, updated_at) \
-                 values ($1, true, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now()) \
+                 temperature_c, in_flight, tokens_per_sec, backend, max_context_tokens, gateway_id, modalities, updated_at) \
+                 values ($1, true, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now()) \
                  on conflict (node_id) do update set cpu_percent = $2, memory_used_mb = $3, battery_percent = $4, \
                  charging = $5, temperature_c = $6, in_flight = $7, tokens_per_sec = $8, backend = $9, \
-                 max_context_tokens = $10, gateway_id = $11, updated_at = now()",
+                 max_context_tokens = $10, gateway_id = $11, modalities = $12, updated_at = now()",
             )
             .bind(node)
             .bind((t.cpu_percent >= 0.0).then_some(t.cpu_percent))
@@ -283,6 +291,7 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
             .bind(backend)
             .bind((t.max_context_tokens > 0).then_some(t.max_context_tokens as i32))
             .bind(&app.instance_id)
+            .bind(crate::registry::modality_names(conn.modalities.load(Ordering::Relaxed)).join(","))
             .execute(&app.db)
             .await;
         }

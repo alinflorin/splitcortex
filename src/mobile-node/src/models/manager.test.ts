@@ -86,6 +86,7 @@ function setup(fileBytes: Uint8Array = FILE) {
   mockDisk.clear();
   const statuses: ModelStatus[] = [];
   const engine: Engine = {
+    modalities: [],
     backend: null,
     maxContextTokens: 0,
     capabilities: () => ({ gpuAvailable: false, emulator: false, totalMemoryMb: 0 }),

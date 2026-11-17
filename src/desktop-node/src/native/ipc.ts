@@ -1,5 +1,5 @@
 import { Channel, invoke, isTauri } from '@tauri-apps/api/core';
-import type { Backend, DeviceCaps } from '../engine/types';
+import type { Backend, DeviceCaps, Modality } from '../engine/types';
 
 /**
  * Everything the app asks of the native side (src-tauri). One typed seam: nothing else imports `@tauri-apps/api`, so
@@ -8,7 +8,11 @@ import type { Backend, DeviceCaps } from '../engine/types';
 export interface LoadedEngine {
   backend: Backend;
   maxContextTokens: number;
+  /** What the loaded model accepts besides text. */
+  modalities: Modality[];
 }
+/** A message part as the native side takes it: media bytes are base64 (JSON has no bytes). */
+export type NativePart = { type: 'text'; text: string } | { type: 'image' | 'audio'; data: string };
 export interface NativeDevice {
   name: string;
   os: string;
@@ -26,7 +30,7 @@ export interface NativeTelemetry {
   temperatureC: number;
 }
 export interface NativeGenerate {
-  messages: { role: string; content: string }[];
+  messages: { role: string; content: string; parts?: NativePart[] }[];
   maxTokens: number;
   temperature: number;
   topP: number;

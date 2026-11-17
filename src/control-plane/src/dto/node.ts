@@ -26,6 +26,8 @@ export const NodeLiveSchema = z.object({
   /** What the engine actually runs on and its context window (the device's choice, or the override below). */
   backend: ComputeBackendSchema.nullable(),
   maxContextTokens: z.number().int().nullable(),
+  /** Inputs the loaded model accepts besides text (empty = text only). */
+  modalities: z.array(z.enum(['image', 'audio'])),
 });
 export type NodeLiveDto = z.infer<typeof NodeLiveSchema>;
 

@@ -319,6 +319,9 @@ gateway:
   readOnlyRootFilesystem: true   # Tilt dev sets false (cargo writes build output)
   # Graceful shutdown: on SIGTERM the instance fails readiness, keeps serving for delaySeconds (the load balancer drops it),
   # then refuses new work and waits for running requests, at most timeoutSeconds (set it above your longest request).
+  # Most image/audio data (decoded, MiB) one chat request may carry. The gateway holds a request about three times
+  # over in memory, so size the pod for this times the concurrent large requests.
+  maxMediaMb: 256
   drain:
     delaySeconds: 5
     timeoutSeconds: 3600

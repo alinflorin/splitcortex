@@ -1,6 +1,18 @@
+/** A piece of a message with media in it (the proto's `ContentPart`); the engine reads it from the bytes. */
+export type ContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image'; mimeType: string; data: Uint8Array }
+  | { type: 'audio'; mimeType: string; data: Uint8Array };
+
+/** What a model accepts besides text. */
+export type Modality = 'image' | 'audio';
+
 export interface ChatMessage {
   role: string;
+  /** The message's text. */
   content: string;
+  /** Set when the message has media: every part in order, text included (then it replaces `content`). */
+  parts?: ContentPart[];
 }
 
 export interface GenerateRequest {
@@ -49,6 +61,8 @@ export interface Engine {
   readonly backend: Backend | null;
   /** The loaded model's context window in tokens (0 when nothing is loaded). */
   readonly maxContextTokens: number;
+  /** What the loaded model accepts besides text (empty when text only or nothing is loaded). */
+  readonly modalities: readonly Modality[];
   capabilities(): Promise<DeviceCaps>;
   /** Decode speed (tokens/sec) of a short fixed generation on the loaded model. */
   benchmark(): Promise<number>;

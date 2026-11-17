@@ -40,6 +40,8 @@ impl Drop for Loaded {
 pub struct Engine {
     api: Mutex<Option<Arc<Api>>>,
     loaded: Mutex<Option<Loaded>>,
+    /// The loaded model takes image and audio input.
+    media: AtomicBool,
 }
 
 /// Where the library is: `SPLITCORTEX_LITERT_LIB`, else `litert/` next to the executable (what the release archive
@@ -76,16 +78,19 @@ fn create_engine(
     backend: &str,
     ctx: i32,
     mtp: bool,
+    media: bool,
     cache_dir: &str,
 ) -> Result<Handle, String> {
     let (path, backend, cache) = (cstr(path)?, cstr(backend)?, cstr(cache_dir)?);
+    // The vision and audio encoders run on the same backend as the model (null = that input is off).
+    let encoder = if media { backend.as_ptr() } else { ptr::null() };
     unsafe {
         let mut settings: Handle = ptr::null_mut();
         let st = (api.settings_create)(
             path.as_ptr(),
             backend.as_ptr(),
-            ptr::null(),
-            ptr::null(),
+            encoder,
+            encoder,
             &mut settings,
         );
         if st != 0 {
@@ -121,6 +126,38 @@ fn create_engine(
         }
         (api.settings_delete)(settings);
         result
+    }
+}
+
+/// Loads a model with the best settings the library accepts: image and audio input first (a model without the
+/// encoders, or a device without the memory for them, is rejected), then text only; with MTP first, then without.
+/// Returns the engine and whether media input is on.
+fn create_best(
+    api: &Arc<Api>,
+    path: &str,
+    backend: &str,
+    ctx: i32,
+    mtp: bool,
+    cache_dir: &str,
+) -> Result<(Handle, bool), String> {
+    let mut last = String::new();
+    for media in [true, false] {
+        for mtp in if mtp { vec![true, false] } else { vec![false] } {
+            match create_engine(api, path, backend, ctx, mtp, media, cache_dir) {
+                Ok(e) => return Ok((e, media)),
+                Err(e) => last = e,
+            }
+        }
+    }
+    Err(last)
+}
+
+/// The input modalities beyond text of a loaded model.
+fn modalities(media: bool) -> Vec<&'static str> {
+    if media {
+        vec!["image", "audio"]
+    } else {
+        Vec::new()
     }
 }
 
@@ -205,16 +242,9 @@ fn run_generation(
         .messages
         .split_last()
         .ok_or("the request has no messages")?;
-    let history_json = cstr(
-        &Value::Array(
-            history
-                .iter()
-                .map(|m| json!({"role": m.role, "content": m.content}))
-                .collect(),
-        )
-        .to_string(),
-    )?;
-    let last_json = cstr(&json!({"role": last.role, "content": last.content}).to_string())?;
+    let history_json =
+        cstr(&Value::Array(history.iter().map(Message::to_json).collect()).to_string())?;
+    let last_json = cstr(&last.to_json().to_string())?;
 
     let mut handles: Vec<(Handle, unsafe extern "C" fn(Handle))> = Vec::new();
     let cleanup = |hs: &mut Vec<(Handle, unsafe extern "C" fn(Handle))>| {
@@ -296,10 +326,41 @@ fn run_generation(
     result
 }
 
+/// One piece of a message with media (the bytes are base64, as the engine's JSON message format takes them).
+#[derive(Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum Part {
+    Text { text: String },
+    Image { data: String },
+    Audio { data: String },
+}
+
 #[derive(Deserialize, Clone)]
 pub struct Message {
     pub role: String,
     pub content: String,
+    /// Set when the message has media: every part in order, text included (then it replaces `content`).
+    #[serde(default)]
+    pub parts: Vec<Part>,
+}
+
+impl Message {
+    /// The engine's JSON message: `content` is the text, or the list of typed parts when there is media.
+    fn to_json(&self) -> Value {
+        if self.parts.is_empty() {
+            return json!({"role": self.role, "content": self.content});
+        }
+        let parts: Vec<Value> = self
+            .parts
+            .iter()
+            .map(|p| match p {
+                Part::Text { text } => json!({"type": "text", "text": text}),
+                Part::Image { data } => json!({"type": "image", "blob": data}),
+                Part::Audio { data } => json!({"type": "audio", "blob": data}),
+            })
+            .collect();
+        json!({"role": self.role, "content": parts})
+    }
 }
 #[derive(Deserialize, Clone)]
 pub struct GenerateReq {
@@ -344,10 +405,8 @@ impl Engine {
             cache_dir.to_string_lossy().into_owned(),
         );
         // A model without a drafter ignores MTP; one the library rejects loads again without it.
-        let engine = match create_engine(&api, &path, backend, max_context_tokens, mtp, &cache) {
-            Err(_) if mtp => create_engine(&api, &path, backend, max_context_tokens, false, &cache),
-            r => r,
-        }?;
+        let (engine, media) = create_best(&api, &path, backend, max_context_tokens, mtp, &cache)?;
+        self.media.store(media, Ordering::SeqCst);
         *self.loaded.lock().unwrap_or_else(|x| x.into_inner()) = Some(Loaded { api, engine });
         Ok(())
     }
@@ -355,6 +414,12 @@ impl Engine {
     /// Waits for a running generation to end (it holds the lock), then deletes the engine.
     pub fn unload(&self) {
         *self.loaded.lock().unwrap_or_else(|x| x.into_inner()) = None;
+        self.media.store(false, Ordering::SeqCst);
+    }
+
+    /// The inputs besides text the loaded model accepts (`image`, `audio`; none when text only or nothing is loaded).
+    pub fn modalities(&self) -> Vec<&'static str> {
+        modalities(self.media.load(Ordering::SeqCst))
     }
 
     /// Streams the answer as text pieces through `on_text`. Setting `cancel` ends it early, normally.
@@ -426,5 +491,52 @@ mod tests {
         assert_eq!(chunk_text(r#"{"role":"assistant"}"#), "");
         assert_eq!(chunk_text("plain"), "plain");
         assert_eq!(chunk_text("42"), "42");
+    }
+
+    #[test]
+    fn plain_messages_keep_a_string_and_media_becomes_typed_parts() {
+        let plain = Message {
+            role: "user".into(),
+            content: "hi".into(),
+            parts: Vec::new(),
+        };
+        assert_eq!(plain.to_json(), json!({"role": "user", "content": "hi"}));
+        let media = Message {
+            role: "user".into(),
+            content: "look".into(),
+            parts: vec![
+                Part::Text {
+                    text: "look".into(),
+                },
+                Part::Image {
+                    data: "AQI=".into(),
+                },
+                Part::Audio {
+                    data: "Aw==".into(),
+                },
+            ],
+        };
+        assert_eq!(
+            media.to_json(),
+            json!({"role": "user", "content": [
+                {"type": "text", "text": "look"},
+                {"type": "image", "blob": "AQI="},
+                {"type": "audio", "blob": "Aw=="},
+            ]})
+        );
+        // the web side sends `parts` with a `type` tag and base64 `data`
+        let m: Message = serde_json::from_str(
+            r#"{"role":"user","content":"x","parts":[{"type":"image","data":"AQI="}]}"#,
+        )
+        .unwrap();
+        assert!(matches!(m.parts[0], Part::Image { .. }));
+        let old: Message = serde_json::from_str(r#"{"role":"user","content":"x"}"#).unwrap();
+        assert!(old.parts.is_empty());
+    }
+
+    #[test]
+    fn modalities_follow_the_encoders() {
+        assert_eq!(modalities(true), vec!["image", "audio"]);
+        assert!(modalities(false).is_empty());
     }
 }

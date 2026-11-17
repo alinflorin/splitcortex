@@ -126,6 +126,9 @@ message ModelState {
   ModelPhase phase = 2;
   uint64 progress_bytes = 3;
   string error = 4;
+  // What the loaded model accepts besides text, set while READY: "image" and/or "audio" (empty = text only). The
+  // gateway only sends a request with media parts to a node that lists the matching input here.
+  repeated string modalities = 5;
 }
 
 // Unknown values: cpu_percent < 0, memory_used_mb = 0, battery_percent < 0 (charging is then meaningless),
@@ -150,9 +153,27 @@ message Pong {
   uint64 timestamp_ms = 1;
 }
 
+// Media bytes are sent as the client gave them (decoded from base64 by the gateway); the node hands them to the engine.
+message Media {
+  string mime_type = 1; // image/jpeg, image/png, ... | audio/wav, audio/mpeg, audio/flac
+  bytes data = 2;
+}
+
+message ContentPart {
+  oneof part {
+    string text = 1;
+    Media image = 2;
+    Media audio = 3;
+  }
+}
+
 message ChatMessage {
   string role = 1; // system | user | assistant
+  // The message's text. Always set (the text parts joined), so a node that predates `parts` still sees the text.
   string content = 2;
+  // Only set when the message contains media: every part in order, text included. A node that reads `parts` ignores
+  // `content` then. Never sent to a node that did not list the media's modality in `ModelState.modalities`.
+  repeated ContentPart parts = 3;
 }
 
 // Every message below carries the request id, so many requests share the one socket.

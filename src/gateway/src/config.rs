@@ -26,6 +26,8 @@ pub struct Config {
     pub drain_delay_secs: u64,
     /// After SIGTERM: the longest the instance waits for running requests before it exits anyway.
     pub drain_timeout_secs: u64,
+    /// Most media (decoded images and audio) one chat request may carry, in bytes (`GATEWAY_MAX_MEDIA_MB`, default 256).
+    pub max_media_bytes: usize,
 }
 
 impl Config {
@@ -65,6 +67,7 @@ impl Config {
             internal_token,
             drain_delay_secs: env_or("DRAIN_DELAY_SECONDS", 5),
             drain_timeout_secs: env_or("DRAIN_TIMEOUT_SECONDS", 3600),
+            max_media_bytes: env_or::<usize>("GATEWAY_MAX_MEDIA_MB", 256).max(1) << 20,
         })
     }
 }

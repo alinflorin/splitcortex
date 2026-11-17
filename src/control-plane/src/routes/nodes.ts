@@ -61,6 +61,9 @@ export function toNodeDto({ node, live }: Row, now = Date.now()): NodeDto {
             tokensPerSec: live.tokensPerSec,
             backend: parseBackend(live.backend),
             maxContextTokens: live.maxContextTokens,
+            modalities: (live.modalities ?? '')
+              .split(',')
+              .filter((m): m is 'image' | 'audio' => m === 'image' || m === 'audio'),
           }
         : null,
   };

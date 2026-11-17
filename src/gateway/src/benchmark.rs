@@ -143,6 +143,7 @@ async fn run_one(app: &Arc<AppState>, node_id: Uuid) -> Result<Measured, String>
                 messages: vec![proto::ChatMessage {
                     role: "user".into(),
                     content: PROMPT.into(),
+                    parts: Vec::new(),
                 }],
                 max_tokens: MAX_TOKENS,
                 temperature: 0.0,

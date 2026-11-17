@@ -86,6 +86,13 @@ function ComputeSettings({ node, admin }: { node: Node; admin: boolean }) {
         <StatRow>
           <Stat label={t('nodes.runningOn')} value={live.backend.toUpperCase()} />
           <Stat label={t('nodes.contextWindow')} value={live.maxContextTokens ?? '—'} />
+          <Stat
+            label={t('nodes.inputs')}
+            value={[
+              t('nodes.inputText'),
+              ...live.modalities.map((m) => t(`nodes.input_${m}`)),
+            ].join(', ')}
+          />
         </StatRow>
       )}
       <Field label={t('nodes.backend')}>

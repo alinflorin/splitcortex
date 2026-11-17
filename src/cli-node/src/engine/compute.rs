@@ -104,6 +104,10 @@ impl ComputeEngine {
             .unwrap_or_else(|e| e.into_inner())
             .map(|a| a.0)
     }
+    /// The inputs besides text the loaded model accepts (`image`, `audio`).
+    pub fn modalities(&self) -> Vec<&'static str> {
+        self.engine.modalities()
+    }
     pub fn max_context_tokens(&self) -> i32 {
         self.active
             .lock()
@@ -265,6 +269,7 @@ impl ComputeEngine {
             messages: vec![super::Message {
                 role: "user".into(),
                 content: BENCH_PROMPT.into(),
+                parts: Vec::new(),
             }],
             max_tokens: BENCH_TOKENS,
             temperature: 0.0,

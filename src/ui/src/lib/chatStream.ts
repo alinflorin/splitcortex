@@ -1,8 +1,15 @@
 import { z } from 'zod';
 
+/** The OpenAI content parts the gateway takes: text, an image as a base64 data URL, an audio clip as base64. */
+export type ContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+  | { type: 'input_audio'; input_audio: { data: string; format: 'wav' | 'mp3' | 'flac' } };
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  /** Plain text, or content parts when the message carries images or audio. */
+  content: string | ContentPart[];
 }
 
 export interface ChatParams {
@@ -31,12 +38,23 @@ export class GatewayError extends Error {
 }
 
 const modelsSchema = z.object({
-  data: z.array(z.object({ id: z.string(), context_length: z.number().nullish() })),
+  data: z.array(
+    z.object({
+      id: z.string(),
+      context_length: z.number().nullish(),
+      input_modalities: z.array(z.string()).nullish(),
+      /** Most media bytes (decoded) one request may carry. */
+      max_media_bytes: z.number().nullish(),
+    }),
+  ),
 });
 const errorSchema = z.object({ error: z.object({ message: z.string() }) });
 const chunkSchema = z.object({
   choices: z.array(z.object({ delta: z.object({ content: z.string().nullish() }).nullish() })),
 });
+
+/** A model the key can use; `input_modalities` is what its nodes accept right now (always includes `text`). */
+export type GatewayModel = z.infer<typeof modelsSchema>['data'][number];
 
 const headers = (key: string) => ({
   Authorization: `Bearer ${key}`,

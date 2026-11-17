@@ -314,7 +314,11 @@
     "keepScreenOn": "Keep the screen on",
     "keepScreenOnHint": "Some Android devices only run the GPU at full speed with the app open in the foreground and the display on. The app has to stay open.",
     "on": "On",
-    "off": "Off"
+    "off": "Off",
+    "inputs": "Accepts",
+    "inputText": "text",
+    "input_image": "images",
+    "input_audio": "audio"
   },
   "models": {
     "title": "Models",
@@ -479,6 +483,20 @@
     "failed": "Something went wrong. Try again.",
     "homeTitle": "Test it",
     "homeBody": "Chat with one of your pools right here, using an API key.",
-    "open": "Open the Playground"
+    "open": "Open the Playground",
+    "attach": {
+      "add": "Attach files",
+      "hint": "Attach images, audio or text files (you can also paste or drop them)",
+      "record": "Record audio",
+      "stopRecording": "Stop recording",
+      "remove": "Remove {{name}}",
+      "unsupported": "“{{name}}” can't be attached. Use images, audio or plain text files.",
+      "tooLarge": "“{{name}}” is too large (limit {{limit}}).",
+      "tooLong": "“{{name}}” is too long.",
+      "unreadable": "“{{name}}” could not be read.",
+      "total": "A conversation can carry at most {{limit}} of images and audio. Clear it or remove attachments.",
+      "noMic": "The microphone is not available or access was denied.",
+      "modalityMissing": "No node of this model reports {{kind}} input right now; the request may be refused."
+    }
   }
 }

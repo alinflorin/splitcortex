@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { LiteRtEngine, WASM_PATH, type LiteModule } from './litert';
 
 /** A fake `@litert-lm/core`: records what it was asked and streams the given pieces. */
-function fakeModule(pieces: string[] = ['Hel', 'lo']) {
+function fakeModule(pieces: string[] = ['Hel', 'lo'], textOnly = false) {
   const calls = {
     wasm: [] as string[],
     create: [] as unknown[],
@@ -18,6 +18,11 @@ function fakeModule(pieces: string[] = ['Hel', 'lo']) {
     Engine: {
       create: async (settings) => {
         calls.create.push(settings);
+        if (
+          textOnly &&
+          (settings.visionBackend !== undefined || settings.audioBackend !== undefined)
+        )
+          throw new Error('this model has no encoders');
         return {
           createConversation: async (config) => {
             calls.conv.push(config);
@@ -68,6 +73,63 @@ describe('LiteRtEngine', () => {
     expect(e).toMatchObject({ loaded: true, backend: 'gpu', maxContextTokens: 2048 });
     await e.unload();
     expect(e.loaded).toBe(false);
+  });
+
+  it('enables image and audio input when the model has the encoders, and falls back to text only', async () => {
+    const full = fakeModule();
+    const a = engine(full.mod).e;
+    await a.load('m1.litertlm');
+    expect(a.modalities).toEqual(['image', 'audio']);
+    expect(full.calls.create[0]).toMatchObject({ visionBackend: 3, audioBackend: 3 });
+    await a.unload();
+    expect(a.modalities).toEqual([]);
+
+    const plain = fakeModule(undefined, true);
+    const b = engine(plain.mod).e;
+    await b.load('m2.litertlm');
+    expect(b.modalities).toEqual([]);
+    expect(plain.calls.create).toHaveLength(2);
+    expect(plain.calls.create[1]).not.toHaveProperty('visionBackend');
+    expect(b.loaded).toBe(true);
+  });
+
+  it('sends messages with media as typed parts', async () => {
+    const { mod, calls } = fakeModule();
+    const { e } = engine(mod);
+    await e.load('m1.litertlm');
+    const png = new Uint8Array([1, 2, 3]);
+    const wav = new Uint8Array([4, 5]);
+    await e.generate(
+      {
+        messages: [
+          { role: 'user', content: 'earlier' },
+          {
+            role: 'user',
+            content: 'What is this?',
+            parts: [
+              { type: 'text', text: 'What is this?' },
+              { type: 'image', mimeType: 'image/png', data: png },
+              { type: 'audio', mimeType: 'audio/wav', data: wav },
+            ],
+          },
+        ],
+        maxTokens: 0,
+        temperature: 0,
+        topP: 0,
+      },
+      () => undefined,
+      new AbortController().signal,
+    );
+    expect(calls.sent).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is this?' },
+          { type: 'image', data: png },
+          { type: 'audio', data: wav },
+        ],
+      },
+    ]);
   });
 
   it('reports WebGPU and the device memory as capabilities', async () => {

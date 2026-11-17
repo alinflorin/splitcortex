@@ -1,0 +1,1 @@
+ALTER TABLE "node_status" ADD COLUMN "modalities" text;

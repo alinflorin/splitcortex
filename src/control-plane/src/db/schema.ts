@@ -163,6 +163,8 @@ export const nodeStatus = pgTable('node_status', {
   /** What the engine actually runs on (`cpu` | `gpu`) and its context window, as reported by the node. */
   backend: text('backend'),
   maxContextTokens: integer('max_context_tokens'),
+  /** What the loaded model accepts besides text (`image`, `audio`; comma separated, empty = text only). */
+  modalities: text('modalities'),
   /** The gateway instance holding the connection (`gateway_instances.id`). */
   gatewayId: text('gateway_id'),
   /** Ids (hex, comma separated) of the gateway keys the device trusts; used to check a key rotation. */

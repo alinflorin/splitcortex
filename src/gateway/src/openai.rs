@@ -24,12 +24,13 @@ use crate::cluster;
 use crate::limits::Subject;
 use crate::proto::envelope::Body;
 use crate::proto::{self, Envelope};
-use crate::registry::{NodeConn, NodeEvent, Outbound};
+use crate::registry::{self, NodeConn, NodeEvent, Outbound};
 use crate::state::AppState;
 
 const FIRST_EVENT_TIMEOUT: Duration = Duration::from_secs(120);
 const EVENT_TIMEOUT: Duration = Duration::from_secs(120);
 
+#[derive(Debug)]
 pub struct ApiError {
     status: StatusCode,
     kind: &'static str,
@@ -167,24 +168,35 @@ fn key_pools(app: &AppState, key: &KeyRec) -> Vec<PoolRec> {
 
 pub async fn models(State(app): State<Arc<AppState>>, headers: HeaderMap) -> Result<Json<Value>, ApiError> {
     let key = authenticate(&app, &headers).await?;
-    // name -> the smallest context window among its ready nodes (the size every request is safe to use), if any reports one.
-    let mut models: std::collections::BTreeMap<String, Option<u32>> = Default::default();
+    // name -> (the smallest context window among its ready nodes (the size every request is safe to use), if any
+    // reports one; the inputs besides text that its nodes accept).
+    let mut models: std::collections::BTreeMap<String, (Option<u32>, u32)> = Default::default();
     for p in key_pools(&app, &key) {
         let Some(m) = p.model else { continue };
         let ctx = app.registry.context_range(p.org_id, p.id, m.id).map(|(lo, _)| lo);
-        let e = models.entry(m.name).or_insert(ctx);
-        *e = match (*e, ctx) {
+        let mut mods = app.registry.modalities_of(p.org_id, p.id, m.id);
+        if cluster::clustered(&app) {
+            mods |= cluster::modalities(&app, &[p.id]).await.unwrap_or(0);
+        }
+        let e = models.entry(m.name).or_insert((ctx, 0));
+        e.0 = match (e.0, ctx) {
             (Some(a), Some(b)) => Some(a.min(b)),
             (a, b) => a.or(b),
         };
+        e.1 |= mods;
     }
     let data: Vec<Value> = models
         .into_iter()
-        .map(|(n, ctx)| {
+        .map(|(n, (ctx, mods))| {
             let mut v = json!({ "id": n, "object": "model", "created": 0, "owned_by": key.org_id });
             if let Some(c) = ctx {
                 v["context_length"] = json!(c);
             }
+            // Not part of the OpenAI format: lets clients offer image/audio input only where it works.
+            let mut input = vec!["text"];
+            input.extend(registry::modality_names(mods));
+            v["input_modalities"] = json!(input);
+            v["max_media_bytes"] = json!(app.max_media_bytes);
             v
         })
         .collect();
@@ -210,17 +222,223 @@ struct Msg {
     content: Value,
 }
 
-/// A message's text: a string, or an array of `{type: "text", text}` parts. Other part types are ignored.
-fn text_of(v: &Value) -> String {
-    match v {
-        Value::String(s) => s.clone(),
-        Value::Array(parts) => parts
-            .iter()
-            .filter_map(|p| p.get("text").and_then(Value::as_str))
-            .collect::<Vec<_>>()
-            .join("\n"),
-        _ => String::new(),
+/// Test value for the largest total size of the media (decoded) in one request; the real limit is
+/// `Config::max_media_bytes` (`GATEWAY_MAX_MEDIA_MB`, default 256).
+#[cfg(test)]
+const MAX_MEDIA_BYTES: usize = 20 << 20;
+/// Most media parts (images + audio clips) in one request.
+const MAX_MEDIA_PARTS: usize = 64;
+/// What one image costs the context window (the vision encoder's fixed number of soft tokens).
+const IMAGE_TOKENS: u32 = 256;
+/// Audio is encoded at 6.25 tokens per second of sound (one per 160 ms).
+const AUDIO_TOKENS_PER_SEC: f64 = 6.25;
+
+fn bad_request(code: &'static str, message: impl Into<String>) -> ApiError {
+    ApiError::new(StatusCode::BAD_REQUEST, "invalid_request_error", code, message)
+}
+
+/// The messages in node-protocol form plus what the media in them needs.
+#[derive(Default)]
+struct Converted {
+    messages: Vec<proto::ChatMessage>,
+    /// `registry::IMAGE | AUDIO` bits the request needs from a node.
+    mods: u32,
+    /// Estimated context tokens of the media.
+    media_tokens: u32,
+    media_bytes: usize,
+    media_parts: usize,
+    /// Most media bytes the request may carry.
+    limit: usize,
+}
+
+fn decode_b64(data: &str, what: &str) -> Result<Vec<u8>, ApiError> {
+    use base64::Engine as _;
+    base64::engine::general_purpose::STANDARD
+        .decode(data.trim())
+        .map_err(|_| bad_request("invalid_base64", format!("The {what} is not valid base64.")))
+}
+
+/// `data:<mime>;base64,<data>` -> (mime, bytes). Remote URLs are refused: the gateway never fetches anything for a client.
+fn decode_data_url(url: &str, what: &str) -> Result<(String, Vec<u8>), ApiError> {
+    let Some(rest) = url.strip_prefix("data:") else {
+        return Err(bad_request(
+            "unsupported_media_url",
+            format!("The {what} must be a base64 `data:` URL; the gateway does not fetch URLs."),
+        ));
+    };
+    let Some((meta, data)) = rest.split_once(',') else {
+        return Err(bad_request(
+            "invalid_data_url",
+            format!("The {what} is not a valid data URL."),
+        ));
+    };
+    let Some(mime) = meta.strip_suffix(";base64") else {
+        return Err(bad_request(
+            "invalid_data_url",
+            format!("The {what} must be base64 encoded."),
+        ));
+    };
+    Ok((mime.trim().to_ascii_lowercase(), decode_b64(data, what)?))
+}
+
+fn image_mime(mime: &str) -> Option<&'static str> {
+    match mime {
+        "image/jpeg" | "image/jpg" => Some("image/jpeg"),
+        "image/png" => Some("image/png"),
+        "image/bmp" => Some("image/bmp"),
+        "image/gif" => Some("image/gif"),
+        _ => None,
     }
+}
+
+fn audio_mime(mime: &str) -> Option<&'static str> {
+    match mime {
+        "audio/wav" | "audio/x-wav" | "audio/wave" | "wav" => Some("audio/wav"),
+        "audio/mpeg" | "audio/mp3" | "mp3" => Some("audio/mpeg"),
+        "audio/flac" | "audio/x-flac" | "flac" => Some("audio/flac"),
+        _ => None,
+    }
+}
+
+/// Estimated length of an audio clip in seconds: exact for PCM WAV (byte rate in the header), a typical bit rate for
+/// the compressed formats. Only used to estimate context use and to meter.
+fn audio_seconds(mime: &str, data: &[u8]) -> f64 {
+    let rate = match mime {
+        "audio/wav" if data.len() > 44 && &data[0..4] == b"RIFF" => {
+            u32::from_le_bytes([data[28], data[29], data[30], data[31]]) as f64
+        }
+        "audio/flac" => 64_000.0,
+        _ => 16_000.0,
+    };
+    data.len() as f64 / if rate >= 1000.0 { rate } else { 16_000.0 }
+}
+
+/// One message's content: a string, or an array of OpenAI content parts (`text`, `image_url`, `input_audio`). Anything
+/// else is refused with a clear error rather than silently dropped, and media is only accepted in user messages.
+fn convert_message(m: &Msg, acc: &mut Converted) -> Result<(), ApiError> {
+    let parts = match &m.content {
+        Value::String(s) => {
+            acc.messages.push(proto::ChatMessage {
+                role: m.role.clone(),
+                content: s.clone(),
+                parts: Vec::new(),
+            });
+            return Ok(());
+        }
+        Value::Array(p) => p,
+        Value::Null => {
+            acc.messages.push(proto::ChatMessage {
+                role: m.role.clone(),
+                content: String::new(),
+                parts: Vec::new(),
+            });
+            return Ok(());
+        }
+        _ => {
+            return Err(bad_request(
+                "invalid_request",
+                "message content must be a string or an array of parts",
+            ))
+        }
+    };
+    let mut text: Vec<&str> = Vec::new();
+    let mut out: Vec<proto::ContentPart> = Vec::new();
+    let mut has_media = false;
+    for part in parts {
+        let kind = part.get("type").and_then(Value::as_str).unwrap_or("");
+        match kind {
+            "text" => {
+                let t = part.get("text").and_then(Value::as_str).unwrap_or("");
+                text.push(t);
+                out.push(proto::ContentPart {
+                    part: Some(proto::content_part::Part::Text(t.to_string())),
+                });
+            }
+            "image_url" | "input_audio" => {
+                if m.role != "user" {
+                    return Err(bad_request(
+                        "invalid_media_role",
+                        "Images and audio are only accepted in user messages.",
+                    ));
+                }
+                let (mime, data, is_image) = if kind == "image_url" {
+                    let url = part
+                        .get("image_url")
+                        .and_then(|v| v.get("url").unwrap_or(v).as_str())
+                        .ok_or_else(|| bad_request("invalid_request", "image_url needs a `url`"))?;
+                    let (mime, data) = decode_data_url(url, "image")?;
+                    let mime = image_mime(&mime).ok_or_else(|| {
+                        bad_request(
+                            "unsupported_media_type",
+                            format!("Unsupported image type `{mime}`; use JPEG, PNG, BMP or GIF."),
+                        )
+                    })?;
+                    (mime, data, true)
+                } else {
+                    let a = part
+                        .get("input_audio")
+                        .ok_or_else(|| bad_request("invalid_request", "input_audio needs `data` and `format`"))?;
+                    let format = a.get("format").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
+                    let mime = audio_mime(&format).ok_or_else(|| {
+                        bad_request(
+                            "unsupported_media_type",
+                            format!("Unsupported audio format `{format}`; use wav, mp3 or flac."),
+                        )
+                    })?;
+                    let data = decode_b64(a.get("data").and_then(Value::as_str).unwrap_or(""), "audio")?;
+                    (mime, data, false)
+                };
+                if data.is_empty() {
+                    return Err(bad_request("invalid_request", "A media part is empty."));
+                }
+                acc.media_bytes += data.len();
+                acc.media_parts += 1;
+                if acc.media_bytes > acc.limit || acc.media_parts > MAX_MEDIA_PARTS {
+                    return Err(ApiError::new(
+                        StatusCode::PAYLOAD_TOO_LARGE,
+                        "invalid_request_error",
+                        "media_too_large",
+                        format!(
+                            "A request may carry at most {MAX_MEDIA_PARTS} images or audio clips and {} MiB of them.",
+                            acc.limit >> 20
+                        ),
+                    ));
+                }
+                has_media = true;
+                let media = proto::Media {
+                    mime_type: mime.to_string(),
+                    data,
+                };
+                if is_image {
+                    acc.mods |= registry::IMAGE;
+                    acc.media_tokens += IMAGE_TOKENS;
+                    out.push(proto::ContentPart {
+                        part: Some(proto::content_part::Part::Image(media)),
+                    });
+                } else {
+                    acc.mods |= registry::AUDIO;
+                    acc.media_tokens += (audio_seconds(mime, &media.data) * AUDIO_TOKENS_PER_SEC).ceil().max(1.0) as u32;
+                    out.push(proto::ContentPart {
+                        part: Some(proto::content_part::Part::Audio(media)),
+                    });
+                }
+            }
+            other => {
+                return Err(bad_request(
+                    "unsupported_content_type",
+                    format!(
+                        "Unsupported content part type `{other}`. Supported: `text`, `image_url` (base64 data URL), `input_audio`."
+                    ),
+                ))
+            }
+        }
+    }
+    acc.messages.push(proto::ChatMessage {
+        role: m.role.clone(),
+        content: text.join("\n"),
+        parts: if has_media { out } else { Vec::new() },
+    });
+    Ok(())
 }
 
 /// Holds one in-flight slot on a node for one request; on drop it frees the slot, cancels the node's work if the
@@ -285,10 +503,19 @@ impl Drop for Run {
 
 pub async fn chat_completions(
     State(app): State<Arc<AppState>>,
-    headers: HeaderMap,
-    body: Bytes,
+    request: axum::extract::Request,
 ) -> Result<Response, ApiError> {
-    let key = authenticate(&app, &headers).await?;
+    let (parts, body) = request.into_parts();
+    // Authenticate before reading the body: it may carry megabytes of media.
+    let key = authenticate(&app, &parts.headers).await?;
+    let body = axum::body::to_bytes(body, app.max_body_bytes()).await.map_err(|_| {
+        ApiError::new(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "invalid_request_error",
+            "request_too_large",
+            "The request body is too large.",
+        )
+    })?;
     chat_core(&app, key, body, false).await
 }
 
@@ -337,15 +564,43 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
         ));
     }
 
-    let messages: Vec<proto::ChatMessage> = req
-        .messages
-        .iter()
-        .map(|m| proto::ChatMessage {
-            role: m.role.clone(),
-            content: text_of(&m.content),
-        })
-        .collect();
-    let tokens_in = (messages.iter().map(|m| m.content.chars().count()).sum::<usize>() as u32).div_ceil(4);
+    let mut conv = Converted {
+        limit: app.max_media_bytes,
+        ..Default::default()
+    };
+    for m in &req.messages {
+        convert_message(m, &mut conv)?;
+    }
+    let mods = conv.mods;
+    let messages = conv.messages;
+    let tokens_in = (messages.iter().map(|m| m.content.chars().count()).sum::<usize>() as u32)
+        .div_ceil(4)
+        .saturating_add(conv.media_tokens);
+
+    // Media needs a node whose model takes it. If nodes are ready but none does, say so (400) instead of queueing.
+    if mods != 0 {
+        let (mut any, mut have) = (false, 0u32);
+        for (p, m) in &holders {
+            if app.registry.has_ready(p.org_id, p.id, m.id) {
+                any = true;
+                have |= app.registry.modalities_of(p.org_id, p.id, m.id);
+            }
+        }
+        if (!any || have & mods != mods) && !forwarded && cluster::clustered(&app) {
+            let ids: Vec<Uuid> = holders.iter().map(|(p, _)| p.id).collect();
+            if let Some(r) = cluster::modalities(&app, &ids).await {
+                any = true;
+                have |= r;
+            }
+        }
+        if any && have & mods != mods {
+            let missing = registry::modality_names(mods & !have).join(" and ");
+            return Err(bad_request(
+                "unsupported_modality",
+                format!("This model does not accept {missing} input: no node of it can process it."),
+            ));
+        }
+    }
 
     // Rate limits: the organisation's and the key's, both must allow it. (A forwarded request was checked already.)
     if !forwarded {
@@ -407,14 +662,14 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
         let target = holders
             .iter()
             .filter_map(|(p, m)| {
-                let (n, load) = app.registry.pool_load(p.org_id, p.id, m.id, need);
+                let (n, load) = app.registry.pool_load(p.org_id, p.id, m.id, need, mods);
                 (n > 0).then(|| (p, m, load as f64 / n as f64))
             })
             .min_by(|a, b| a.2.total_cmp(&b.2));
         let Some((pool, model, _)) = target else { break };
         let Some(node) = app
             .registry
-            .pick(pool.org_id, pool.id, model.id, need, &pool.balancing, &tried)
+            .pick(pool.org_id, pool.id, model.id, need, mods, &pool.balancing, &tried)
         else {
             break;
         };
@@ -481,7 +736,7 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
     // No suitable node here: ask the other instances that hold nodes of these pools.
     if !forwarded {
         let ids: Vec<Uuid> = holders.iter().map(|(p, _)| p.id).collect();
-        for peer in cluster::peers_with_pools(&app, &ids).await {
+        for peer in cluster::peers_with_pools(&app, &ids, &registry::modality_names(mods)).await {
             match cluster::forward_chat(&app, &peer, &key.hash, body.clone()).await {
                 // 502/503 mean "that instance has no node for it right now": try the next one.
                 Ok(res) if !matches!(res.status().as_u16(), 502 | 503) => return Ok(res),
@@ -624,5 +879,123 @@ async fn collect_response(
                 ))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn msg(role: &str, content: Value) -> Msg {
+        Msg {
+            role: role.into(),
+            content,
+        }
+    }
+    fn convert(m: Msg) -> Result<Converted, ApiError> {
+        let mut c = Converted {
+            limit: MAX_MEDIA_BYTES,
+            ..Default::default()
+        };
+        convert_message(&m, &mut c).map(|_| c)
+    }
+    fn code(e: ApiError) -> &'static str {
+        e.code
+    }
+    fn b64(bytes: &[u8]) -> String {
+        use base64::Engine as _;
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    }
+
+    #[test]
+    fn text_messages_keep_the_plain_shape() {
+        let c = convert(msg("user", json!("hello"))).unwrap();
+        assert_eq!(c.messages[0].content, "hello");
+        assert!(c.messages[0].parts.is_empty());
+        assert_eq!(c.mods, 0);
+        let c = convert(msg(
+            "user",
+            json!([{"type":"text","text":"a"},{"type":"text","text":"b"}]),
+        ))
+        .unwrap();
+        assert_eq!(c.messages[0].content, "a\nb");
+        assert!(c.messages[0].parts.is_empty(), "parts only when media is present");
+    }
+
+    #[test]
+    fn images_and_audio_become_ordered_parts() {
+        let png = format!("data:image/png;base64,{}", b64(&[1, 2, 3]));
+        let wav = b64(&[9; 100]);
+        let c = convert(msg(
+            "user",
+            json!([
+                {"type":"text","text":"what is this"},
+                {"type":"image_url","image_url":{"url": png}},
+                {"type":"input_audio","input_audio":{"data": wav, "format":"wav"}}
+            ]),
+        ))
+        .unwrap();
+        let m = &c.messages[0];
+        assert_eq!(m.content, "what is this");
+        assert_eq!(m.parts.len(), 3);
+        assert!(
+            matches!(m.parts[1].part, Some(proto::content_part::Part::Image(ref i)) if i.mime_type == "image/png" && i.data == [1, 2, 3])
+        );
+        assert!(matches!(m.parts[2].part, Some(proto::content_part::Part::Audio(ref a)) if a.mime_type == "audio/wav"));
+        assert_eq!(c.mods, registry::IMAGE | registry::AUDIO);
+        assert!(c.media_tokens >= IMAGE_TOKENS + 1);
+    }
+
+    #[test]
+    fn a_plain_string_image_url_works_too() {
+        let url = format!("data:image/jpeg;base64,{}", b64(&[7]));
+        let c = convert(msg("user", json!([{"type":"image_url","image_url": url}]))).unwrap();
+        assert_eq!(c.mods, registry::IMAGE);
+    }
+
+    #[test]
+    fn refuses_what_it_cannot_serve_instead_of_dropping_it() {
+        let remote = convert(msg(
+            "user",
+            json!([{"type":"image_url","image_url":{"url":"https://x/y.png"}}]),
+        ));
+        assert_eq!(code(remote.err().unwrap()), "unsupported_media_url");
+        let webp = format!("data:image/webp;base64,{}", b64(&[1]));
+        let e = convert(msg("user", json!([{"type":"image_url","image_url":{"url": webp}}])));
+        assert_eq!(code(e.err().unwrap()), "unsupported_media_type");
+        let e = convert(msg(
+            "user",
+            json!([{"type":"input_audio","input_audio":{"data": b64(&[1]), "format":"ogg"}}]),
+        ));
+        assert_eq!(code(e.err().unwrap()), "unsupported_media_type");
+        let e = convert(msg("user", json!([{"type":"video_url","video_url":{"url":"x"}}])));
+        assert_eq!(code(e.err().unwrap()), "unsupported_content_type");
+        let e = convert(msg(
+            "user",
+            json!([{"type":"input_audio","input_audio":{"data":"!!!","format":"wav"}}]),
+        ));
+        assert_eq!(code(e.err().unwrap()), "invalid_base64");
+        let img = format!("data:image/png;base64,{}", b64(&[1]));
+        let e = convert(msg("assistant", json!([{"type":"image_url","image_url":{"url": img}}])));
+        assert_eq!(code(e.err().unwrap()), "invalid_media_role");
+    }
+
+    #[test]
+    fn media_size_is_capped() {
+        let big = b64(&vec![0u8; MAX_MEDIA_BYTES + 1]);
+        let e = convert(msg(
+            "user",
+            json!([{"type":"input_audio","input_audio":{"data": big, "format":"mp3"}}]),
+        ));
+        assert_eq!(code(e.err().unwrap()), "media_too_large");
+    }
+
+    #[test]
+    fn wav_length_comes_from_the_header() {
+        let mut wav = vec![0u8; 44 + 32_000];
+        wav[0..4].copy_from_slice(b"RIFF");
+        wav[28..32].copy_from_slice(&32_000u32.to_le_bytes()); // 16 kHz, mono, 16 bit
+        let s = audio_seconds("audio/wav", &wav);
+        assert!((s - 1.0).abs() < 0.01, "{s}");
     }
 }

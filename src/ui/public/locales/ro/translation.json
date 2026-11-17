@@ -314,7 +314,11 @@
     "keepScreenOn": "Ține ecranul pornit",
     "keepScreenOnHint": "Unele dispozitive Android folosesc GPU-ul la capacitate maximă doar cu aplicația deschisă în prim-plan și ecranul aprins. Aplicația trebuie să rămână deschisă.",
     "on": "Pornit",
-    "off": "Oprit"
+    "off": "Oprit",
+    "inputs": "Acceptă",
+    "inputText": "text",
+    "input_image": "imagini",
+    "input_audio": "audio"
   },
   "models": {
     "title": "Modele",
@@ -479,6 +483,20 @@
     "failed": "A apărut o eroare. Încearcă din nou.",
     "homeTitle": "Încearcă-l",
     "homeBody": "Discută chiar aici cu unul dintre pool-urile tale, folosind o cheie API.",
-    "open": "Deschide spațiul de test"
+    "open": "Deschide spațiul de test",
+    "attach": {
+      "add": "Atașează fișiere",
+      "hint": "Atașează imagini, audio sau fișiere text (le poți și lipi sau trage aici)",
+      "record": "Înregistrează audio",
+      "stopRecording": "Oprește înregistrarea",
+      "remove": "Elimină {{name}}",
+      "unsupported": "„{{name}}” nu poate fi atașat. Folosește imagini, audio sau fișiere text simple.",
+      "tooLarge": "„{{name}}” este prea mare (limită {{limit}}).",
+      "tooLong": "„{{name}}” este prea lung.",
+      "unreadable": "„{{name}}” nu a putut fi citit.",
+      "total": "O conversație poate conține cel mult {{limit}} de imagini și audio. Șterge-o sau elimină atașamente.",
+      "noMic": "Microfonul nu este disponibil sau accesul a fost refuzat.",
+      "modalityMissing": "Niciun nod al acestui model nu raportează momentan intrare {{kind}}; cererea poate fi refuzată."
+    }
   }
 }

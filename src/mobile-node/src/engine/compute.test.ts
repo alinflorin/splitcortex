@@ -17,6 +17,7 @@ function fakeEngine(
   const mtp: boolean[] = [];
   let active: { backend: Backend; ctx: number } | null = null;
   const e: Engine = {
+    modalities: [],
     get loaded() {
       return active !== null;
     },

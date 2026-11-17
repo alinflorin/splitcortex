@@ -77,6 +77,9 @@ export class ComputeEngine implements TunableEngine {
   get maxContextTokens() {
     return this.base.maxContextTokens;
   }
+  get modalities() {
+    return this.base.modalities;
+  }
   capabilities(): Promise<DeviceCaps> {
     return this.base.capabilities();
   }

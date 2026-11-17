@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use axum::body::{Body, Bytes};
 use axum::extract::State;
-use axum::http::{header, HeaderMap, Request, StatusCode};
+use axum::http::{header, Request, StatusCode};
 use axum::response::Response;
 use axum::routing::{get, post};
 use axum::Router;
@@ -98,8 +98,9 @@ pub fn clustered(app: &AppState) -> bool {
     app.advertise.is_some()
 }
 
-/// The other live instances that hold at least one connected node of one of `pools`, most nodes first.
-pub async fn peers_with_pools(app: &AppState, pools: &[Uuid]) -> Vec<Peer> {
+/// The other live instances that hold at least one connected node of one of `pools` (accepting every input in `mods`,
+/// e.g. `["image"]`), most nodes first.
+pub async fn peers_with_pools(app: &AppState, pools: &[Uuid], mods: &[&str]) -> Vec<Peer> {
     if !clustered(app) || pools.is_empty() {
         return Vec::new();
     }
@@ -109,11 +110,13 @@ pub async fn peers_with_pools(app: &AppState, pools: &[Uuid]) -> Vec<Peer> {
          join gateway_instances gi on gi.id = ns.gateway_id \
          where n.pool_id = any($1) and ns.connected and ns.updated_at > now() - interval '60 seconds' \
          and gi.id <> $2 and gi.updated_at > now() - make_interval(secs => $3) \
+         and string_to_array(coalesce(ns.modalities, ''), ',') @> $4::text[] \
          group by gi.id, gi.address order by count(*) desc",
     )
     .bind(pools)
     .bind(&app.instance_id)
     .bind(ALIVE_SECS)
+    .bind(mods)
     .fetch_all(&app.db)
     .await;
     match rows {
@@ -123,6 +126,30 @@ pub async fn peers_with_pools(app: &AppState, pools: &[Uuid]) -> Vec<Peer> {
             Vec::new()
         }
     }
+}
+
+/// The input modalities (`registry::IMAGE | AUDIO` bits) the connected nodes of `pools` accept together on any instance;
+/// None when no node of them is connected (or the lookup failed).
+pub async fn modalities(app: &AppState, pools: &[Uuid]) -> Option<u32> {
+    let rows: Vec<Option<String>> = sqlx::query_scalar(
+        "select ns.modalities from node_status ns join nodes n on n.id = ns.node_id \
+         where n.pool_id = any($1) and ns.connected and ns.updated_at > now() - interval '60 seconds'",
+    )
+    .bind(pools)
+    .fetch_all(&app.db)
+    .await
+    .ok()?;
+    (!rows.is_empty()).then(|| {
+        rows.iter().fold(0, |m, r| {
+            m | crate::registry::modalities_from(
+                &r.as_deref()
+                    .unwrap_or("")
+                    .split(',')
+                    .map(str::to_string)
+                    .collect::<Vec<_>>(),
+            )
+        })
+    })
 }
 
 /// The largest context window any connected node of `pools` reports, on any instance.
@@ -170,9 +197,10 @@ pub fn internal_router(app: Arc<AppState>) -> Router {
 
 async fn internal_chat(
     State(app): State<Arc<AppState>>,
-    headers: HeaderMap,
-    body: Bytes,
+    request: axum::extract::Request,
 ) -> Result<Response, ApiError> {
+    let (parts, body) = request.into_parts();
+    let headers = parts.headers;
     let token = headers
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
@@ -200,5 +228,12 @@ async fn internal_chat(
             }
         },
     };
+    let body = axum::body::to_bytes(body, app.max_body_bytes()).await.map_err(|_| {
+        ApiError::status(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "request_too_large",
+            "The request body is too large.",
+        )
+    })?;
     openai::chat_core(&app, key, body, true).await
 }

@@ -69,6 +69,8 @@ spec:
               value: {{ .Values.gateway.drain.delaySeconds | quote }}
             - name: DRAIN_TIMEOUT_SECONDS
               value: {{ .Values.gateway.drain.timeoutSeconds | quote }}
+            - name: GATEWAY_MAX_MEDIA_MB
+              value: {{ .Values.gateway.maxMediaMb | quote }}
             - name: USAGE_MAX_AGE_SECONDS
               value: {{ .Values.gateway.usage.maxAgeSeconds | quote }}
           ports:
