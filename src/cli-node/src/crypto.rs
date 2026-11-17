@@ -162,7 +162,7 @@ pub fn seal(isk: &[u8], sid: &[u8], label: &str, plain: &[u8]) -> Vec<u8> {
     let mut nonce = [0u8; 12];
     rand::thread_rng().fill_bytes(&mut nonce);
     let ct = ChaCha20Poly1305::new(&key(isk, sid, label).into())
-        .encrypt(Nonce::from_slice(&nonce), plain)
+        .encrypt(&Nonce::from(nonce), plain)
         .expect("encryption cannot fail");
     [nonce.to_vec(), ct].concat()
 }
@@ -173,7 +173,7 @@ pub fn open(isk: &[u8], sid: &[u8], label: &str, sealed: &[u8]) -> Option<Vec<u8
         return None;
     }
     ChaCha20Poly1305::new(&key(isk, sid, label).into())
-        .decrypt(Nonce::from_slice(&sealed[..12]), &sealed[12..])
+        .decrypt(&Nonce::try_from(&sealed[..12]).ok()?, &sealed[12..])
         .ok()
 }
 
