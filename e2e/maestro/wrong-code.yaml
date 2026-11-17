@@ -12,10 +12,7 @@ appId: com.splitcortex.node
 - scrollUntilVisible:
     element: 'Enrollment URL'
     visibilityPercentage: 60
-# Tap at the right edge so the cursor lands after the default URL: eraseText only deletes backwards from the cursor.
-- tapOn:
-    text: 'Enrollment URL'
-    relativePoint: '95%,50%'
+- tapOn: 'Enrollment URL'
 - eraseText: 100
 - inputText: ${API_URL}
 - scrollUntilVisible:
