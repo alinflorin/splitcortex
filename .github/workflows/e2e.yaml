@@ -281,9 +281,22 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       # The emulator's disk and a booted snapshot are cached; the first run (or a new key) creates them.
-      - name: Cache the emulator (AVD)
+      # Caches are saved explicitly (restore + save): a plain `actions/cache` only saves when the whole job succeeds, and
+      # the first runs may well fail on tests. The SDK lives in a root-owned folder on the runner, so the one folder the
+      # cache restores into (the emulator system image) is handed to the runner user first.
+      - name: Make the SDK's system-images folder writable
+        run: |
+          sudo mkdir -p "$ANDROID_HOME/system-images"
+          sudo chown -R "$USER" "$ANDROID_HOME/system-images"
+      - name: Restore the emulator system image
+        id: image
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: /usr/local/lib/android/sdk/system-images/android-${{ env.ANDROID_API }}/${{ env.ANDROID_TARGET }}/${{ env.ANDROID_ARCH }}
+          key: sdk-image-${{ env.ANDROID_API }}-${{ env.ANDROID_ARCH }}-${{ env.ANDROID_TARGET }}
+      - name: Restore the emulator (AVD)
         id: avd
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             ~/.android/avd/*
@@ -300,6 +313,14 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           disable-animations: false
           script: echo "Generated the AVD snapshot for caching."
+      - name: Save the emulator (AVD)
+        if: steps.avd.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.ANDROID_API }}-${{ env.ANDROID_ARCH }}-${{ env.ANDROID_TARGET }}
       - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ env.ANDROID_API }}
@@ -310,6 +331,12 @@ jobs:
           disable-animations: true
           working-directory: e2e
           script: pnpm test:mobile
+      - name: Save the emulator system image
+        if: always() && steps.image.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: /usr/local/lib/android/sdk/system-images/android-${{ env.ANDROID_API }}/${{ env.ANDROID_TARGET }}/${{ env.ANDROID_ARCH }}
+          key: sdk-image-${{ env.ANDROID_API }}-${{ env.ANDROID_ARCH }}-${{ env.ANDROID_TARGET }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
         with:
