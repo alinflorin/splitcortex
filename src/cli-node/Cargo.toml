@@ -39,7 +39,7 @@ zip = { version = "9", default-features = false, features = ["deflate"] }
 
 [build-dependencies]
 prost-build = "0.13"
-protox = "0.7"
+protox = "0.10"
 
 [profile.release]
 codegen-units = 1
