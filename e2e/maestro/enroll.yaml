@@ -26,6 +26,5 @@ appId: com.splitcortex.node
 - extendedWaitUntil:
     visible: 'Enrolled.*'
     timeout: 30000
-- takeScreenshot: enrolled
 # Maestro matches whole strings as regexes; the app shows "Key fingerprint: <value>" as one text.
 - assertVisible: 'Key fingerprint.*'

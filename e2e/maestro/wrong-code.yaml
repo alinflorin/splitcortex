@@ -8,7 +8,6 @@ appId: com.splitcortex.node
 - inputText: 'ZZZZZZZZZZ'
 # No hideKeyboard: on Android it sends Back, which leaves the screen when the keyboard is not showing (ATD image).
 # The ATD emulator screen is small: the form scrolls, and Maestro only sees what is on screen.
-- takeScreenshot: before-url
 - scrollUntilVisible:
     element: 'Enrollment URL'
     visibilityPercentage: 60
