@@ -29,4 +29,4 @@ http-body-util = "0.1"
 
 [build-dependencies]
 prost-build = "0.13"
-protox = "0.7"
+protox = "0.10"
