@@ -288,6 +288,20 @@ jobs:
         run: |
           sudo mkdir -p "$ANDROID_HOME/system-images"
           sudo chown -R "$USER" "$ANDROID_HOME/system-images"
+      # The emulator download sometimes arrives corrupt ("Error reading Zip content"), which the runner action ignores and
+      # then fails with "could not connect to TCP port 5554". Install it here with retries so the action finds it ready.
+      - name: Install the Android emulator (with retries)
+        run: |
+          for attempt in 1 2 3 4; do
+            if sdkmanager --install emulator --channel=0 && [ -x "$ANDROID_HOME/emulator/emulator" ]; then
+              exit 0
+            fi
+            echo "Emulator install failed (attempt $attempt), retrying"
+            rm -rf "$ANDROID_HOME/emulator"
+            sleep 10
+          done
+          echo "Could not install the Android emulator" >&2
+          exit 1
       - name: Restore the emulator system image
         id: image
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
