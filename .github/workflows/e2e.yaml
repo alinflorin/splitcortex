@@ -1,7 +1,8 @@
 # End-to-end tests (e2e/): the web app and web node in a browser, the CLI node binary, the desktop app (tauri-driver) and
 # the Android app (emulator + Maestro), all against a deployed stack, in parallel. Staging by default; a manual run can
 # point at another stack. The node suites test the newest *released* builds (override the version per run).
-# Needs the `stg` environment secrets E2E_EMAIL and E2E_PASSWORD (deploy.yaml provisions that Dex user on stg).
+# Needs the repository secrets E2E_EMAIL and E2E_PASSWORD (deploy.yaml reads the same ones to provision that Dex user
+# on stg).
 name: E2E
 
 on:
@@ -58,7 +59,6 @@ jobs:
   platform:
     if: inputs.suites == '' || inputs.suites == 'all' || inputs.suites == 'platform'
     runs-on: ubuntu-latest
-    environment: stg
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -86,7 +86,6 @@ jobs:
   cli:
     if: inputs.suites == '' || inputs.suites == 'all' || inputs.suites == 'cli'
     runs-on: ubuntu-latest
-    environment: stg
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -125,7 +124,6 @@ jobs:
     if: inputs.suites == '' || inputs.suites == 'all' || inputs.suites == 'desktop'
     # 22.04: the release's .deb is built there (webkit2gtk-4.1).
     runs-on: ubuntu-22.04
-    environment: stg
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -174,7 +172,6 @@ jobs:
   mobile:
     if: inputs.suites == '' || inputs.suites == 'all' || inputs.suites == 'mobile'
     runs-on: ubuntu-latest
-    environment: stg
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
