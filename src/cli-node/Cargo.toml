@@ -18,7 +18,7 @@ flate2 = "1"
 futures-util = "0.3"
 hkdf = "0.13"
 keepawake = "0.6"
-libloading = "0.8"
+libloading = "0.9"
 prost = "0.13"
 rand = "0.8"
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
