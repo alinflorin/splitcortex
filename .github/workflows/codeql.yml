@@ -120,7 +120,24 @@ jobs:
         working-directory: src/mobile-node/android
         run: ./gradlew assembleDebug --no-daemon --no-build-cache
 
+      # paths-ignore is not applied to compiled languages, so the build's results include the Expo
+      # packages in node_modules. Analyze without uploading, drop those results, then upload.
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
         with:
+          category: "/language:java-kotlin"
+          upload: never
+          output: ${{ runner.temp }}/sarif
+
+      - name: Drop third-party results
+        run: |
+          for f in "$RUNNER_TEMP"/sarif/*.sarif; do
+            jq '.runs[].results |= map(select(all(.locations[]?; (.physicalLocation.artifactLocation.uri // "") | contains("node_modules") | not)))' "$f" > "$f.filtered"
+            mv "$f.filtered" "$f"
+          done
+
+      - name: Upload results
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
+        with:
+          sarif_file: ${{ runner.temp }}/sarif
           category: "/language:java-kotlin"

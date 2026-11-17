@@ -1,2 +1,5 @@
 allowBuilds:
   esbuild: false
+overrides:
+  # drizzle-kit pulls an old esbuild (0.18) through @esbuild-kit; dev server request-leak advisory fixed in 0.25.
+  "@esbuild-kit/core-utils>esbuild": "^0.25.0"
