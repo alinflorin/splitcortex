@@ -1,6 +1,8 @@
 # End-to-end tests (e2e/): the web app and web node in a browser, the CLI node binary, the desktop app (tauri-driver) and
 # the Android app (emulator + Maestro), all against a deployed stack, in parallel. Staging by default; a manual run can
 # point at another stack. The node suites test the newest *released* builds (override the version per run).
+# The perf suite (load with simulated nodes) is never part of the nightly run: a manual run with suites = perf runs it
+# alone, and the `perf` input adds it *after* the functional jobs, only when none of them failed.
 # Needs the repository secrets E2E_EMAIL and E2E_PASSWORD (deploy.yaml reads the same ones to provision that Dex user
 # on stg).
 name: E2E
@@ -32,8 +34,20 @@ on:
       suites:
         description: Which suites to run
         type: choice
-        options: [all, platform, web-node, api, cli, serving, desktop, mobile]
+        options: [all, platform, web-node, api, cli, serving, desktop, mobile, perf]
         default: all
+      perf:
+        description: With suites = all, also run the load tests once the functional suites passed (prefer a dedicated stack)
+        type: boolean
+        default: false
+      perf_nodes:
+        description: Perf, simulated nodes (PERF_NODES)
+        type: string
+        default: "20"
+      perf_steps:
+        description: Perf, concurrent clients per step (PERF_STEPS)
+        type: string
+        default: 1,5,20
 
 concurrency:
   group: e2e
@@ -48,6 +62,8 @@ env:
   E2E_WEB_NODE_URL: ${{ inputs.web_node_url }}
   E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
   E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+  PERF_NODES: ${{ inputs.perf_nodes }}
+  PERF_STEPS: ${{ inputs.perf_steps }}
   GH_TOKEN: ${{ github.token }}
   GH_REPO: ${{ github.repository }}
 
@@ -451,3 +467,33 @@ jobs:
             e2e/playwright-report
             e2e/test-results
           retention-days: 14
+
+  # Load on the gateway and control plane with simulated nodes. After the functional jobs (it only starts when none
+  # failed; jobs skipped by the `suites` choice do not count), never in parallel with them (the load would slow them).
+  perf:
+    needs: [platform, web-node, api, cli, serving, desktop, mobile]
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && (inputs.suites == 'perf' || (inputs.perf && inputs.suites == 'all')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: e2e/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:perf
+      # The numbers are the point of this job: keep them from every run (copy a good one to e2e/perf-baseline/ to start
+      # failing on regressions).
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: e2e-perf-results
+          path: |
+            e2e/perf-results
+            e2e/test-results
+          retention-days: 90

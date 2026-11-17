@@ -16,13 +16,23 @@
     "test:api": "playwright test --project=api",
     "test:serving": "playwright test --project=serving",
     "test:desktop": "playwright test --project=desktop",
-    "test:mobile": "playwright test --project=mobile"
+    "test:mobile": "playwright test --project=mobile",
+    "test:perf": "E2E_PERF=1 playwright test --project=perf",
+    "gen:proto": "scripts/gen-proto.sh"
   },
   "devDependencies": {
+    "@bufbuild/protoc-gen-es": "^2.17.0",
     "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.6",
     "prettier": "^3.10.1",
     "typescript": "^7.0.2",
     "webdriverio": "^10.2.0"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.17.0",
+    "@cipherman/pake-js": "^0.1.1",
+    "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0"
   }
 }
