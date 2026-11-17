@@ -1,0 +1,45 @@
+# Mirrors README.md (Home) and docs/ to the GitHub wiki. One way: edits made in the wiki UI are overwritten.
+# The wiki repo only exists after its first page has been created by hand (once, in the UI: a page named Home).
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - docs/**
+      - scripts/sync-wiki.sh
+      - .github/workflows/wiki.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out the wiki
+        run: git clone "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.wiki.git" "$RUNNER_TEMP/wiki"
+
+      - name: Sync
+        run: scripts/sync-wiki.sh "$RUNNER_TEMP/wiki" "${{ github.repository }}" "${{ github.event.repository.default_branch }}"
+
+      - name: Push
+        working-directory: ${{ runner.temp }}/wiki
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Sync from ${{ github.sha }}"
+          git push
