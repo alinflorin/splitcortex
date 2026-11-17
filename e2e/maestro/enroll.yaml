@@ -1,0 +1,19 @@
+# Enroll the app with a code from the pool, then check the status screen.
+# maestro test -e CODE=XXXX-XXXXXX -e API_URL=https://app.example.com/api maestro/enroll.yaml
+appId: com.splitcortex.node
+---
+- launchApp:
+    clearState: true
+- tapOn: 'Enroll device'
+- tapOn: 'Enrollment code'
+- inputText: ${CODE}
+- hideKeyboard
+- tapOn: 'Enrollment URL'
+- eraseText: 100
+- inputText: ${API_URL}
+- hideKeyboard
+- tapOn: 'Enroll'
+- extendedWaitUntil:
+    visible: 'Enrolled.*'
+    timeout: 60000
+- assertVisible: 'Key fingerprint'

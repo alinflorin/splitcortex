@@ -1,0 +1,17 @@
+# A code that does not exist is refused with the generic message.
+appId: com.splitcortex.node
+---
+- launchApp:
+    clearState: true
+- tapOn: 'Enroll device'
+- tapOn: 'Enrollment code'
+- inputText: 'ZZZZZZZZZZ'
+- hideKeyboard
+- tapOn: 'Enrollment URL'
+- eraseText: 100
+- inputText: ${API_URL}
+- hideKeyboard
+- tapOn: 'Enroll'
+- extendedWaitUntil:
+    visible: 'This code is not valid, has expired or was already used.'
+    timeout: 60000

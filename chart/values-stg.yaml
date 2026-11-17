@@ -30,6 +30,13 @@ dex:
           clientID: "${GOOGLE_CLIENT_ID}"
           clientSecret: "${GOOGLE_CLIENT_SECRET}"
           redirectURI: https://dex.stg.splitcortex.alinflorinciu.qoffice.ro/callback
+    # The user the end-to-end tests (e2e/) sign in with: GitHub `stg` environment secrets E2E_EMAIL and E2E_PASSWORD;
+    # deploy.yaml bcrypt-hashes the password into E2E_PASSWORD_HASH. Placeholders, never commit real values.
+    staticPasswords:
+      - email: "${E2E_EMAIL}"
+        hash: "${E2E_PASSWORD_HASH}"
+        username: e2e
+        userID: 3b9c1f7e-5d2a-4e6b-9a41-8c7d0e2f1a63
     web:
       http: 0.0.0.0:5556
     staticClients:

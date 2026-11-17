@@ -1,0 +1,235 @@
+# End-to-end tests (e2e/): the web app and web node in a browser, the CLI node binary, the desktop app (tauri-driver) and
+# the Android app (emulator + Maestro), all against a deployed stack, in parallel. Staging by default; a manual run can
+# point at another stack. The node suites test the newest *released* builds (override the version per run).
+# Needs the `stg` environment secrets E2E_EMAIL and E2E_PASSWORD (deploy.yaml provisions that Dex user on stg).
+name: E2E
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: Web app origin to test (Dex and web node are derived from it unless overridden below)
+        type: string
+        default: https://app.stg.splitcortex.alinflorinciu.qoffice.ro
+      dex_url:
+        description: Dex origin, if it is not the app host with app. -> dex.
+        type: string
+      web_node_url:
+        description: Web node origin, if it is not the app host with app. -> web-node.
+        type: string
+      cli_version:
+        description: cli-node version to test, X.Y.Z (default newest release)
+        type: string
+      desktop_version:
+        description: desktop-node version to test, X.Y.Z (default newest release)
+        type: string
+      mobile_version:
+        description: mobile-node version to test, X.Y.Z (default newest release)
+        type: string
+      suites:
+        description: Which suites to run
+        type: choice
+        options: [all, platform, cli, desktop, mobile]
+        default: all
+
+concurrency:
+  group: e2e
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  E2E_APP_URL: ${{ inputs.app_url || 'https://app.stg.splitcortex.alinflorinciu.qoffice.ro' }}
+  E2E_DEX_URL: ${{ inputs.dex_url }}
+  E2E_WEB_NODE_URL: ${{ inputs.web_node_url }}
+  E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+  E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+
+defaults:
+  run:
+    working-directory: e2e
+
+jobs:
+  platform:
+    if: inputs.suites == '' || inputs.suites == 'all' || inputs.suites == 'platform'
+    runs-on: ubuntu-latest
+    environment: stg
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: e2e/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:platform
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: e2e-platform-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 14
+
+  cli:
+    if: inputs.suites == '' || inputs.suites == 'all' || inputs.suites == 'cli'
+    runs-on: ubuntu-latest
+    environment: stg
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: e2e/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+
+      # Installs the released binary the way a user does (this also exercises install.sh).
+      - name: Install the CLI node
+        working-directory: .
+        env:
+          SPLITCORTEX_VERSION: ${{ inputs.cli_version }}
+          SPLITCORTEX_INSTALL_DIR: ${{ runner.temp }}/cli-node
+          SPLITCORTEX_BIN_DIR: ${{ runner.temp }}/cli-bin
+          SPLITCORTEX_URL: ${{ env.E2E_APP_URL }}
+        run: |
+          sh src/cli-node/install.sh
+          echo "E2E_CLI_BIN=$RUNNER_TEMP/cli-bin/splitcortex-node" >> "$GITHUB_ENV"
+      - run: pnpm test:cli
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: e2e-cli-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 14
+
+  desktop:
+    if: inputs.suites == '' || inputs.suites == 'all' || inputs.suites == 'desktop'
+    # 22.04: the release's .deb is built there (webkit2gtk-4.1).
+    runs-on: ubuntu-22.04
+    environment: stg
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: e2e/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install the desktop app (newest release's .deb) and the WebDriver
+        working-directory: .
+        env:
+          VERSION: ${{ inputs.desktop_version }}
+        run: |
+          if [ -n "$VERSION" ]; then tag="desktop-node-v$VERSION"; else
+            tag="$(gh release list --limit 100 --json tagName --jq '[.[].tagName | select(test("^desktop-node-v[0-9]+\\.[0-9]+\\.[0-9]+$"))][0]')"
+          fi
+          echo "Testing $tag"
+          gh release download "$tag" --pattern '*_amd64.deb' --dir "$RUNNER_TEMP/desktop"
+          sudo apt-get update
+          sudo apt-get install -y "$RUNNER_TEMP"/desktop/*_amd64.deb webkit2gtk-driver xvfb
+          echo "E2E_DESKTOP_BIN=/usr/bin/splitcortex-desktop-node" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+      - name: Cache tauri-driver
+        id: driver
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cargo/bin/tauri-driver
+          key: tauri-driver-ubuntu-22.04-v1
+      - if: steps.driver.outputs.cache-hit != 'true'
+        run: cargo install tauri-driver --locked
+      - run: xvfb-run -a pnpm test:desktop
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: e2e-desktop-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 14
+
+  mobile:
+    if: inputs.suites == '' || inputs.suites == 'all' || inputs.suites == 'mobile'
+    runs-on: ubuntu-latest
+    environment: stg
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: e2e/pnpm-lock.yaml
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: pnpm install --frozen-lockfile
+
+      - name: Download the app (newest release's APK)
+        working-directory: .
+        env:
+          VERSION: ${{ inputs.mobile_version }}
+        run: |
+          if [ -n "$VERSION" ]; then tag="mobile-node-v$VERSION"; else
+            tag="$(gh release list --limit 100 --json tagName --jq '[.[].tagName | select(test("^mobile-node-v[0-9]+\\.[0-9]+\\.[0-9]+$"))][0]')"
+          fi
+          echo "Testing $tag"
+          gh release download "$tag" --pattern '*.apk' --dir "$RUNNER_TEMP/apk"
+          echo "E2E_MOBILE_APK=$(ls "$RUNNER_TEMP"/apk/*.apk)" >> "$GITHUB_ENV"
+
+      # Maestro has no pinned release here: the newest CLI from its GitHub releases.
+      - name: Install Maestro
+        working-directory: .
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/maestro.zip" https://github.com/mobile-dev-inc/maestro/releases/latest/download/maestro.zip
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$HOME"
+          echo "$HOME/maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          working-directory: e2e
+          script: pnpm test:mobile
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: e2e-mobile-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 14

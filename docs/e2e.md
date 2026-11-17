@@ -1,0 +1,30 @@
+# End-to-end tests (`e2e/`)
+
+Summary in [CLAUDE.md](../CLAUDE.md). One pnpm project, one runner (**Playwright Test**), four projects, all against a **deployed stack** (never mocks). Each suite makes a throwaway org + pool through the control plane API (signing in to Dex headlessly with PKCE, `src/dex.ts`), uses an enrollment code from it and deletes the org at the end.
+
+| Project | What it drives | How |
+| --- | --- | --- |
+| `platform` | web app (Dex login, org/pool pages), web node (enrolls with a code, used code refused), deployment smoke (`/healthz`, `/version.json`, `/api` 401, Dex discovery) | Chromium |
+| `cli` | the real `splitcortex-node` binary: `join` (wrong code, real code, already enrolled), node appears in the control plane, `run` goes online then offline, `leave` | child processes with `SPLITCORTEX_HOME` in a temp dir |
+| `desktop` | the real Tauri app: join form, wrong code, enroll | `tauri-driver` + WebdriverIO `remote()` (Playwright is only the runner). Linux/Windows; macOS has no driver |
+| `mobile` | the real Android app: wrong code, enroll | Maestro flows in `maestro/` on an emulator or USB device |
+
+Not covered yet: serving an inference request (needs a model; the engine is the real LiteRT-LM), benchmarks, limits. Next step: a tiny model per pool and an OpenAI call through the gateway.
+
+## Running
+
+`cd e2e && pnpm install`, then **`pnpm dev`**: it asks for the Dex email and password (skipped when `E2E_EMAIL`/`E2E_PASSWORD` are set; the password is not echoed) and runs Playwright against the **local stack** (Tilt, default `https://app.splitcortex.127.0.0.1.nip.io`; Dex = `dex.` and web node = `web-node.` siblings). Arguments pass through: `pnpm dev --project=cli`, `pnpm dev tests/platform/smoke.spec.ts`. The raw runner is `pnpm test` / `pnpm test:platform|cli|desktop|mobile` (needs the two variables already set). Other stacks: `E2E_APP_URL` (staging: `https://app.stg.splitcortex.alinflorinciu.qoffice.ro` with the stg user's login; `E2E_DEX_URL` / `E2E_WEB_NODE_URL` when the hosts don't follow the `app.` pattern). The workflow sets `E2E_APP_URL` to staging itself. Local login: a user from `values-local.yaml`. Local TLS: the browser project accepts the throwaway CA on nip.io hosts; Node needs `NODE_EXTRA_CA_CERTS=<root CA pem>` (Secret `root-ca-issuer`, key `ca.crt`), and the CLI/desktop apps need the CA in the OS trust store; mobile needs a debug APK (release builds do not trust user CAs) and `scripts/start-emulator.sh`.
+
+A suite whose binary/device is missing **skips locally and fails in CI**: `E2E_CLI_BIN` (default `src/cli-node/target/release/splitcortex-node`), `E2E_DESKTOP_BIN` (default `src/desktop-node/src-tauri/target/release/splitcortex-desktop-node`; also `tauri-driver` on PATH via `cargo install tauri-driver --locked`, `webkit2gtk-driver` and a display on Linux), `E2E_MOBILE_APK` (optional; else the app is already installed; `adb` device + `maestro` needed; local emulator: `scripts/start-emulator.sh`). The desktop suite runs the app with `XDG_*` dirs in a temp dir so a real enrollment is untouched.
+
+## The e2e login (GitHub secrets, provisioned by the stg deploy)
+
+GitHub `stg` environment secrets **`E2E_EMAIL`** and **`E2E_PASSWORD`** (plain; the tests need it). `deploy.yaml` (stg only) bcrypt-hashes the password with `htpasswd` into `E2E_PASSWORD_HASH` and `envsubst`s both into `values-stg.yaml`'s `dex.config.staticPasswords` (user `e2e`); the deploy fails if a secret is missing. The user exists on stg after the next stg deploy; changing the password = change the secret and redeploy. prd has no such user. Locally the suites need `E2E_EMAIL`/`E2E_PASSWORD` in the environment (against staging: the same values as the secrets; against the local stack: any user of `values-local.yaml`).
+
+## Workflow
+
+`.github/workflows/e2e.yaml`: nightly (03:00 UTC) and manual; jobs `platform`, `cli`, `desktop`, `mobile` run in parallel in the `stg` environment (which supplies the two secrets). Manual inputs: `app_url` (default staging; `dex_url`/`web_node_url` if not derivable; another stack must accept the same login), per-stream versions, `suites`. The node suites test the **newest released builds** (CLI via `install.sh`, desktop `.deb`, mobile APK) unless a version is given. Mobile uses `reactivecircus/android-emulator-runner` (API 34, KVM) and the newest Maestro release (unpinned).
+
+## Unverified
+
+Written without a running stack: the Dex headless login (against the real Dex pages), Playwright selectors for the web app, the desktop and mobile selectors/flows, the workflow itself. Expect a first round of fixes.

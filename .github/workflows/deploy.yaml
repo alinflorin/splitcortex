@@ -32,7 +32,8 @@ jobs:
     name: deploy (${{ inputs.environment }})
     runs-on: ubuntu-latest
     # Environment secrets: KUBECONFIG (base64 or plain), LETSENCRYPT_EMAIL,
-    # GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (stg Dex Google login).
+    # GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (stg Dex Google login), E2E_EMAIL, E2E_PASSWORD (stg only: the Dex user
+    # the e2e workflow signs in with; the password is bcrypt-hashed here, Dex only stores the hash).
     # Add required reviewers on the environment for a manual approval gate.
     environment: ${{ inputs.environment }}
     concurrency:
@@ -43,6 +44,8 @@ jobs:
       LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
     steps:
       - name: Normalise version
         run: |
@@ -73,10 +76,21 @@ jobs:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: echo "$REGISTRY_TOKEN" | helm registry login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
+      # Dex wants a bcrypt hash, the e2e workflow needs the plain password: GitHub holds the password, the hash is made
+      # here on every deploy (the salt changes, the password does not).
+      - name: Hash the e2e user's password
+        if: inputs.environment == 'stg'
+        run: |
+          [ -n "$E2E_EMAIL" ] && [ -n "$E2E_PASSWORD" ] || { echo "::error::Set the environment secrets E2E_EMAIL and E2E_PASSWORD"; exit 1; }
+          sudo apt-get install -y --no-install-recommends apache2-utils >/dev/null
+          hash="$(printf '%s' "$E2E_PASSWORD" | htpasswd -inBC 10 '' | tr -d ':\n' | sed 's/^\$2y/$2a/')"
+          echo "::add-mask::$hash"
+          echo "E2E_PASSWORD_HASH=$hash" >> "$GITHUB_ENV"
+
       - name: Substitute deploy-time placeholders
         run: |
           f="chart/values-${ENVIRONMENT}.yaml"
-          envsubst '$LETSENCRYPT_EMAIL $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET' < "$f" > "$RUNNER_TEMP/values.yaml"
+          envsubst '$LETSENCRYPT_EMAIL $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET $E2E_EMAIL $E2E_PASSWORD_HASH' < "$f" > "$RUNNER_TEMP/values.yaml"
 
       - name: Helm upgrade
         run: |
