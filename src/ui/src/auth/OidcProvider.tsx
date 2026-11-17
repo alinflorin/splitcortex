@@ -11,21 +11,50 @@ function returnToOf(state: unknown): string {
   return '/';
 }
 
-/** A failed silent renewal leaves an expired token that the API rejects; send the user back to sign in instead. */
+const RETRY_MS = 30_000;
+const DEFINITIVE_ERRORS = new Set([
+  'invalid_grant',
+  'login_required',
+  'invalid_client',
+  'unauthorized_client',
+]);
+
+/** True when the identity provider itself rejected the refresh (session gone); false for network/server hiccups. */
+export function isDefinitiveRenewError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = (error as { error?: unknown }).error;
+  return typeof code === 'string' && DEFINITIVE_ERRORS.has(code);
+}
+
+/**
+ * A rejected refresh token means the session is over: sign in again. A transient failure (network, sleep/wake, Dex
+ * restarting) keeps the session and retries the renewal until it works.
+ */
 function SignInOnRenewFailure() {
   const auth = useAuth();
-  const { events, signinRedirect, removeUser } = auth;
-  useEffect(
-    () =>
-      events.addSilentRenewError(() => {
-        void removeUser().then(() =>
-          signinRedirect({
-            state: { returnTo: window.location.pathname + window.location.search },
-          }),
-        );
-      }),
-    [events, signinRedirect, removeUser],
-  );
+  const { events, signinRedirect, signinSilent, removeUser } = auth;
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const reSignIn = () =>
+      void removeUser().then(() =>
+        signinRedirect({
+          state: { returnTo: window.location.pathname + window.location.search },
+        }),
+      );
+    const handle = (error: unknown) => {
+      clearTimeout(timer);
+      if (isDefinitiveRenewError(error)) {
+        reSignIn();
+        return;
+      }
+      timer = setTimeout(() => void signinSilent().catch(handle), RETRY_MS);
+    };
+    const remove = events.addSilentRenewError(handle);
+    return () => {
+      remove();
+      clearTimeout(timer);
+    };
+  }, [events, signinRedirect, signinSilent, removeUser]);
   return null;
 }
 
