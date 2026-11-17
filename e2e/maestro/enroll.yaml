@@ -7,14 +7,15 @@ appId: com.splitcortex.node
 - tapOn: 'Enroll device'
 - tapOn: 'Enrollment code'
 - inputText: ${CODE}
-- hideKeyboard
+# No hideKeyboard: on Android it sends Back, which leaves the screen when the keyboard is not showing (ATD image).
 # The ATD emulator screen is small: the form scrolls, and Maestro only sees what is on screen.
+- takeScreenshot: before-url
 - scrollUntilVisible:
     element: 'Enrollment URL'
+    visibilityPercentage: 60
 - tapOn: 'Enrollment URL'
 - eraseText: 100
 - inputText: ${API_URL}
-- hideKeyboard
 - scrollUntilVisible:
     element: 'Enroll'
 - tapOn: 'Enroll'
