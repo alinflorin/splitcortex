@@ -38,7 +38,12 @@ updates:
       - dependency-name: "expo-*"
         update-types: [version-update:semver-major]
       - dependency-name: react
-        update-types: [version-update:semver-major]
+      # Pinned to the exact versions the Expo SDK expects (`expo install --check`);
+      # bump them with `expo install --fix` when upgrading the SDK.
+      - dependency-name: react-native-gesture-handler
+      - dependency-name: react-native-svg
+      - dependency-name: "@react-native-async-storage/async-storage"
+      - dependency-name: typescript
       - dependency-name: react-native
         update-types: [version-update:semver-major, version-update:semver-minor]
       - dependency-name: "react-native-*"
