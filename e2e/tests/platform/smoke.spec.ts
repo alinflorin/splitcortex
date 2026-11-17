@@ -13,7 +13,7 @@ test.describe('deployment smoke', () => {
   });
 
   test('control plane is up and rejects calls without a token', async ({ request }) => {
-    expect((await request.get(`${apiUrl}/healthz`)).ok()).toBe(true);
+    // /healthz of the control plane is not routed through the ingress; a 401 shows the API answers and enforces auth.
     expect((await request.get(`${apiUrl}/organisations`)).status()).toBe(401);
   });
 
@@ -24,7 +24,8 @@ test.describe('deployment smoke', () => {
   });
 
   test('an anonymous visitor is sent to sign in at Dex', async ({ page }) => {
-    await page.goto('/');
+    // Home is public; the organisations pages are behind sign-in.
+    await page.goto('/organisations');
     await page.waitForURL((u) => u.origin === dexUrl);
   });
 });

@@ -6,7 +6,12 @@ import { appUrl, credentials, dexUrl } from './env.ts';
 // must be trusted by Node (NODE_EXTRA_CA_CERTS=<root CA pem>).
 const CLIENT_ID = 'splitcortex-ui';
 const b64url = (b: Buffer) => b.toString('base64url');
-const decode = (s: string) => s.replace(/&amp;/g, '&');
+// Dex's HTML escapes `&` and also `+` (`&#43;`, which would cut the scope list short): decode the entities it uses.
+const decode = (s: string) =>
+  s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h: string) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d: string) => String.fromCodePoint(Number(d)))
+    .replace(/&amp;/g, '&');
 
 export async function getAccessToken(): Promise<string> {
   const { user, password } = credentials();

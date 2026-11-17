@@ -1,0 +1,7 @@
+allowBuilds:
+  # Browser drivers webdriverio can download; the desktop suite uses tauri-driver instead.
+  edgedriver: false
+  geckodriver: false
+overrides:
+  # Dev-tooling transitive (webdriverio -> archiver -> readdir-glob): minimatch globparts DoS advisory.
+  'minimatch@>=7 <11.0.1': '^11.0.1'
