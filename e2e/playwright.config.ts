@@ -1,8 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 import { appUrl, isLocalStack } from './src/env.ts';
 
-// One runner, five projects (run one with --project=<name>): platform (browser: web app), web-node (browser: the web node), cli (the
-// splitcortex-node binary), desktop (the Tauri app through tauri-driver), mobile (the Android app through Maestro).
+// One runner, six projects (run one with --project=<name>): platform (browser: web app), web-node (browser: the web node), cli (the
+// splitcortex-node binary), serving (the gateway and control plane with a live node: inference, keys, limits, metering), desktop (the Tauri app through tauri-driver), mobile (the Android app through Maestro).
 // Suites for a binary or device that is not present skip locally and fail in CI.
 export default defineConfig({
   timeout: 120_000,
@@ -24,6 +24,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], ignoreHTTPSErrors: isLocalStack },
     },
     { name: 'cli', testDir: './tests/cli' },
+    { name: 'serving', testDir: './tests/serving' },
     { name: 'desktop', testDir: './tests/desktop', timeout: 180_000 },
     { name: 'mobile', testDir: './tests/mobile', timeout: 300_000 },
   ],

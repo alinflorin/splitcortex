@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { waitFor } from '../../src/api.ts';
-import { bin, chat, startServingNode, type ServingNode } from './node.ts';
+import { bin, chat, startServingNode, type ServingNode } from '../../src/serving-node.ts';
 
 // What guards the product: API key scope and revocation, rate limits, tenant isolation, and metering. Runs against its
 // own real node (same setup as inference.spec.ts); requests ask for one token to keep the engine out of the way.

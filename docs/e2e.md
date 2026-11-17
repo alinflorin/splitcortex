@@ -1,12 +1,13 @@
 # End-to-end tests (`e2e/`)
 
-Summary in [CLAUDE.md](../CLAUDE.md). One pnpm project, one runner (**Playwright Test**), five projects, all against a **deployed stack** (never mocks). Each suite makes a throwaway org + pool through the control plane API (signing in to Dex headlessly with PKCE, `src/dex.ts`), uses an enrollment code from it and deletes the org at the end.
+Summary in [CLAUDE.md](../CLAUDE.md). One pnpm project, one runner (**Playwright Test**), six projects, all against a **deployed stack** (never mocks). Each suite makes a throwaway org + pool through the control plane API (signing in to Dex headlessly with PKCE, `src/dex.ts`), uses an enrollment code from it and deletes the org at the end.
 
 | Project | What it drives | How |
 | --- | --- | --- |
 | `platform` | web app (Dex login, org/pool pages), deployment smoke (`/version.json`, `/api` 401, Dex discovery, sign-in redirect) | Chromium |
 | `web-node` | the web node: served, join form, a browser tab enrolls with a code, a used code is refused | Chromium (one fresh context per device) |
-| `cli` | the real `splitcortex-node` binary: `join` (wrong code, real code, already enrolled), node appears in the control plane, `run` goes online then offline, `leave` (`cli.spec.ts`); **inference** (`inference.spec.ts`): the node downloads the pool's model, serves an OpenAI chat completion (JSON and SSE) through the gateway, `/v1/models`, 401/404; **keys, limits, isolation, metering** (`keys-limits.spec.ts`): revoked key refused, pool-scoped key, 429 in the OpenAI error shape, another org sees nothing, usage per key recorded. Both specs start their own node through `tests/cli/node.ts` | child processes with `SPLITCORTEX_HOME` in a temp dir |
+| `cli` | the real `splitcortex-node` binary: `join` (wrong code, real code, already enrolled), node appears in the control plane, `run` goes online then offline, `leave` | child processes with `SPLITCORTEX_HOME` in a temp dir |
+| `serving` | the gateway and control plane with a **live node** (the node kind is irrelevant; `src/serving-node.ts` starts the CLI, the headless one, and is the only file to change for another): `inference.spec.ts` (the node downloads the pool's model, an OpenAI chat completion in JSON and SSE through the gateway, `/v1/models`, 401/404) and `keys-limits.spec.ts` (revoked key refused, pool-scoped key, 429 in the OpenAI error shape, another org sees nothing, usage per key recorded). Each spec starts its own node | HTTP against the gateway + control plane API |
 | `desktop` | the real Tauri app: join form, wrong code, enroll | `tauri-driver` + WebdriverIO `remote()` (Playwright is only the runner). Linux/Windows; macOS has no driver |
 | `mobile` | the real Android app: wrong code, enroll | Maestro flows in `maestro/` on an emulator or USB device |
 

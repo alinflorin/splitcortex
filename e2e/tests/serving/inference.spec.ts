@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { gatewayUrl } from '../../src/env.ts';
-import { bin, chat, MODEL, startServingNode, type ServingNode } from './node.ts';
+import { bin, chat, MODEL, startServingNode, type ServingNode } from '../../src/serving-node.ts';
 
 // The core path end to end: a real CLI node downloads the pool's model from the control plane, loads it in LiteRT-LM
 // and serves an OpenAI request that comes in through the gateway with an API key. The model is a tiny SmolLM2: the

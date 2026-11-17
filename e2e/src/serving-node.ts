@@ -4,11 +4,14 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { expect } from '@playwright/test';
-import { createWorkspace, waitFor, type Workspace } from '../../src/api.ts';
-import { appUrl, gatewayUrl } from '../../src/env.ts';
-import { ensureModelFile } from '../../src/model.ts';
+import { createWorkspace, waitFor, type Workspace } from './api.ts';
+import { appUrl, gatewayUrl } from './env.ts';
+import { ensureModelFile } from './model.ts';
 
-/** The binary under test (the workflow installs the newest release; locally `cargo build --release`). */
+// The suites in tests/serving need *a* node that serves a model; which kind is irrelevant to them. The CLI node is used
+// because it is headless and runs on a plain CI runner. To test through another kind, only this file changes.
+
+/** The node binary (the workflow installs the newest cli-node release; locally `cargo build --release`). */
 export const bin = resolve(
   process.env.E2E_CLI_BIN ?? '../src/cli-node/target/release/splitcortex-node',
 );
