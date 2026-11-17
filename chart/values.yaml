@@ -354,6 +354,24 @@ gateway:
       - secretName: gateway-tls
         hosts:
           - gateway.splitcortex.127.0.0.1.nip.io
+  # `/v1` on the web app's host (same origin as the UI, so the Playground needs no CORS on the gateway). Only the
+  # `/v1` path: the node WebSocket stays on the gateway host. The TLS Secret is issued via the UI's Ingress.
+  appIngress:
+    enabled: true
+    className: traefik   # keep equal to ingress.className
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-gateway@kubernetescrd
+    hosts:
+      - host: app.splitcortex.127.0.0.1.nip.io
+        paths:
+          - path: /v1
+            pathType: Prefix
+    tls:
+      - secretName: ui-tls
+        hosts:
+          - app.splitcortex.127.0.0.1.nip.io
 
 # Traefik rate limits (templates/rate-limits.yaml). Not attached to an entryPoint: reference them from each route.
 rateLimit:

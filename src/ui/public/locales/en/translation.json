@@ -8,7 +8,8 @@
     "about": "About",
     "settings": "Settings",
     "toggle": "Toggle navigation",
-    "organisations": "Organisations"
+    "organisations": "Organisations",
+    "playground": "Playground"
   },
   "auth": {
     "signIn": "Sign in",
@@ -122,7 +123,8 @@
     "slug": "Use lowercase letters, digits and single dashes.",
     "hfUrl": "Use a https://huggingface.co/… link to a .litertlm file.",
     "modelFile": "Only .litertlm files are supported.",
-    "pickPool": "Pick at least one pool."
+    "pickPool": "Pick at least one pool.",
+    "numberRange": "Enter a number from {{min}} to {{max}}, or leave it empty."
   },
   "common": {
     "cancel": "Cancel",
@@ -450,5 +452,33 @@
     "tokens": "Tokens",
     "poolTotal": "Pool throughput",
     "unit": "tokens/s"
+  },
+  "playground": {
+    "title": "Playground",
+    "subtitle": "Try a pool in the browser. Paste an API key; the chat is not stored anywhere and is gone when you leave or refresh.",
+    "key": "API key",
+    "keyHint": "Used only in this tab, never saved. Create keys under API keys in your organisation.",
+    "connect": "Connect",
+    "reconnect": "Reconnect",
+    "noModels": "This key has no ready models. Assign a model to one of its pools first.",
+    "model": "Model",
+    "temperature": "Temperature",
+    "maxTokens": "Max tokens",
+    "default": "Default",
+    "system": "System prompt (optional)",
+    "message": "Message",
+    "placeholder": "Write a message… (Shift+Enter for a new line)",
+    "send": "Send",
+    "stop": "Stop",
+    "clear": "Clear conversation",
+    "you": "You",
+    "assistant": "Assistant",
+    "firstToken": "{{ms}} ms to first token",
+    "tokens": "{{count}} tokens",
+    "rate": "{{rate}} tokens/s",
+    "failed": "Something went wrong. Try again.",
+    "homeTitle": "Test it",
+    "homeBody": "Chat with one of your pools right here, using an API key.",
+    "open": "Open the Playground"
   }
 }

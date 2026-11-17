@@ -1,6 +1,16 @@
-import { Card, CardHeader, Text, Title1, makeStyles, tokens } from '@fluentui/react-components';
+import {
+  Button,
+  Card,
+  CardFooter,
+  CardHeader,
+  Text,
+  Title1,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
 import {
   BrainCircuit24Regular,
+  Chat24Regular,
   PhoneLaptop24Regular,
   PlugConnected24Regular,
 } from '@fluentui/react-icons';
@@ -80,6 +90,30 @@ export function Home() {
             />
           </Card>
         ))}
+        <Card className={styles.card}>
+          <CardHeader
+            image={
+              <span className={styles.icon}>
+                <Chat24Regular />
+              </span>
+            }
+            header={
+              <Text weight="semibold" size={400}>
+                {t('playground.homeTitle')}
+              </Text>
+            }
+            description={
+              <Text style={{ color: tokens.colorNeutralForeground2 }}>
+                {t('playground.homeBody')}
+              </Text>
+            }
+          />
+          <CardFooter>
+            <Button as="a" href="/playground" appearance="primary" target="_blank" rel="noopener">
+              {t('playground.open')}
+            </Button>
+          </CardFooter>
+        </Card>
       </section>
       <div className={styles.endpoints}>
         <Endpoints />

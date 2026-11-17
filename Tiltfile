@@ -114,7 +114,7 @@ docker_build(
 k8s_yaml(local(
     'helm template splitcortex chart -n %s %s ' % (NAMESPACE, values_args) +
     '--show-only templates/gateway-deployment.yaml --show-only templates/gateway-service.yaml ' +
-    '--show-only templates/gateway-ingress.yaml --show-only templates/gateway-identity-job.yaml ' +
+    '--show-only templates/gateway-ingress.yaml --show-only templates/gateway-app-ingress.yaml --show-only templates/gateway-identity-job.yaml ' +
     '--set gateway.readOnlyRootFilesystem=false ' +
     # The dev image has no installed binary: run keygen through cargo (cwd is /app).
     "--set 'gateway.identity.command={cargo,run,-q,--}'",

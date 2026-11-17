@@ -1,0 +1,40 @@
+{{- if and .Values.gateway.enabled .Values.gateway.appIngress.enabled }}
+{{- /*
+  The OpenAI edge (`/v1`) also on the web app's host, so the Playground page in the browser calls it same-origin
+  (no CORS headers on the gateway). Same pattern as the control plane's `/api`: Traefik prefers the longer prefix over
+  the UI's `/`, the path is not stripped, and no cert-manager annotation (the UI's Ingress issues the TLS Secret).
+*/ -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway-app
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+  {{- with .Values.gateway.appIngress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.gateway.appIngress.className }}
+  {{- with .Values.gateway.appIngress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.gateway.appIngress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: gateway
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+{{- end }}

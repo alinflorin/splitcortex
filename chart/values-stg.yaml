@@ -94,6 +94,16 @@ gateway:
       - secretName: gateway-tls
         hosts:
           - gateway.stg.splitcortex.alinflorinciu.qoffice.ro
+  appIngress:
+    hosts:
+      - host: app.stg.splitcortex.alinflorinciu.qoffice.ro
+        paths:
+          - path: /v1
+            pathType: Prefix
+    tls:
+      - secretName: ui-tls
+        hosts:
+          - app.stg.splitcortex.alinflorinciu.qoffice.ro
 
 controlPlane:
   gateway:

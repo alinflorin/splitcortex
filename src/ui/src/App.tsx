@@ -13,6 +13,7 @@ import { NodePage } from './pages/organisations/NodePage';
 import { PoolPage } from './pages/organisations/PoolPage';
 import { PoolsTab } from './pages/organisations/PoolsTab';
 import { UsageTab } from './pages/organisations/UsageTab';
+import { Playground } from './pages/Playground';
 import { Settings } from './pages/Settings';
 
 export function App() {
@@ -23,6 +24,7 @@ export function App() {
         <Route path="about" element={<About />} />
         <Route element={<PrivateRoute />}>
           <Route path="settings" element={<Settings />} />
+          <Route path="playground" element={<Playground />} />
           <Route path="organisations" element={<OrganisationsPage />} />
           <Route path="organisations/:orgId" element={<OrganisationLayout />}>
             <Route index element={<Navigate to="models" replace />} />

@@ -12,6 +12,8 @@ import {
   Building24Regular,
   Home24Filled,
   Home24Regular,
+  Chat24Filled,
+  Chat24Regular,
   Info24Filled,
   Info24Regular,
   Settings24Filled,
@@ -25,12 +27,14 @@ import { OrgNav } from './OrgNav';
 
 const HomeIcon = bundleIcon(Home24Filled, Home24Regular);
 const OrgIcon = bundleIcon(Building24Filled, Building24Regular);
+const ChatIcon = bundleIcon(Chat24Filled, Chat24Regular);
 const InfoIcon = bundleIcon(Info24Filled, Info24Regular);
 const SettingsIcon = bundleIcon(Settings24Filled, Settings24Regular);
 
 const ITEMS = [
   { to: '/', key: 'home', Icon: HomeIcon },
   { to: '/organisations', key: 'organisations', Icon: OrgIcon },
+  { to: '/playground', key: 'playground', Icon: ChatIcon },
   { to: '/about', key: 'about', Icon: InfoIcon },
   { to: '/settings', key: 'settings', Icon: SettingsIcon },
 ] as const;

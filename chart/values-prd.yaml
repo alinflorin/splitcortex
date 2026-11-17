@@ -87,6 +87,16 @@ gateway:
       - secretName: gateway-tls
         hosts:
           - gateway.prd.splitcortex.com
+  appIngress:
+    hosts:
+      - host: app.prd.splitcortex.com
+        paths:
+          - path: /v1
+            pathType: Prefix
+    tls:
+      - secretName: ui-tls
+        hosts:
+          - app.prd.splitcortex.com
 
 controlPlane:
   gateway:

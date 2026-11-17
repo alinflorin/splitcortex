@@ -19,6 +19,7 @@ Rules summary is in [CLAUDE.md](../CLAUDE.md). Status: built.
 
 ## Client leg (OpenAI edge)
 
+- The `/v1` edge is also reachable on the web app host (`gateway.appIngress`, path `/v1` only) for the UI's Playground, same origin, so the gateway sends no CORS headers.
 - `GET /v1/models` (union of the key's pools' models; adds `context_length` = smallest window among ready nodes when known), `POST /v1/chat/completions` (JSON or SSE; no `stream_options`, no tools). Auth `Authorization: Bearer sc_...`: sha-256 hex in cache, DB fallback on miss + 10 s negative cache; `last_used_at` written at most once a minute. OpenAI error shape.
 - Failure before first token: retry once on another node. Mid-stream: stream ends with an error event (no silent restart, avoids double metering). Client disconnect sends `Cancel`.
 - **Tokens**: gateway counts one completion token per streamed piece and prompt tokens as chars/4 (no tokenizer yet); node-reported counts are ignored.

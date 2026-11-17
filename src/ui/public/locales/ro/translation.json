@@ -8,7 +8,8 @@
     "about": "Despre",
     "settings": "Setări",
     "toggle": "Comută navigarea",
-    "organisations": "Organizații"
+    "organisations": "Organizații",
+    "playground": "Spațiu de test"
   },
   "auth": {
     "signIn": "Autentificare",
@@ -122,7 +123,8 @@
     "slug": "Folosește litere mici, cifre și cratime simple.",
     "hfUrl": "Folosește un link https://huggingface.co/… către un fișier .litertlm.",
     "modelFile": "Sunt acceptate doar fișiere .litertlm.",
-    "pickPool": "Alege cel puțin un pool."
+    "pickPool": "Alege cel puțin un pool.",
+    "numberRange": "Introdu un număr între {{min}} și {{max}} sau lasă gol."
   },
   "common": {
     "cancel": "Anulează",
@@ -450,5 +452,33 @@
     "tokens": "Tokeni",
     "poolTotal": "Debit pool",
     "unit": "tokeni/s"
+  },
+  "playground": {
+    "title": "Spațiu de test",
+    "subtitle": "Încearcă un pool din browser. Lipește o cheie API; conversația nu este salvată nicăieri și dispare când pleci sau reîncarci pagina.",
+    "key": "Cheie API",
+    "keyHint": "Folosită doar în această filă, niciodată salvată. Creezi chei la Chei API în organizația ta.",
+    "connect": "Conectează",
+    "reconnect": "Reconectează",
+    "noModels": "Această cheie nu are modele pregătite. Atribuie mai întâi un model unuia dintre pool-urile ei.",
+    "model": "Model",
+    "temperature": "Temperatură",
+    "maxTokens": "Tokeni maximi",
+    "default": "Implicit",
+    "system": "Prompt de sistem (opțional)",
+    "message": "Mesaj",
+    "placeholder": "Scrie un mesaj… (Shift+Enter pentru rând nou)",
+    "send": "Trimite",
+    "stop": "Oprește",
+    "clear": "Șterge conversația",
+    "you": "Tu",
+    "assistant": "Asistent",
+    "firstToken": "{{ms}} ms până la primul token",
+    "tokens": "{{count}} tokeni",
+    "rate": "{{rate}} tokeni/s",
+    "failed": "A apărut o eroare. Încearcă din nou.",
+    "homeTitle": "Încearcă-l",
+    "homeBody": "Discută chiar aici cu unul dintre pool-urile tale, folosind o cheie API.",
+    "open": "Deschide spațiul de test"
   }
 }

@@ -31,3 +31,12 @@ export function getApiBaseUrl(location: Pick<Location, 'origin'> = window.locati
   const override = import.meta.env.VITE_API_URL as string | undefined;
   return `${(override || location.origin).replace(/\/+$/, '')}/api`;
 }
+
+/**
+ * Where the Playground calls the gateway from the browser: `/v1` on the web app's own origin (the chart routes it to the
+ * gateway, so no CORS). `VITE_GATEWAY_URL` overrides it for a standalone dev server.
+ */
+export function getPlaygroundBaseUrl(location: Pick<Location, 'origin'> = window.location): string {
+  const override = import.meta.env.VITE_GATEWAY_URL as string | undefined;
+  return `${(override || location.origin).replace(/\/+$/, '')}/v1`;
+}
