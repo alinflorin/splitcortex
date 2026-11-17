@@ -16,7 +16,7 @@ directories = "6"
 ed25519-dalek = { version = "2", features = ["rand_core"] }
 flate2 = "1"
 futures-util = "0.3"
-hkdf = "0.12"
+hkdf = "0.13"
 keepawake = "0.6"
 libloading = "0.8"
 prost = "0.13"
