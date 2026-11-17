@@ -1,6 +1,7 @@
 {
   "app": {
-    "name": "SplitCortex"
+    "name": "SplitCortex",
+    "version": "Versiunea {{version}}"
   },
   "nav": {
     "home": "Nod",

@@ -10,6 +10,8 @@ export function stubApi(routes: Record<string, unknown>) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init?: RequestInit) => {
+      // The static chart version is not an API call (the sidebar fetches it).
+      if (url === '/version.json') return new Response(JSON.stringify({ version: '1.2.3' }));
       const key = `${init?.method ?? 'GET'} ${url}`;
       calls.push({ key, body: init?.body ? JSON.parse(init.body as string) : undefined });
       if (!(key in routes))

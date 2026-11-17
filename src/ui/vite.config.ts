@@ -13,9 +13,20 @@ const healthz: Plugin = {
   },
 };
 
+// Same /version.json as the Caddy image (the chart sets APP_VERSION on the dev Deployment too).
+const version: Plugin = {
+  name: 'version',
+  configureServer(server) {
+    server.middlewares.use('/version.json', (_req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ version: process.env.APP_VERSION || 'dev' }));
+    });
+  },
+};
+
 export default defineConfig({
   // Experimental Rust port of React Compiler (oxc-transform-react).
-  plugins: [react({ compiler: true }), healthz],
+  plugins: [react({ compiler: true }), healthz, version],
   server: {
     host: true,
     port: 5173,

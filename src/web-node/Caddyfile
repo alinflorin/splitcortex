@@ -12,6 +12,13 @@
 		respond "ok" 200
 	}
 
+	# The Helm chart version (APP_VERSION is set by the chart's Deployment); shown in the app.
+	handle /version.json {
+		header Content-Type application/json
+		header Cache-Control no-cache
+		respond `{"version":"{$APP_VERSION:dev}"}` 200
+	}
+
 	# Hashed build assets never change.
 	@assets path /assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"

@@ -1,6 +1,7 @@
 {
   "app": {
     "webNode": "Nod web",
+    "version": "Versiunea {{version}}",
     "preferences": "Preferințe",
     "intro": "Acest browser poate servi cereri AI pentru pool-ul tău SplitCortex, ca un telefon care rulează aplicația de nod.",
     "keepOpen": "Ține această filă deschisă cât timp nodul trebuie să servească. Un browser poate opri filele ascunse, iar pe web nu există serviciu în fundal.",

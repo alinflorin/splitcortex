@@ -8,4 +8,4 @@ export function enrollmentUrl(origin: string = window.location.origin): string {
 }
 
 /** The app version reported to the gateway. */
-export const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? 'web';
+export const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) || 'web';

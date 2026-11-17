@@ -32,6 +32,7 @@ Summary in [CLAUDE.md](../CLAUDE.md).
 - **Models**: status, download progress, retry, delete, add from a Hugging Face link or upload with part-level progress/retry (`lib/uploadParts.ts`).
 - **Rate limits**: three free-text numeric fields (requests/min, tokens/min, tokens/day; empty = unlimited, inline error outside 1..max) in `LimitsFields`: org settings card, key creation dialog, per-key dialog.
 - **Home**: `components/Endpoints.tsx` two cards with copy buttons: gateway base URL (`getGatewayBaseUrl`, `.../v1`) and control plane API URL (`getApiBaseUrl`: web app origin + `/api`, `VITE_API_URL` overrides). `components/AppDownloads.tsx` ("Run a node", on Home and above a pool's devices): **Mobile app** (Download APK → `releases?q=mobile-node&expanded=true` new tab; Google Play/App Store buttons inert until listings exist), **Desktop app** (`q=desktop-node`), **Command line** (`curl … install.sh | sh` for Linux/macOS, `irm … install.ps1 | iex` for Windows, each with a copy button, plus `q=cli-node` button; scripts fetched from GitHub raw `src/cli-node/install.*`), **Web node** (open in new tab without a code; share via `navigator.share`, else copy link). Release links are separate because each app has its own tag stream.
+- **Version**: the sidebar footer shows the **Helm chart version** (`lib/useChartVersion.ts` fetches `/version.json`; Caddy serves it from env `APP_VERSION`, which `ui-deployment.yaml` sets to `.Chart.Version`; the Vite dev server has the same route). Hidden until loaded or if the fetch fails.
 
 ## Container
 

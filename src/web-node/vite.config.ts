@@ -16,6 +16,17 @@ const healthz: Plugin = {
   },
 };
 
+// Same /version.json as the Caddy image (the chart sets APP_VERSION on the dev Deployment too).
+const version: Plugin = {
+  name: 'version',
+  configureServer(server) {
+    server.middlewares.use('/version.json', (_req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ version: process.env.APP_VERSION || 'dev' }));
+    });
+  },
+};
+
 // LiteRT-LM's JS package loads its WASM from a jsDelivr URL by default. No CDNs, ever: the runtime ships with the app
 // and `loadLiteRtLm('/litertlm/')` (src/engine/litert.ts) points at this copy.
 const litertWasm: Plugin = (() => {
@@ -44,7 +55,7 @@ const litertWasm: Plugin = (() => {
 
 export default defineConfig({
   // Experimental Rust port of React Compiler (oxc-transform-react).
-  plugins: [react({ compiler: true }), healthz, litertWasm],
+  plugins: [react({ compiler: true }), healthz, version, litertWasm],
   server: {
     host: true,
     port: 5174,

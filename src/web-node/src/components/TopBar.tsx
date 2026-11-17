@@ -9,6 +9,7 @@ import {
 } from '@fluentui/react-components';
 import { Settings24Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
+import { useChartVersion } from '../lib/useChartVersion';
 import { LanguageSubmenu, ThemeSubmenu } from './PreferencesMenu';
 
 const useStyles = makeStyles({
@@ -34,6 +35,7 @@ const useStyles = makeStyles({
 export function TopBar() {
   const styles = useStyles();
   const { t } = useTranslation();
+  const version = useChartVersion();
   return (
     <header className={styles.bar}>
       <div className={styles.brand}>
@@ -43,6 +45,7 @@ export function TopBar() {
           <span className={styles.cortex}>cortex</span>
         </span>
         <span className={styles.tag}>{t('app.webNode')}</span>
+        {version && <span className={styles.tag}>{t('app.version', { version })}</span>}
       </div>
       <div className={styles.spacer} />
       <Menu positioning={{ align: 'end' }}>

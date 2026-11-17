@@ -20,6 +20,7 @@ import {
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { matchPath, useLocation, useNavigate } from 'react-router-dom';
+import { useChartVersion } from '../../lib/useChartVersion';
 import { OrgNav } from './OrgNav';
 
 const HomeIcon = bundleIcon(Home24Filled, Home24Regular);
@@ -58,6 +59,12 @@ const useStyles = makeStyles({
   brandSplit: { color: '#14b8d4' },
   brandCortex: { color: '#4f5df0' },
   body: { padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalS}` },
+  version: {
+    flexShrink: 0,
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalL}`,
+    color: tokens.colorNeutralForeground3,
+    fontSize: tokens.fontSizeBase200,
+  },
 });
 
 interface SidebarProps {
@@ -76,6 +83,7 @@ export function Sidebar({ open, overlay, onOpenChange }: SidebarProps) {
   const styles = useStyles();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const version = useChartVersion();
   const { pathname } = useLocation();
 
   // Inside an organisation the sidebar shows only that organisation's pages.
@@ -122,6 +130,7 @@ export function Sidebar({ open, overlay, onOpenChange }: SidebarProps) {
           ))
         )}
       </NavDrawerBody>
+      {version && <Text className={styles.version}>{t('app.version', { version })}</Text>}
     </NavDrawer>
   );
 }

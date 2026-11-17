@@ -21,6 +21,10 @@ spec:
         - name: ui
           image: {{ include "splitcortex.image" (dict "root" . "image" .Values.ui.image) | quote }}
           imagePullPolicy: {{ .Values.ui.image.pullPolicy }}
+          env:
+            # Shown in the app (served as /version.json).
+            - name: APP_VERSION
+              value: {{ .Chart.Version | quote }}
           ports:
             - name: http
               containerPort: 8080

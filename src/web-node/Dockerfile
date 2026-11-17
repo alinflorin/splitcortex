@@ -7,6 +7,9 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm test
+# The release version, reported to the gateway (empty outside a tag build).
+ARG APP_VERSION=
+ENV VITE_APP_VERSION=$APP_VERSION
 RUN pnpm build
 
 FROM caddy:2-alpine

@@ -1,6 +1,7 @@
 {
   "app": {
     "webNode": "Web node",
+    "version": "Version {{version}}",
     "preferences": "Preferences",
     "intro": "This browser can serve AI requests for your SplitCortex pool, like a phone running the node app.",
     "keepOpen": "Keep this tab open while the node should serve. A browser may pause hidden tabs, and there is no background service on the web.",

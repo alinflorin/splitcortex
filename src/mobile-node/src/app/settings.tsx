@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BatteryExemption } from '../components/BatteryExemption';
@@ -129,6 +130,9 @@ export default function Settings() {
           choices={LANGUAGES.map((l) => ({ value: l, label: t(`language.${l}`) }))}
         />
       </Card>
+      <Text variant="caption" muted>
+        {t('app.version', { version: Constants.expoConfig?.version ?? '0' })}
+      </Text>
     </Screen>
   );
 }
