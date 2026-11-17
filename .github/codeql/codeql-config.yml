@@ -1,0 +1,3 @@
+# Third-party code is not ours to fix: alerts in installed dependencies are dropped.
+paths-ignore:
+  - "**/node_modules/**"
