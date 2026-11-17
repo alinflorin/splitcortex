@@ -292,12 +292,17 @@ jobs:
       # then fails with "could not connect to TCP port 5554". Install it here with retries so the action finds it ready.
       - name: Install the Android emulator (with retries)
         run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SDKMANAGER" ] || SDKMANAGER="$(command -v sdkmanager || true)"
+          [ -n "$SDKMANAGER" ] || { echo "sdkmanager not found under $ANDROID_HOME" >&2; ls "$ANDROID_HOME" "$ANDROID_HOME/cmdline-tools" >&2; exit 1; }
+          sudo chown "$USER" "$ANDROID_HOME"
+          sudo mkdir -p "$ANDROID_HOME/emulator" && sudo chown -R "$USER" "$ANDROID_HOME/emulator"
           for attempt in 1 2 3 4; do
-            if sdkmanager --install emulator --channel=0 && [ -x "$ANDROID_HOME/emulator/emulator" ]; then
+            if "$SDKMANAGER" --install emulator --channel=0 && [ -x "$ANDROID_HOME/emulator/emulator" ]; then
               exit 0
             fi
             echo "Emulator install failed (attempt $attempt), retrying"
-            rm -rf "$ANDROID_HOME/emulator"
+            rm -rf "$ANDROID_HOME/emulator"/*
             sleep 10
           done
           echo "Could not install the Android emulator" >&2
