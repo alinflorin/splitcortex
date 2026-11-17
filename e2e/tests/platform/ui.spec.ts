@@ -87,10 +87,8 @@ test('deletes a pool after confirming', async ({ page }) => {
   await page.goto(`/organisations/${org.id}/pools`);
   await expect(page.getByText('ui-delete-me')).toBeVisible();
   await page.getByRole('button', { name: 'Delete' }).click();
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: /Delete|Confirm/ })
-    .click();
+  // The confirm dialog renders after the page in the DOM, so its button is the last one.
+  await page.getByRole('button', { name: 'Delete' }).last().click();
   await expect(page.getByText('ui-delete-me')).toHaveCount(0);
   expect(await ws.cp.send('GET', `/organisations/${org.id}/pools/${pool.id}`)).toMatchObject({
     status: 404,
