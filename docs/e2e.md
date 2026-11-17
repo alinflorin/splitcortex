@@ -26,6 +26,8 @@ A suite whose binary/device is missing **skips locally and fails in CI**: `E2E_C
 
 `.github/workflows/e2e.yaml`: nightly (03:00 UTC) and manual; jobs `platform`, `web-node`, `cli`, `desktop`, `mobile` run in parallel (no GitHub environment; they use the repository secrets). Manual inputs: `app_url` (default staging; `dex_url`/`web_node_url` if not derivable; another stack must accept the same login), per-stream versions, `suites`. The node suites test the **newest released builds** (CLI via `install.sh`, desktop `.deb`, mobile APK) unless a version is given. Mobile uses `reactivecircus/android-emulator-runner` (API 34, KVM) and the newest Maestro release (unpinned).
 
+**Caches** (`actions/cache`): the pnpm store, Playwright's browsers (key = `e2e/pnpm-lock.yaml`; apt libraries are still installed each run with `install-deps`), `tauri-driver` (so the Rust toolchain and `cargo install` only run on a miss; bump the `v1` in the key to rebuild), Maestro (key = its release tag) and the Android emulator's AVD with a booted snapshot (key `avd-api34-x86_64-google_apis`, created by the first run; the emulator then starts with `-no-snapshot-save`). Not cached: apt packages (`webkit2gtk-driver`, `xvfb`, the .deb's dependencies), the downloaded release assets (CLI archive, `.deb`, APK) and the emulator's system image download. Caches belong to the branch that created them and are evicted after 7 days unused, which the nightly run prevents.
+
 ## Unverified
 
 Written without a running stack: the Dex headless login (against the real Dex pages), Playwright selectors for the web app, the desktop and mobile selectors/flows, the workflow itself. Expect a first round of fixes.

@@ -72,7 +72,17 @@ jobs:
           cache-dependency-path: e2e/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
-      - run: pnpm exec playwright install --with-deps chromium
+      # The browser download is cached per Playwright version (the lockfile); the system libraries come from apt each time.
+      - name: Cache Playwright browsers
+        id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/pnpm-lock.yaml') }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
       - run: pnpm test:platform
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
@@ -99,7 +109,17 @@ jobs:
           cache-dependency-path: e2e/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
-      - run: pnpm exec playwright install --with-deps chromium
+      # The browser download is cached per Playwright version (the lockfile); the system libraries come from apt each time.
+      - name: Cache Playwright browsers
+        id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/pnpm-lock.yaml') }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
       - run: pnpm test:web-node
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
@@ -177,13 +197,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y "$RUNNER_TEMP"/desktop/*_amd64.deb webkit2gtk-driver xvfb
           echo "E2E_DESKTOP_BIN=/usr/bin/splitcortex-desktop-node" >> "$GITHUB_ENV"
-      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
       - name: Cache tauri-driver
         id: driver
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cargo/bin/tauri-driver
           key: tauri-driver-ubuntu-22.04-v1
+      - if: steps.driver.outputs.cache-hit != 'true'
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
       - if: steps.driver.outputs.cache-hit != 'true'
         run: cargo install tauri-driver --locked
       - run: xvfb-run -a pnpm test:desktop
@@ -229,12 +250,24 @@ jobs:
           echo "E2E_MOBILE_APK=$(ls "$RUNNER_TEMP"/apk/*.apk)" >> "$GITHUB_ENV"
 
       # Maestro has no pinned release here: the newest CLI from its GitHub releases.
+      - name: Resolve the Maestro version
+        id: maestro
+        working-directory: .
+        run: echo "tag=$(gh release view --repo mobile-dev-inc/maestro --json tagName --jq .tagName)" >> "$GITHUB_OUTPUT"
+      - name: Cache Maestro
+        id: maestro-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/maestro
+          key: maestro-${{ steps.maestro.outputs.tag }}
       - name: Install Maestro
+        if: steps.maestro-cache.outputs.cache-hit != 'true'
         working-directory: .
         run: |
-          curl -fsSL -o "$RUNNER_TEMP/maestro.zip" https://github.com/mobile-dev-inc/maestro/releases/latest/download/maestro.zip
+          curl -fsSL -o "$RUNNER_TEMP/maestro.zip" "https://github.com/mobile-dev-inc/maestro/releases/download/${{ steps.maestro.outputs.tag }}/maestro.zip"
           unzip -q "$RUNNER_TEMP/maestro.zip" -d "$HOME"
-          echo "$HOME/maestro/bin" >> "$GITHUB_PATH"
+      - run: echo "$HOME/maestro/bin" >> "$GITHUB_PATH"
+        working-directory: .
 
       - name: Enable KVM
         run: |
@@ -242,11 +275,34 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # The emulator's disk and a booted snapshot are cached; the first run (or a new key) creates them.
+      - name: Cache the emulator (AVD)
+        id: avd
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api34-x86_64-google_apis
+      - name: Create the AVD and its snapshot
+        if: steps.avd.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: false
+          script: echo "Generated the AVD snapshot for caching."
       - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 34
           arch: x86_64
           target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
           working-directory: e2e
           script: pnpm test:mobile
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
