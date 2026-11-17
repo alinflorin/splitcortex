@@ -1,0 +1,67 @@
+# .github/workflows/codeql.yml
+name: "CodeQL"
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  pull_request:
+    branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  schedule:
+    - cron: "40 0 * * 3"
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write # upload results
+      packages: read # fetch CodeQL packs
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # workflows under .github/workflows
+          - language: actions
+            build-mode: none
+          # ui, web-node, desktop-node (web side), control-plane, mobile-node
+          - language: javascript-typescript
+            build-mode: none
+          # gateway, cli-node, desktop-node/src-tauri
+          - language: rust
+            build-mode: none
+          # the local Expo module (Android foreground service, telemetry)
+          - language: java-kotlin
+            build-mode: none
+          # scripts/fetch-litert.py
+          - language: python
+            build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
