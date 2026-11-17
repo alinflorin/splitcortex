@@ -13,8 +13,19 @@ appId: com.splitcortex.node
 - inputText: ${API_URL}
 - hideKeyboard
 - tapOn: 'Enroll'
+# Either the status screen or a system permission prompt (Android asks for notifications once the node starts); a prompt
+# hides the app's text from Maestro, so allow it first.
+- extendedWaitUntil:
+    visible: 'Allow|Enrolled.*'
+    timeout: 60000
+- runFlow:
+    when:
+      visible: 'Allow'
+    commands:
+      - tapOn: 'Allow'
 - extendedWaitUntil:
     visible: 'Enrolled.*'
-    timeout: 60000
+    timeout: 30000
+- takeScreenshot: enrolled
 # Maestro matches whole strings as regexes; the app shows "Key fingerprint: <value>" as one text.
 - assertVisible: 'Key fingerprint.*'
