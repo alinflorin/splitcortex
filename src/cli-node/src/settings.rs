@@ -17,6 +17,8 @@ pub struct Settings {
     pub max_context_tokens: u32,
     /// Keep the computer awake while serving (the screen may still turn off).
     pub keep_awake: bool,
+    /// The web app address `join` enrolls against, empty = the default. Set by the installer or `config --url`.
+    pub app_url: String,
 }
 
 impl Default for Settings {
@@ -25,6 +27,7 @@ impl Default for Settings {
             compute: "auto".into(),
             max_context_tokens: 0,
             keep_awake: true,
+            app_url: String::new(),
         }
     }
 }
@@ -53,6 +56,7 @@ mod tests {
             compute: "gpu".into(),
             max_context_tokens: 8192,
             keep_awake: false,
+            app_url: String::new(),
         };
         assert_eq!(s.prefs().backend, Some(Backend::Gpu));
         assert_eq!(s.prefs().max_context_tokens, Some(8192));

@@ -76,8 +76,8 @@ if [ -z "$APP_URL" ]; then
     [ -z "$ANSWER" ] || APP_URL="$ANSWER"
   fi
 fi
-JOIN="splitcortex-node join"
-[ "$APP_URL" = "$DEFAULT_URL" ] || JOIN="splitcortex-node join --url $APP_URL"
+# Saved, so a plain `splitcortex-node join` enrolls against it (no --url needed).
+"$INSTALL_DIR/splitcortex-node" config --url "$APP_URL" >/dev/null || die "cannot save the web app address"
 
 say ""
 say "Installed: $BIN_DIR/splitcortex-node ($VERSION)"
@@ -87,7 +87,7 @@ case ":$PATH:" in
 esac
 say ""
 say "Next:"
-say "  $JOIN"
+say "  splitcortex-node join"
 say "                                     (enroll with the code from \"Add device\" in the web app)"
 say "  splitcortex-node run               start serving (Ctrl+C stops)"
 say "  splitcortex-node service install   or keep it running in the background and at login"

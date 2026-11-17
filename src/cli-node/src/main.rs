@@ -37,9 +37,9 @@ const DEFAULT_URL: &str = "https://app.prd.splitcortex.com";
 enum Command {
     /// Enroll this computer with a code from "Add device" in the web app
     Join {
-        /// The web app's address (default: https://app.prd.splitcortex.com)
-        #[arg(long, env = "SPLITCORTEX_URL", default_value = DEFAULT_URL)]
-        url: String,
+        /// The web app's address (default: the one saved by the installer or `config --url`, else https://app.prd.splitcortex.com)
+        #[arg(long, env = "SPLITCORTEX_URL")]
+        url: Option<String>,
         /// The enrollment code XXXX-XXXXXX (asked for when missing)
         #[arg(long)]
         code: Option<String>,
@@ -61,6 +61,9 @@ enum Command {
         /// Keep the computer awake while serving
         #[arg(long)]
         keep_awake: Option<bool>,
+        /// The web app's address `join` enrolls against (saved)
+        #[arg(long)]
+        url: Option<String>,
     },
     /// Install the newest release (`--check` only looks)
     Update {
@@ -149,6 +152,11 @@ async fn main() -> Result<()> {
                 Some(c) => c,
                 None => ask("Enrollment code (XXXX-XXXXXX): ")?,
             };
+            let saved: settings::Settings = dirs.read_json(settings::FILE).unwrap_or_default();
+            let url = url
+                .filter(|u| !u.trim().is_empty())
+                .or_else(|| Some(saved.app_url).filter(|u| !u.is_empty()))
+                .unwrap_or_else(|| DEFAULT_URL.to_string());
             let url = normalize_url(&url)?;
             let device = system::device_info();
             let e = enroll::enroll(&dirs, &url, &code, &device)
@@ -219,6 +227,7 @@ async fn main() -> Result<()> {
             compute,
             context,
             keep_awake,
+            url,
         } => {
             let mut s: settings::Settings = dirs.read_json(settings::FILE).unwrap_or_default();
             if let Some(c) = compute {
@@ -237,6 +246,13 @@ async fn main() -> Result<()> {
             if let Some(k) = keep_awake {
                 s.keep_awake = k;
             }
+            if let Some(u) = url {
+                // Validated now, stored as typed (empty resets to the default).
+                if !u.trim().is_empty() {
+                    normalize_url(&u)?;
+                }
+                s.app_url = u.trim().to_string();
+            }
             dirs.write_json(settings::FILE, &s)?;
             println!("compute:     {}", s.compute);
             println!(
@@ -248,6 +264,14 @@ async fn main() -> Result<()> {
                 }
             );
             println!("keep awake:  {}", s.keep_awake);
+            println!(
+                "web app:     {}",
+                if s.app_url.is_empty() {
+                    DEFAULT_URL
+                } else {
+                    &s.app_url
+                }
+            );
             println!("(an admin override in the web app wins; restart the node to apply changes)");
         }
         Command::Update { check } => update::update(check).await?,

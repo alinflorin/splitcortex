@@ -64,13 +64,15 @@ if (-not $AppUrl) {
     } catch { }
   }
 }
-$Join = if ($AppUrl -eq $DefaultUrl) { 'splitcortex-node join' } else { "splitcortex-node join --url $AppUrl" }
+# Saved, so a plain `splitcortex-node join` enrolls against it (no --url needed).
+& $exe config --url $AppUrl | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'cannot save the web app address' }
 
 Write-Host ''
 Write-Host "Installed: $exe ($Version)"
 Write-Host ''
 Write-Host 'Next:'
-Write-Host "  $Join"
+Write-Host '  splitcortex-node join'
 Write-Host '                                     (enroll with the code from "Add device" in the web app)'
 Write-Host '  splitcortex-node run               start serving (Ctrl+C stops)'
 Write-Host '  splitcortex-node service install   or keep it running in the background and at logon'

@@ -262,6 +262,9 @@ impl ModelManager {
             .await?;
         file.seek(std::io::SeekFrom::Start(offset)).await?;
         let mut last_report = Instant::now();
+        let mut last_log = Instant::now();
+        let started = Instant::now();
+        let started_at = offset;
         while offset < a.size_bytes {
             if cancel.is_cancelled() {
                 return Ok(());
@@ -294,6 +297,25 @@ impl ModelManager {
                     last_report = Instant::now();
                     self.set(Phase::Downloading, a, offset);
                 }
+                if last_log.elapsed() > Duration::from_secs(5) {
+                    last_log = Instant::now();
+                    let secs = started.elapsed().as_secs_f64().max(0.001);
+                    let rate = (offset - started_at) as f64 / secs;
+                    let left = a.size_bytes.saturating_sub(offset) as f64;
+                    info!(
+                        "Downloading {}: {:.1}% ({} of {} MB, {:.1} MB/s, about {} min left)",
+                        a.name,
+                        offset as f64 * 100.0 / a.size_bytes.max(1) as f64,
+                        offset / 1_000_000,
+                        a.size_bytes / 1_000_000,
+                        rate / 1e6,
+                        if rate > 0.0 {
+                            (left / rate / 60.0).ceil() as u64
+                        } else {
+                            0
+                        }
+                    );
+                }
             }
             if got == 0 {
                 bail!("Download returned no data");
@@ -303,6 +325,7 @@ impl ModelManager {
         drop(file); // the engine reads the file next: no write handle may stay open
         if !a.sha256.is_empty() {
             self.set(Phase::Loading, a, offset);
+            info!("Verifying {}", a.name);
             let p = path.clone();
             let digest = tokio::task::spawn_blocking(move || sha256_of(&p)).await??;
             if !digest.eq_ignore_ascii_case(&a.sha256) {
