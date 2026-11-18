@@ -11,7 +11,7 @@ import {
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
-import { Person24Regular, Settings24Regular, SignOut24Regular } from '@fluentui/react-icons';
+import { Person24Regular, SignOut24Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from 'react-oidc-context';
 import { useNavigate } from 'react-router-dom';
@@ -77,11 +77,6 @@ export function UserMenu() {
           </>
         )}
         <MenuList>
-          {user && (
-            <MenuItem icon={<Settings24Regular />} onClick={() => void navigate('/settings')}>
-              {t('nav.settings')}
-            </MenuItem>
-          )}
           <ThemeSubmenu />
           <LanguageSubmenu />
           <MenuDivider />

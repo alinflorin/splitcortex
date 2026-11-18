@@ -14,7 +14,6 @@ import { PoolPage } from './pages/organisations/PoolPage';
 import { PoolsTab } from './pages/organisations/PoolsTab';
 import { UsageTab } from './pages/organisations/UsageTab';
 import { Playground } from './pages/Playground';
-import { Settings } from './pages/Settings';
 
 export function App() {
   return (
@@ -23,7 +22,6 @@ export function App() {
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route element={<PrivateRoute />}>
-          <Route path="settings" element={<Settings />} />
           <Route path="playground" element={<Playground />} />
           <Route path="organisations" element={<OrganisationsPage />} />
           <Route path="organisations/:orgId" element={<OrganisationLayout />}>

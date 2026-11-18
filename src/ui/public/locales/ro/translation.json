@@ -6,7 +6,6 @@
   "nav": {
     "home": "Acasă",
     "about": "Despre",
-    "settings": "Setări",
     "toggle": "Comută navigarea",
     "organisations": "Organizații",
     "playground": "Spațiu de test"
@@ -96,7 +95,7 @@
       "steps": {
         "one": {
           "title": "Înrolează-ți dispozitivele",
-          "body": "Creează un cod scurt în aplicație și scrie-l sau scanează-i QR-ul cu dispozitivul. Dispozitivul se conectează către gateway și e gata."
+          "body": "Creează un cod scurt în aplicație și scrie-l pe dispozitiv sau scanează codul QR. Dispozitivul se conectează la gateway și e gata de lucru."
         },
         "two": {
           "title": "Alege un model și un pool",
@@ -123,7 +122,7 @@
         },
         "api": {
           "title": "API compatibil OpenAI",
-          "body": "Schimbi doar URL-ul de bază și cheia API. Sunt suportate streaming, imagini și audio."
+          "body": "Schimbi doar URL-ul de bază și cheia API. Sunt acceptate streaming-ul, imaginile și audio."
         },
         "security": {
           "title": "Sigur prin construcție",
@@ -165,7 +164,7 @@
       "body": "URL de bază pentru clienții compatibili OpenAI, împreună cu o cheie API."
     },
     "api": {
-      "title": "API control plane",
+      "title": "API-ul planului de control",
       "body": "API-ul REST din spatele acestei aplicații web."
     }
   },
@@ -198,14 +197,14 @@
       "eyebrow": "De ce existăm",
       "title": "Miliarde de dispozitive capabile stau degeaba",
       "problemTitle": "Problema",
-      "problem": "Telefoanele și computerele mici rulează acum modele de limbaj capabile, dar cele mai multe își petrec ziua nefolosite, într-un sertar sau pe birou. GPU-urile din datacenter sunt scumpe, iar trimiterea prompturilor private pe hardware străin nu e mereu o opțiune.",
+      "problem": "Telefoanele și computerele mici pot rula acum modele de limbaj performante, dar cele mai multe își petrec ziua nefolosite, într-un sertar sau pe birou. GPU-urile din datacenter sunt scumpe, iar trimiterea prompturilor private pe hardware străin nu e mereu o opțiune.",
       "answerTitle": "Răspunsul nostru",
       "answer": "Transformă acele dispozitive într-un pool pe care îl controlezi. Fiecare dispozitiv păstrează o conexiune criptată către gateway, care primește cereri în format OpenAI și le trimite unui dispozitiv sănătos din pool-ul tău. Hardware-ul tău, modelele tale, un singur API familiar."
     },
     "flow": {
       "eyebrow": "Pe dinăuntru",
       "title": "Cum călătorește o cerere",
-      "subtitle": "Două segmente separate, intenționat: clientul vorbește cu gateway-ul, iar dispozitivele vorbesc cu gateway-ul. Nimic nu se conectează vreodată într-un dispozitiv.",
+      "subtitle": "Două segmente separate, intenționat: clientul vorbește cu gateway-ul, iar dispozitivele vorbesc tot cu gateway-ul. Nimic nu se conectează vreodată din exterior la un dispozitiv.",
       "client": {
         "title": "Aplicația ta",
         "body": "Orice client OpenAI sau un simplu apel HTTP, autentificat cu o cheie API."
@@ -214,7 +213,7 @@
       "leg1Sub": "inițiat de client, per cerere",
       "gateway": {
         "title": "Gateway",
-        "body": "Un edge în Rust care tratează fiecare cerere în patru pași.",
+        "body": "Un serviciu în Rust, la marginea rețelei, care procesează fiecare cerere în patru pași.",
         "steps": [
           "Autentifică cheia API",
           "Verifică limitele",
@@ -231,7 +230,7 @@
     },
     "principles": {
       "eyebrow": "Principii",
-      "title": "Construit ca să i te poată încredința prompturile",
+      "title": "Construit ca să-i poți încredința prompturile",
       "subtitle": "Securitatea și confidențialitatea fac parte din arhitectură, nu dintr-o listă de funcții.",
       "items": {
         "byod": {
@@ -240,14 +239,14 @@
         },
         "outbound": {
           "title": "Doar conexiuni de ieșire",
-          "body": "Dispozitivele inițiază conexiunea prin TLS. Nu există porturi de deschis și nici acces dinspre exterior către un telefon sau laptop."
+          "body": "Dispozitivele inițiază conexiunea prin TLS. Nu trebuie deschis niciun port și nu există acces din exterior către un telefon sau laptop."
         },
         "identity": {
           "title": "Identități verificate",
           "body": "Fiecare dispozitiv își generează propria cheie și o dovedește la conectare. Dispozitivele fixează cheia gateway-ului și o verifică independent de lanțul de certificate."
         },
         "keys": {
-          "title": "Chei niciodată în clar",
+          "title": "Cheile nu sunt stocate în clar",
           "body": "Cheile API sunt stocate doar ca hash și afișate o singură dată. Credențialele dispozitivelor se pot revoca individual."
         },
         "tenants": {
@@ -255,7 +254,7 @@
           "body": "Fiecare interogare, flux de dispozitiv și intrare din registru este limitată la o organizație."
         },
         "privacy": {
-          "title": "Fără jurnalizarea prompturilor",
+          "title": "Prompturile nu sunt jurnalizate",
           "body": "Prompturile și răspunsurile nu sunt niciodată jurnalizate. Benchmark-urile folosesc doar prompturi furnizate de noi."
         }
       }
@@ -317,7 +316,7 @@
     "roadmap": {
       "eyebrow": "Ce urmează",
       "title": "Foaia de parcurs",
-      "body": "Modelele mai mari decât încape pe un dispozitiv sunt pe lista noastră de cercetare, ca mod local de cluster opțional pentru dispozitive din aceeași rețea. Niciodată peste internet.",
+      "body": "Modelele mai mari decât încap pe un dispozitiv sunt pe lista noastră de cercetare, sub forma unui mod local de cluster, opțional, pentru dispozitive din aceeași rețea. Niciodată peste internet.",
       "items": [
         "Mod local de cluster",
         "Mai multe platforme de noduri",
@@ -332,12 +331,8 @@
   },
   "settings": {
     "title": "Setări",
-    "subtitle": "Detaliile profilului tău.",
-    "displayName": "Nume afișat",
-    "contactEmail": "Email de contact",
     "save": "Salvează modificările",
-    "saved": "Setările au fost salvate.",
-    "signedInAs": "Autentificat ca {{email}}"
+    "saved": "Setările au fost salvate."
   },
   "validation": {
     "required": "Acest câmp este obligatoriu.",
@@ -374,7 +369,7 @@
   "organisations": {
     "title": "Organizații",
     "new": "Organizație nouă",
-    "empty": "Nu ești membru în nicio organizație. Creează una pentru a începe.",
+    "empty": "Nu faci parte din nicio organizație. Creează una pentru a începe.",
     "name": "Nume",
     "slug": "Identificator",
     "slugHint": "Litere mici, cifre și cratime.",
@@ -407,7 +402,7 @@
     "updated": "Pool-ul a fost actualizat.",
     "deleted": "Pool-ul a fost șters.",
     "deleteTitle": "Ștergi pool-ul {{name}}?",
-    "deleteMessage": "Dispozitivele lui vor fi deconectate. Acțiunea nu poate fi anulată.",
+    "deleteMessage": "Dispozitivele din acest pool vor fi deconectate. Acțiunea nu poate fi anulată.",
     "details": "Detalii",
     "devices": "Dispozitive",
     "devicesEmpty": "Încă nu există dispozitive în acest pool.",
@@ -419,11 +414,11 @@
     "balancing": {
       "label": "Echilibrarea încărcării",
       "weighted_p2c": "Două alegeri, ponderat",
-      "weighted_p2cHint": "Alege nodul mai puțin încărcat din două alese aleatoriu, ponderat după viteza măsurată. Cea mai bună opțiune pentru dispozitive diferite.",
+      "weighted_p2cHint": "Dintre două noduri alese aleatoriu, îl alege pe cel mai puțin încărcat, ponderat după viteza măsurată. Cea mai bună opțiune pentru dispozitive diferite.",
       "least_in_flight": "Cel mai liber",
       "least_in_flightHint": "Întotdeauna nodul cu cele mai puține cereri în curs.",
       "round_robin": "Round robin",
-      "round_robinHint": "Nodurile pe rând, indiferent de încărcare sau viteză.",
+      "round_robinHint": "Fiecare nod pe rând, indiferent de încărcare sau viteză.",
       "random": "Aleatoriu",
       "randomHint": "Un nod aleatoriu pentru fiecare cerere."
     },
@@ -433,7 +428,7 @@
     "noModelsToAdd": "Nu există alte modele gata",
     "addModel": "Setează modelul",
     "modelAdded": "Pool-ul servește acum acest model.",
-    "removeModel": "Nu mai servi",
+    "removeModel": "Oprește servirea",
     "subtitle": "Un pool este un grup de dispozitive care servesc toate același model."
   },
   "members": {
@@ -447,11 +442,11 @@
     "roleChanged": "Rolul a fost actualizat.",
     "remove": "Elimină",
     "removeTitle": "Elimini {{email}}?",
-    "removeMessage": "Pierde accesul la această organizație.",
+    "removeMessage": "Va pierde accesul la această organizație.",
     "removed": "Membrul a fost eliminat.",
     "leave": "Părăsește",
     "leaveTitle": "Părăsești această organizație?",
-    "leaveMessage": "Pierzi accesul dacă un administrator nu te adaugă din nou.",
+    "leaveMessage": "Vei pierde accesul până când un administrator te adaugă din nou.",
     "left": "Ai părăsit organizația.",
     "subtitle": "Oamenii care pot lucra în această organizație și ce au voie să facă."
   },
@@ -515,7 +510,7 @@
     "charging": "se încarcă",
     "temperature": "Temperatură",
     "connection": "Conexiune",
-    "connectedSince": "Conectat",
+    "connectedSince": "Conectat din",
     "lastReport": "Ultimul raport",
     "pendingTitle": "Se așteaptă aprobarea",
     "pendingHint": "Aprobă acest dispozitiv ca să poată servi cereri.",
@@ -530,17 +525,17 @@
     "fingerprint": "Amprenta cheii",
     "compute": "Calcul",
     "computeTitle": "Setări motor",
-    "computeHint": "Suprascrieri doar pentru acest dispozitiv. Lasă „Decide dispozitivul” și nodul măsoară o dată CPU și GPU pentru fiecare model și îl folosește pe cel mai rapid; se aplică setările din aplicația lui. O schimbare reîncarcă modelul pe dispozitiv.",
+    "computeHint": "Valori care se aplică doar acestui dispozitiv. Dacă lași „Decide dispozitivul”, nodul măsoară o singură dată CPU și GPU pentru fiecare model și îl folosește pe cel mai rapid, iar setările din aplicația nodului rămân valabile. O modificare reîncarcă modelul pe dispozitiv.",
     "computeSaved": "Salvat. Dispozitivul aplică în câteva secunde.",
     "runningOn": "Rulează pe",
     "contextWindow": "Fereastra de context (tokeni)",
     "backend": "Backend de calcul",
     "maxContext": "Context maxim (tokeni)",
     "deviceDecides": "Decide dispozitivul (recomandat)",
-    "maxContextHint": "Gol lasă dispozitivul să decidă (după RAM). Prompt, istoric și răspuns la un loc; mai mare înseamnă mai multă memorie.",
+    "maxContextHint": "Dacă lași gol, dispozitivul decide (în funcție de RAM). Include promptul, istoricul și răspunsul; o valoare mai mare folosește mai multă memorie.",
     "maxContextInvalid": "Introdu un număr întreg între {{min}} și {{max}}, sau lasă gol.",
     "enableMtp": "Predicție multi-token (MTP)",
-    "enableMtpHint": "Decodare speculativă cu drafter-ul modelului; ignorată dacă modelul nu are. Reîncarcă modelul.",
+    "enableMtpHint": "Decodare speculativă cu modelul-schiță (drafter) al modelului; ignorată dacă modelul nu are unul. Reîncarcă modelul.",
     "keepScreenOn": "Ține ecranul pornit",
     "keepScreenOnHint": "Unele dispozitive Android folosesc GPU-ul la capacitate maximă doar cu aplicația deschisă în prim-plan și ecranul aprins. Aplicația trebuie să rămână deschisă.",
     "on": "Pornit",
@@ -572,7 +567,7 @@
     "progress": "Progres",
     "deleted": "Modelul a fost șters.",
     "deleteTitle": "Ștergi {{name}}?",
-    "deleteMessage": "Fișierul este eliminat și toate pool-urile nu mai servesc acest model.",
+    "deleteMessage": "Fișierul este eliminat, iar pool-urile care îl foloseau nu îl mai servesc.",
     "status": {
       "pending": "În coadă",
       "downloading": "Se descarcă",
@@ -609,7 +604,7 @@
     "days_365": "Într-un an",
     "created": "Cheia API a fost creată.",
     "secretTitle": "Copiază cheia API",
-    "secretMessage": "Cheia este afișată o singură dată. Păstreaz-o într-un loc sigur.",
+    "secretMessage": "Cheia este afișată o singură dată. Păstrează-o într-un loc sigur.",
     "copy": "Copiază",
     "copied": "Copiat în clipboard.",
     "useTitle": "Folosește această cheie",
@@ -635,7 +630,7 @@
   "enroll": {
     "add": "Adaugă dispozitiv",
     "title": "Adaugă un dispozitiv",
-    "intro": "Pe nod, deschide SplitCortex Node, apasă Înrolare și introdu acest cod sau scanează codul QR.",
+    "intro": "Pe dispozitiv, deschide SplitCortex Node, apasă Înrolare și introdu acest cod sau scanează codul QR.",
     "qrAlt": "Cod QR cu linkul de înrolare",
     "copy": "Copiază codul",
     "copied": "Cod copiat.",
@@ -661,7 +656,7 @@
     "tokensPerDayHint": "Pe zi UTC; gol înseamnă nelimitat.",
     "invalid": "Introdu un număr întreg de la 1 la {{max}} sau lasă gol.",
     "orgTitle": "Limite de utilizare",
-    "orgHint": "Se aplică împreună tuturor cheilor acestei organizații. O cheie poate avea limite proprii mai stricte; cererile peste limită primesc HTTP 429.",
+    "orgHint": "Se aplică în comun tuturor cheilor acestei organizații. O cheie poate avea limite proprii, mai stricte; cererile peste limită primesc HTTP 429.",
     "keyTitle": "Limitele pentru {{name}}",
     "perMinuteRequests": "{{n}} cereri/min",
     "perMinuteTokens": "{{n}} tokeni/min",
@@ -686,14 +681,14 @@
     "firstToken": "Primul token",
     "total": "Timp total",
     "tokens": "Tokeni",
-    "poolTotal": "Debit pool",
+    "poolTotal": "Debit total pool",
     "unit": "tokeni/s"
   },
   "playground": {
     "title": "Spațiu de test",
     "subtitle": "Încearcă un pool din browser. Lipește o cheie API; conversația nu este salvată nicăieri și dispare când pleci sau reîncarci pagina.",
     "key": "Cheie API",
-    "keyHint": "Folosită doar în această filă, niciodată salvată. Creezi chei la Chei API în organizația ta.",
+    "keyHint": "Folosită doar în această filă, niciodată salvată. Poți crea chei în secțiunea Chei API a organizației tale.",
     "connect": "Conectează",
     "reconnect": "Reconectează",
     "noModels": "Această cheie nu are modele pregătite. Atribuie mai întâi un model unuia dintre pool-urile ei.",
@@ -726,9 +721,9 @@
       "tooLarge": "„{{name}}” este prea mare (limită {{limit}}).",
       "tooLong": "„{{name}}” este prea lung.",
       "unreadable": "„{{name}}” nu a putut fi citit.",
-      "total": "O conversație poate conține cel mult {{limit}} de imagini și audio. Șterge-o sau elimină atașamente.",
+      "total": "Într-o conversație poți avea cel mult {{limit}} de imagini și audio. Șterge conversația sau elimină atașamente.",
       "noMic": "Microfonul nu este disponibil sau accesul a fost refuzat.",
-      "modalityMissing": "Niciun nod al acestui model nu raportează momentan intrare {{kind}}; cererea poate fi refuzată."
+      "modalityMissing": "Niciun nod al acestui model nu raportează momentan suport pentru {{kind}}; cererea poate fi refuzată."
     }
   }
 }

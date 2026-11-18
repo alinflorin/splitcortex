@@ -11,10 +11,7 @@ describe('Sidebar', () => {
     expect(screen.getByText('cortex')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: en.nav.home })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: en.nav.about })).toHaveAttribute('href', '/about');
-    expect(screen.getByRole('link', { name: en.nav.settings })).toHaveAttribute(
-      'href',
-      '/settings',
-    );
+    expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();
   });
 
   it('closes the overlay after navigating', async () => {

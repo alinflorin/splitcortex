@@ -6,7 +6,6 @@
   "nav": {
     "home": "Home",
     "about": "About",
-    "settings": "Settings",
     "toggle": "Toggle navigation",
     "organisations": "Organisations",
     "playground": "Playground"
@@ -214,7 +213,7 @@
       "leg1Sub": "client-initiated, per request",
       "gateway": {
         "title": "Gateway",
-        "body": "A Rust edge that handles every request in four steps.",
+        "body": "A Rust service at the edge that handles every request in four steps.",
         "steps": [
           "Authenticate the API key",
           "Check the limits",
@@ -328,12 +327,8 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Your profile details.",
-    "displayName": "Display name",
-    "contactEmail": "Contact email",
     "save": "Save changes",
-    "saved": "Settings saved.",
-    "signedInAs": "Signed in as {{email}}"
+    "saved": "Settings saved."
   },
   "validation": {
     "required": "This field is required.",
@@ -447,7 +442,7 @@
     "removed": "Member removed.",
     "leave": "Leave",
     "leaveTitle": "Leave this organisation?",
-    "leaveMessage": "You lose access unless another admin adds you again.",
+    "leaveMessage": "You lose access until an admin adds you again.",
     "left": "You left the organisation.",
     "subtitle": "People who can work in this organisation, and what they may do."
   },
@@ -496,7 +491,7 @@
     "approved": "Node approved.",
     "revoke": "Revoke",
     "revokeTitle": "Revoke {{name}}?",
-    "revokeMessage": "The device is disconnected and must enrol again to come back.",
+    "revokeMessage": "The device is disconnected and must enroll again to come back.",
     "revoked": "Node revoked.",
     "cpu": "CPU",
     "cpuUsage": "Usage",
@@ -526,17 +521,17 @@
     "fingerprint": "Key fingerprint",
     "compute": "Compute",
     "computeTitle": "Engine settings",
-    "computeHint": "Overrides for this device only. Leave on \"Device decides\" and the node measures CPU and GPU once for each model and uses the faster one; its own app settings apply. A change reloads the model on the device.",
+    "computeHint": "Overrides for this device only. If you leave it on \"Device decides\", the node measures CPU and GPU once for each model and uses the faster one, and the settings in its own app apply. A change reloads the model on the device.",
     "computeSaved": "Saved. The device applies it within seconds.",
     "runningOn": "Running on",
     "contextWindow": "Context window (tokens)",
     "backend": "Compute backend",
     "maxContext": "Maximum context (tokens)",
     "deviceDecides": "Device decides (recommended)",
-    "maxContextHint": "Empty lets the device decide (RAM based). Prompt, history and answer together; larger needs more memory.",
+    "maxContextHint": "If left empty, the device decides (based on its RAM). Covers the prompt, history and answer together; a larger value needs more memory.",
     "maxContextInvalid": "Enter a whole number from {{min}} to {{max}}, or leave empty.",
     "enableMtp": "Multi-token prediction (MTP)",
-    "enableMtpHint": "Speculative decoding with the model's drafter; ignored when the model has none. Reloads the model.",
+    "enableMtpHint": "Speculative decoding using the model's built-in drafter; ignored if the model has none. Reloads the model.",
     "keepScreenOn": "Keep the screen on",
     "keepScreenOnHint": "Some Android devices only run the GPU at full speed with the app open in the foreground and the display on. The app has to stay open.",
     "on": "On",
@@ -631,7 +626,7 @@
   "enroll": {
     "add": "Add device",
     "title": "Add a device",
-    "intro": "On the node, open SplitCortex Node, tap Enroll and type this code or scan the QR.",
+    "intro": "On the device, open SplitCortex Node, tap Enroll and type this code or scan the QR.",
     "qrAlt": "QR code with the enrollment link",
     "copy": "Copy code",
     "copied": "Code copied.",
@@ -657,8 +652,8 @@
     "tokensPerDayHint": "Per UTC day; empty means unlimited.",
     "invalid": "Enter a whole number from 1 to {{max}}, or leave it empty.",
     "orgTitle": "Rate limits",
-    "orgHint": "Apply to every key of this organisation together. A key can have stricter limits of its own; requests over a limit get HTTP 429.",
-    "keyTitle": "Limits of {{name}}",
+    "orgHint": "Shared by every key of this organisation. A key can have stricter limits of its own; requests over a limit get HTTP 429.",
+    "keyTitle": "Limits for {{name}}",
     "perMinuteRequests": "{{n}} requests/min",
     "perMinuteTokens": "{{n}} tokens/min",
     "perDayTokens": "{{n}} tokens/day",
@@ -722,7 +717,7 @@
       "tooLarge": "“{{name}}” is too large (limit {{limit}}).",
       "tooLong": "“{{name}}” is too long.",
       "unreadable": "“{{name}}” could not be read.",
-      "total": "A conversation can carry at most {{limit}} of images and audio. Clear it or remove attachments.",
+      "total": "A conversation can hold at most {{limit}} of images and audio. Clear the conversation or remove attachments.",
       "noMic": "The microphone is not available or access was denied.",
       "modalityMissing": "No node of this model reports {{kind}} input right now; the request may be refused."
     }
