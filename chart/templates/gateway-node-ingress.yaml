@@ -1,0 +1,39 @@
+{{- if and .Values.gateway.enabled .Values.gateway.ingress.enabled .Values.gateway.nodeIngress.enabled }}
+{{- /*
+  The node WebSocket (`/node`) on the gateway host(s) with its own rate limit (`rate-limit-node`, per client IP):
+  nodes carry no `Authorization` header, so the gateway-wide limit would put every device into one shared bucket.
+  Traefik prefers the longer prefix over the main Ingress's `/`. Hosts and TLS come from `gateway.ingress`; no
+  cert-manager annotation (the main Ingress issues the TLS Secret).
+*/ -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway-node
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+  {{- with .Values.gateway.nodeIngress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.gateway.ingress.className }}
+  {{- with .Values.gateway.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.gateway.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          - path: /node
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  name: http
+    {{- end }}
+{{- end }}
