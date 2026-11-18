@@ -6,7 +6,6 @@ import { useToast } from '../feedback/useToast';
 
 export const BRAND_FROM = '#4f5df0';
 export const BRAND_TO = '#14b8d4';
-const GRADIENT = `linear-gradient(135deg, ${BRAND_FROM}, ${BRAND_TO})`;
 
 const useStyles = makeStyles({
   section: {
@@ -47,11 +46,7 @@ const useStyles = makeStyles({
     lineHeight: tokens.lineHeightBase500,
   },
   gradientText: {
-    backgroundImage: GRADIENT,
-    backgroundClip: 'text',
-    color: 'transparent',
-    WebkitTextFillColor: 'transparent',
-    WebkitBackgroundClip: 'text',
+    color: BRAND_FROM,
   },
   card: {
     position: 'relative',
@@ -82,8 +77,7 @@ const useStyles = makeStyles({
     marginBottom: tokens.spacingVerticalXS,
     borderRadius: tokens.borderRadiusLarge,
     color: '#fff',
-    backgroundImage: GRADIENT,
-    boxShadow: '0 6px 16px -6px rgba(79, 93, 240, 0.55)',
+    backgroundColor: BRAND_FROM,
   },
   cardBody: { color: tokens.colorNeutralForeground2, lineHeight: tokens.lineHeightBase300 },
   grid: {
@@ -129,7 +123,7 @@ const useStyles = makeStyles({
     padding: `${tokens.spacingVerticalXXXL} ${tokens.spacingHorizontalXXL}`,
     borderRadius: '28px',
     color: '#fff',
-    backgroundImage: `radial-gradient(600px 240px at 85% 0%, rgba(255,255,255,0.22), transparent 70%), ${GRADIENT}`,
+    backgroundColor: BRAND_FROM,
     '@media (max-width: 599px)': { marginTop: '48px', padding: tokens.spacingVerticalXXL },
   },
   bandTitle: {
@@ -262,7 +256,7 @@ export function CodeBlock({ code }: { code: string }) {
   );
 }
 
-/** A full-width gradient call to action. */
+/** A full-width call to action. */
 export function CtaBand({
   title,
   body,

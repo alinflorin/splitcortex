@@ -8,7 +8,7 @@ import {
 } from '@fluentui/react-icons';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BRAND_FROM, BRAND_TO } from './marketing';
+import { BRAND_FROM } from './marketing';
 
 const useStyles = makeStyles({
   root: {
@@ -113,19 +113,13 @@ export function NetworkDiagram() {
   return (
     <div className={styles.root} aria-hidden="true">
       <svg className={styles.lines} viewBox="0 0 100 100" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="sc-line" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0" stopColor={BRAND_FROM} />
-            <stop offset="1" stopColor={BRAND_TO} />
-          </linearGradient>
-        </defs>
         {rows.map((y) => (
           <path
             key={y}
             className="sc-motion"
             d={`M 19 ${y} C 36 ${y}, 36 50, 50 50`}
             fill="none"
-            stroke="url(#sc-line)"
+            stroke={BRAND_FROM}
             strokeWidth="1.6"
             strokeDasharray="4 4"
             strokeLinecap="round"
@@ -137,7 +131,7 @@ export function NetworkDiagram() {
           className="sc-motion"
           d="M 50 50 L 81 50"
           fill="none"
-          stroke="url(#sc-line)"
+          stroke={BRAND_FROM}
           strokeWidth="1.6"
           strokeDasharray="4 4"
           strokeLinecap="round"

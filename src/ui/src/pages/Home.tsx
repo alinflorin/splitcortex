@@ -16,7 +16,6 @@ import { AppDownloads } from '../components/AppDownloads';
 import { Endpoints } from '../components/Endpoints';
 import {
   BRAND_FROM,
-  BRAND_TO,
   CardGrid,
   Chips,
   CodeBlock,
@@ -39,7 +38,6 @@ const useStyles = makeStyles({
     padding: '56px',
     borderRadius: '32px',
     border: `1px solid ${tokens.colorNeutralStroke3}`,
-    backgroundImage: `radial-gradient(520px 280px at 0% 0%, rgba(79,93,240,0.14), transparent 70%), radial-gradient(480px 300px at 100% 100%, rgba(20,184,212,0.14), transparent 70%)`,
     '@media (max-width: 1000px)': { gridTemplateColumns: '1fr', padding: '40px 28px' },
     '@media (max-width: 599px)': { padding: '28px 20px', borderRadius: '24px' },
   },
@@ -61,7 +59,7 @@ const useStyles = makeStyles({
     width: '8px',
     height: '8px',
     borderRadius: tokens.borderRadiusCircular,
-    backgroundImage: `linear-gradient(135deg, ${BRAND_FROM}, ${BRAND_TO})`,
+    backgroundColor: BRAND_FROM,
   },
   h1: {
     margin: 0,

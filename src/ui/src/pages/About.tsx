@@ -34,7 +34,6 @@ const useStyles = makeStyles({
     padding: '64px 56px',
     borderRadius: '32px',
     border: `1px solid ${tokens.colorNeutralStroke3}`,
-    backgroundImage: `radial-gradient(560px 280px at 100% 0%, rgba(79,93,240,0.15), transparent 70%), radial-gradient(520px 280px at 0% 100%, rgba(20,184,212,0.14), transparent 70%)`,
     '@media (max-width: 599px)': { padding: '32px 20px', borderRadius: '24px' },
   },
   eyebrow: {
@@ -118,7 +117,6 @@ const useStyles = makeStyles({
     borderRightColor: tokens.colorBrandStroke1,
     borderBottomColor: tokens.colorBrandStroke1,
     borderLeftColor: tokens.colorBrandStroke1,
-    backgroundImage: `linear-gradient(180deg, rgba(79,93,240,0.08), transparent)`,
   },
   flowArrow: {
     display: 'flex',

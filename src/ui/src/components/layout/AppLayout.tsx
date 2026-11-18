@@ -20,9 +20,6 @@ const useStyles = makeStyles({
     minWidth: 0,
     minHeight: 0,
     overflowY: 'auto',
-    backgroundImage:
-      'radial-gradient(900px 360px at 85% -80px, rgba(79,93,240,0.09), transparent 70%), radial-gradient(700px 320px at 10% -60px, rgba(20,184,212,0.08), transparent 70%)',
-    backgroundRepeat: 'no-repeat',
   },
   main: {
     flexGrow: 1,
