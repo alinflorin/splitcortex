@@ -7,6 +7,8 @@ name: Release
 on:
   push:
     tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  # Re-run for an existing tag: choose the tag under "Use workflow from".
+  workflow_dispatch:
 
 concurrency:
   group: release-${{ github.ref }}
@@ -17,20 +19,39 @@ permissions:
   packages: write
 
 jobs:
+  # Manual runs must start from the tag itself (Run workflow -> "Use workflow from" -> Tags -> vX.Y.Z):
+  # versions, image tags and the GitHub release are all derived from the ref.
+  check-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a tag ref
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          if [ "$REF_TYPE" != "tag" ]; then
+            echo "::error::Run this workflow from the tag (Use workflow from > Tags), not from a branch."
+            exit 1
+          fi
+
   chart:
+    needs: check-tag
     uses: ./.github/workflows/chart.yaml
 
   # One job per service; add new services here and to deploy-stg's needs.
   ui:
+    needs: check-tag
     uses: ./.github/workflows/ui.yaml
 
   web-node:
+    needs: check-tag
     uses: ./.github/workflows/web-node.yaml
 
   control-plane:
+    needs: check-tag
     uses: ./.github/workflows/control-plane.yaml
 
   gateway:
+    needs: check-tag
     uses: ./.github/workflows/gateway.yaml
 
   # GitHub release with generated notes, once everything built.

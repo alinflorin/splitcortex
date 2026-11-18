@@ -4,7 +4,7 @@
 #   mobile   -> mobile-node-vX.Y.Z, desktop -> desktop-node-vX.Y.Z, cli -> cli-node-vX.Y.Z
 # Tags are cut from the head of the branch the workflow is run on (main by default).
 #
-# Needs the repository secret RELEASE_TAG_TOKEN: a personal access token (fine-grained: Contents
+# Needs the repository secret GH_TOKEN: a personal access token (fine-grained: Contents
 # read/write on this repository). Tags pushed with the built-in GITHUB_TOKEN do not start other
 # workflows, so the release workflows would never run.
 name: Create release tags
@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.RELEASE_TAG_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Create and push the tags
         env:
@@ -55,11 +55,11 @@ jobs:
           MOBILE: ${{ inputs.mobile }}
           DESKTOP: ${{ inputs.desktop }}
           CLI: ${{ inputs.cli }}
-          HAS_TOKEN: ${{ secrets.RELEASE_TAG_TOKEN != '' }}
+          HAS_TOKEN: ${{ secrets.GH_TOKEN != '' }}
         run: |
           set -euo pipefail
           if [ "$HAS_TOKEN" != "true" ]; then
-            echo "::error::Add the repository secret RELEASE_TAG_TOKEN (see the comment at the top of this workflow)."
+            echo "::error::Add the repository secret GH_TOKEN (see the comment at the top of this workflow)."
             exit 1
           fi
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then

@@ -5,6 +5,8 @@ name: Mobile node release
 on:
   push:
     tags: ["mobile-node-v[0-9]+.[0-9]+.[0-9]+"]
+  # Re-run for an existing tag: choose the tag under "Use workflow from".
+  workflow_dispatch:
 
 concurrency:
   group: mobile-node-release-${{ github.ref }}
@@ -14,7 +16,22 @@ permissions:
   contents: read
 
 jobs:
+  # Manual runs must start from the tag itself (Run workflow -> "Use workflow from" -> Tags -> vX.Y.Z):
+  # versions, image tags and the GitHub release are all derived from the ref.
+  check-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a tag ref
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          if [ "$REF_TYPE" != "tag" ]; then
+            echo "::error::Run this workflow from the tag (Use workflow from > Tags), not from a branch."
+            exit 1
+          fi
+
   mobile-node:
+    needs: check-tag
     uses: ./.github/workflows/mobile-node.yaml
     secrets: inherit
 
