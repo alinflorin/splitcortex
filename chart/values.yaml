@@ -371,6 +371,14 @@ gateway:
       - secretName: gateway-tls
         hosts:
           - gateway.splitcortex.127.0.0.1.nip.io
+  # `/node` (device WebSocket) on the gateway host(s) with its own per-IP rate limit (templates/gateway-node-ingress.yaml;
+  # hosts/TLS from `ingress` above). Needs `rateLimit.enabled`; set `enabled: false` otherwise.
+  nodeIngress:
+    enabled: true
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-node@kubernetescrd
   # `/v1` on the web app's host (same origin as the UI, so the Playground needs no CORS on the gateway). Only the
   # `/v1` path: the node WebSocket stays on the gateway host. The TLS Secret is issued via the UI's Ingress.
   appIngress:
@@ -406,6 +414,12 @@ rateLimit:
     average: 2000
     period: 1s
     burst: 4000
+  # Node WebSocket (`/node`): connection attempts per client IP. Devices behind one NAT share a bucket, and a gateway
+  # restart makes them all reconnect at once, so keep it generous (a 429 only delays a node by its backoff).
+  node:
+    average: 10
+    period: 1s
+    burst: 100
 
 # Dev-only helpers. Keep disabled in stg/prd (set in values-stg.yaml / values-prd.yaml).
 dev:
