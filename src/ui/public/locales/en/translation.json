@@ -282,21 +282,6 @@
         }
       }
     },
-    "model": {
-      "eyebrow": "Business model",
-      "title": "Bring your own devices",
-      "body": "SplitCortex is a SaaS for your own device fleet: you enroll devices into your organisation's pools and we run the control plane and gateway. Pricing is per device or pool, with a free tier.",
-      "not": {
-        "marketplace": {
-          "title": "No public marketplace",
-          "body": "We do not match strangers' devices with strangers' prompts. Your prompts stay on hardware you trust."
-        },
-        "selling": {
-          "title": "No resold inference",
-          "body": "We do not sell inference from our own devices. Compute is always the customer's."
-        }
-      }
-    },
     "stack": {
       "eyebrow": "Technology",
       "title": "The stack",
@@ -312,12 +297,6 @@
         "React Native and Expo",
         "Tauri 2"
       ]
-    },
-    "roadmap": {
-      "eyebrow": "What is next",
-      "title": "Roadmap",
-      "body": "Larger models than one device can hold are on our research list, as an opt-in local cluster mode for devices on the same network. Never across the internet.",
-      "items": ["Local cluster mode", "More node platforms", "Invite-only member devices"]
     },
     "cta": {
       "title": "See it for yourself",

@@ -153,14 +153,6 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalXXS,
     color: tokens.colorNeutralForeground2,
   },
-  notList: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
-  notItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-    paddingLeft: tokens.spacingHorizontalL,
-    borderLeft: `3px solid ${tokens.colorNeutralStroke2}`,
-  },
   nodeChip: { alignSelf: 'flex-start' },
 });
 
@@ -317,34 +309,11 @@ export function About() {
       </Section>
 
       <Section
-        eyebrow={t('about.model.eyebrow')}
-        title={t('about.model.title')}
-        subtitle={t('about.model.body')}
-      >
-        <div className={styles.notList}>
-          {(['marketplace', 'selling'] as const).map((k) => (
-            <div key={k} className={styles.notItem}>
-              <Text weight="semibold">{t(`about.model.not.${k}.title`)}</Text>
-              <Text className={styles.muted}>{t(`about.model.not.${k}.body`)}</Text>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section
         eyebrow={t('about.stack.eyebrow')}
         title={t('about.stack.title')}
         subtitle={t('about.stack.subtitle')}
       >
         <Chips items={list('about.stack.items')} />
-      </Section>
-
-      <Section
-        eyebrow={t('about.roadmap.eyebrow')}
-        title={t('about.roadmap.title')}
-        subtitle={t('about.roadmap.body')}
-      >
-        <Chips items={list('about.roadmap.items')} />
       </Section>
 
       <CtaBand title={t('about.cta.title')} body={t('about.cta.body')}>
