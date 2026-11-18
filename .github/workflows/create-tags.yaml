@@ -1,0 +1,100 @@
+# Manually creates the release tags for a version and pushes them one by one (GitHub fires no tag
+# workflows when more than 3 tags arrive in one push). Each tag starts its own release workflow:
+#   platform -> vX.Y.Z (release.yaml: chart, images, GitHub release, stg deploy; includes the web app and web node)
+#   mobile   -> mobile-node-vX.Y.Z, desktop -> desktop-node-vX.Y.Z, cli -> cli-node-vX.Y.Z
+# Tags are cut from the head of the branch the workflow is run on (main by default).
+#
+# Needs the repository secret RELEASE_TAG_TOKEN: a personal access token (fine-grained: Contents
+# read/write on this repository). Tags pushed with the built-in GITHUB_TOKEN do not start other
+# workflows, so the release workflows would never run.
+name: Create release tags
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version X.Y.Z (no leading v), for example 5.0.1"
+        required: true
+        type: string
+      platform:
+        description: "Platform: vX.Y.Z (control plane, gateway, web app, web node, chart)"
+        type: boolean
+        default: true
+      mobile:
+        description: "Mobile node: mobile-node-vX.Y.Z"
+        type: boolean
+        default: true
+      desktop:
+        description: "Desktop node: desktop-node-vX.Y.Z"
+        type: boolean
+        default: true
+      cli:
+        description: "CLI node: cli-node-vX.Y.Z"
+        type: boolean
+        default: true
+
+concurrency:
+  group: create-tags
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  tags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TAG_TOKEN }}
+
+      - name: Create and push the tags
+        env:
+          VERSION: ${{ inputs.version }}
+          PLATFORM: ${{ inputs.platform }}
+          MOBILE: ${{ inputs.mobile }}
+          DESKTOP: ${{ inputs.desktop }}
+          CLI: ${{ inputs.cli }}
+          HAS_TOKEN: ${{ secrets.RELEASE_TAG_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::error::Add the repository secret RELEASE_TAG_TOKEN (see the comment at the top of this workflow)."
+            exit 1
+          fi
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must look like 5.0.1 (no leading v)."
+            exit 1
+          fi
+
+          tags=()
+          [ "$PLATFORM" = "true" ] && tags+=("v$VERSION")
+          [ "$MOBILE" = "true" ] && tags+=("mobile-node-v$VERSION")
+          [ "$DESKTOP" = "true" ] && tags+=("desktop-node-v$VERSION")
+          [ "$CLI" = "true" ] && tags+=("cli-node-v$VERSION")
+          if [ "${#tags[@]}" -eq 0 ]; then
+            echo "::error::Tick at least one tag."
+            exit 1
+          fi
+
+          git fetch --tags --quiet
+          for tag in "${tags[@]}"; do
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "::error::Tag $tag already exists."
+              exit 1
+            fi
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "Tagging $(git rev-parse --short HEAD) ($GITHUB_REF_NAME)"
+          for tag in "${tags[@]}"; do
+            git tag -a "$tag" -m "$tag"
+            git push origin "refs/tags/$tag"
+            echo "Pushed $tag"
+            sleep 5
+          done
+          {
+            echo "### Tags created on \`$(git rev-parse --short HEAD)\`"
+            for tag in "${tags[@]}"; do echo "- \`$tag\`"; done
+          } >> "$GITHUB_STEP_SUMMARY"
