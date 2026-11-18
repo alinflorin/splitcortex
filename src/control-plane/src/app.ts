@@ -36,6 +36,8 @@ export interface AppDeps {
   /** The gateway's public key and wss URL, handed to devices at enrollment; null until configured. */
   gateway?: GatewayIdentity | null;
   logLevel?: string;
+  /** Trusted proxy hops for `req.ip` (default 1: Traefik). Never `true`: that trusts any client-supplied X-Forwarded-For. */
+  trustedProxyHops?: number;
 }
 
 /** Everything public lives under /api (the ingress routes `/api` to this service without stripping it). */
@@ -50,10 +52,12 @@ export async function buildApp({
   oidc = OIDC_FALLBACK,
   gateway = null,
   logLevel = 'info',
+  trustedProxyHops = 1,
 }: AppDeps) {
   const app = Fastify({
     logger: { level: logLevel },
-    trustProxy: true,
+    // proxy-addr semantics of a hop count: trust the first N hops from the socket.
+    trustProxy: (_addr: string, hop: number) => hop < trustedProxyHops,
   }).withTypeProvider<ZodTypeProvider>();
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);

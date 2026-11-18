@@ -71,6 +71,8 @@ app.kubernetes.io/component: {{ .component }}
 {{ include "splitcortex.databaseEnv" . }}
 - name: LOG_LEVEL
   value: {{ .Values.controlPlane.logLevel | quote }}
+- name: TRUSTED_PROXY_HOPS
+  value: {{ .Values.controlPlane.trustedProxyHops | quote }}
 - name: OIDC_ISSUER
   value: {{ .Values.dex.config.issuer | quote }}
 - name: OIDC_AUDIENCE

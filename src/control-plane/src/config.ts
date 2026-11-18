@@ -22,6 +22,8 @@ const ConfigSchema = z.object({
   /** The gateway's identity handed to devices at enrollment (they pin the key). Optional until the gateway exists. */
   GATEWAY_PUBLIC_KEY: z.string().optional(),
   GATEWAY_WSS_URL: z.string().optional(),
+  /** Proxy hops in front of the app (Traefik = 1) whose X-Forwarded-For is trusted for `req.ip`; 0 = use the socket address. */
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
   /** Optional Hugging Face token for gated models; only ever sent to huggingface.co, never to devices. */
   HF_TOKEN: z.string().optional(),
 });

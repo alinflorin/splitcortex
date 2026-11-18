@@ -131,3 +131,10 @@ controlPlane:
 dev:
   coredns:
     enabled: false
+
+# k3s ServiceLB (klipper) is plain L4 forwarding: with the default `Cluster` policy Traefik sees a node IP instead of the
+# client, so every per-IP limit (enrollment!) collapses into one bucket. `Local` keeps the client address.
+traefik:
+  service:
+    spec:
+      externalTrafficPolicy: Local

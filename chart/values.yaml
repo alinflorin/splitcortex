@@ -260,6 +260,8 @@ controlPlane:
   enabled: true
   replicaCount: 1
   logLevel: info
+  # Proxy hops whose X-Forwarded-For the app trusts for the client IP (enrollment and general limits): Traefik = 1.
+  trustedProxyHops: 1
   image:
     repository: splitcortex/control-plane   # Tilt rebuilds and substitutes this image locally
     tag: ""                                 # default: chart appVersion

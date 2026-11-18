@@ -19,6 +19,7 @@ const app = await buildApp({
       ? { publicKey: config.GATEWAY_PUBLIC_KEY, url: config.GATEWAY_WSS_URL }
       : null,
   logLevel: config.LOG_LEVEL,
+  trustedProxyHops: config.TRUSTED_PROXY_HOPS,
 });
 
 let stopMirror: (() => Promise<void>) | undefined;
