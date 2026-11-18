@@ -36,7 +36,7 @@ const useStyles = makeStyles({
 
 interface OrgNavProps {
   orgId: string;
-  go: (to: string) => (e: MouseEvent) => void;
+  go: (to: string, keepOpen?: boolean) => (e: MouseEvent) => void;
 }
 
 /** Sidebar content for the organisation in the URL: a back item plus its pages. */
@@ -66,7 +66,7 @@ export function OrgNav({ orgId, go }: OrgNavProps) {
         value="/organisations"
         href="/organisations"
         icon={<ArrowLeftRegular />}
-        onClick={go('/organisations')}
+        onClick={go('/organisations', true)}
       >
         {t('organisations.back')}
       </NavItem>

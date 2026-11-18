@@ -96,14 +96,18 @@ export function Sidebar({ open, overlay, onOpenChange }: SidebarProps) {
     ? `/organisations/${orgId}/${sectionOf(pathname)}`
     : ITEMS.find((i) => (i.to === '/' ? pathname === '/' : pathname.startsWith(i.to)))?.to;
 
-  const go = (to: string) => (e: MouseEvent) => {
-    // Let the browser handle modified clicks (new tab etc.), route everything else client-side.
-    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
-      return;
-    e.preventDefault();
-    void navigate(to);
-    if (overlay) onOpenChange(false);
-  };
+  // `keepOpen`: navigate without closing the overlay drawer (e.g. the back item, so the
+  // top-level menu is visible right after leaving an organisation).
+  const go =
+    (to: string, keepOpen = false) =>
+    (e: MouseEvent) => {
+      // Let the browser handle modified clicks (new tab etc.), route everything else client-side.
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+        return;
+      e.preventDefault();
+      void navigate(to);
+      if (overlay && !keepOpen) onOpenChange(false);
+    };
 
   return (
     <NavDrawer
