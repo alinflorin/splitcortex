@@ -106,7 +106,7 @@ const useStyles = makeStyles({
     whiteSpace: 'pre',
   },
   copy: { position: 'absolute', top: tokens.spacingVerticalS, right: tokens.spacingHorizontalS },
-  codeWrap: { position: 'relative' },
+  codeWrap: { position: 'relative', minWidth: 0, maxWidth: '100%' },
   chips: { display: 'flex', flexWrap: 'wrap', gap: tokens.spacingHorizontalS },
   chip: {
     display: 'inline-flex',

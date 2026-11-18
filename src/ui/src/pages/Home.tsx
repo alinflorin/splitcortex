@@ -103,10 +103,10 @@ const useStyles = makeStyles({
   muted: { color: tokens.colorNeutralForeground2, lineHeight: tokens.lineHeightBase300 },
   split: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
     gap: tokens.spacingHorizontalXXL,
     alignItems: 'center',
-    '@media (max-width: 899px)': { gridTemplateColumns: '1fr' },
+    '@media (max-width: 899px)': { gridTemplateColumns: 'minmax(0, 1fr)' },
   },
   splitText: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
   play: { alignSelf: 'flex-start' },
