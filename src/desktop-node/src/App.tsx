@@ -1,10 +1,11 @@
-import { Text, makeStyles, tokens } from '@fluentui/react-components';
+import { makeStyles, tokens } from '@fluentui/react-components';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { JoinCard } from './components/JoinCard';
 import { LogsCard } from './components/LogsCard';
 import { NodeCard } from './components/NodeCard';
 import { SettingsCard } from './components/SettingsCard';
+import { PageHeader } from './components/PageHeader';
 import { TopBar } from './components/TopBar';
 import { UpdateCard } from './components/UpdateCard';
 import { useEnrollment } from './enrollment/store';
@@ -31,7 +32,6 @@ const useStyles = makeStyles({
       padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalM}`,
     },
   },
-  muted: { color: tokens.colorNeutralForeground3 },
 });
 
 export function App() {
@@ -55,7 +55,7 @@ export function App() {
     <div className={styles.page}>
       <TopBar />
       <main className={styles.main}>
-        <Text className={styles.muted}>{t('app.intro')}</Text>
+        <PageHeader eyebrow="SplitCortex" title={t('app.desktopNode')} subtitle={t('app.intro')} />
         {enrollment === undefined ? null : enrollment === null ? (
           <JoinCard onJoined={reload} />
         ) : (

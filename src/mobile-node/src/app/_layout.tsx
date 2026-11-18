@@ -36,7 +36,7 @@ function Shell() {
           headerTintColor: t.colorNeutralForeground1,
           headerTitleStyle: { fontFamily: fontFamilyForWeight(t.fontWeightSemibold) },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: t.colorNeutralBackground2 },
+          contentStyle: { backgroundColor: t.colorNeutralBackground1 },
         }}
       >
         <Stack.Screen

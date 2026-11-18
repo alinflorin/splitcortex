@@ -18,7 +18,11 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalM,
     height: '64px',
     padding: `0 ${tokens.spacingHorizontalXL}`,
-    backgroundColor: tokens.colorNeutralBackground1,
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 80%, transparent)`,
+    backdropFilter: 'saturate(1.4) blur(12px)',
     borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
     '@media (max-width: 599px)': { padding: `0 ${tokens.spacingHorizontalM}` },
   },
@@ -42,7 +46,6 @@ export function TopBar() {
           <span className={styles.split}>split</span>
           <span className={styles.cortex}>cortex</span>
         </span>
-        <span className={styles.tag}>{t('app.desktopNode')}</span>
       </div>
       <div className={styles.spacer} />
       <Menu positioning={{ align: 'end' }}>

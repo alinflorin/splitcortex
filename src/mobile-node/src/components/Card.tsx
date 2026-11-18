@@ -9,8 +9,8 @@ export function Card({ style, ...rest }: ViewProps) {
       {...rest}
       style={[
         {
-          backgroundColor: t.colorNeutralBackground1,
-          borderColor: t.colorNeutralStroke2,
+          backgroundColor: t.colorNeutralBackground2,
+          borderColor: t.colorNeutralStroke3,
           borderWidth: parseFloat(t.strokeWidthThin),
           borderRadius: parseFloat(t.borderRadiusXLarge),
           padding: parseFloat(t.spacingHorizontalXL),

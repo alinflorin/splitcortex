@@ -1,10 +1,11 @@
-import { MessageBar, MessageBarBody, Text, makeStyles, tokens } from '@fluentui/react-components';
+import { MessageBar, MessageBarBody, makeStyles, tokens } from '@fluentui/react-components';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { JoinCard } from './components/JoinCard';
 import { LogsCard } from './components/LogsCard';
 import { NodeCard } from './components/NodeCard';
 import { SettingsCard } from './components/SettingsCard';
+import { PageHeader } from './components/PageHeader';
 import { TopBar } from './components/TopBar';
 import { codeFromHash } from './enrollment/link';
 import { useEnrollment } from './enrollment/store';
@@ -32,7 +33,6 @@ const useStyles = makeStyles({
       padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalM}`,
     },
   },
-  muted: { color: tokens.colorNeutralForeground3 },
 });
 
 /** The code the link carried, read once; the fragment is then removed so the code does not stay in the history. */
@@ -67,7 +67,7 @@ export function App() {
     <div className={styles.page}>
       <TopBar />
       <main className={styles.main}>
-        <Text className={styles.muted}>{t('app.intro')}</Text>
+        <PageHeader eyebrow="SplitCortex" title={t('app.webNode')} subtitle={t('app.intro')} />
         {!supported && (
           <MessageBar intent="error">
             <MessageBarBody>{t('app.unsupported')}</MessageBarBody>

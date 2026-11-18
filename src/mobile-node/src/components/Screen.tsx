@@ -8,7 +8,7 @@ export function Screen({ contentContainerStyle, ...rest }: ScrollViewProps) {
   return (
     <ScrollView
       {...rest}
-      style={{ flex: 1, backgroundColor: t.colorNeutralBackground2 }}
+      style={{ flex: 1, backgroundColor: t.colorNeutralBackground1 }}
       contentContainerStyle={[
         {
           padding: parseFloat(t.spacingHorizontalL),
