@@ -417,7 +417,7 @@ rateLimit:
   # Node WebSocket (`/node`): connection attempts per client IP. Devices behind one NAT share a bucket, and a gateway
   # restart makes them all reconnect at once, so keep it generous (a 429 only delays a node by its backoff).
   node:
-    average: 10
+    average: 100
     period: 1s
     burst: 500
 
