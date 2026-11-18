@@ -95,6 +95,8 @@ dex:
     # Public URL of Dex (must match what clients/browsers reach); override per environment.
     issuer: https://dex.splitcortex.127.0.0.1.nip.io
     frontend:
+      # Without `dir` Dex serves its embedded assets and ignores the mounted theme.
+      dir: /srv/dex/web
       issuer: SplitCortex
       logoURL: theme/logo.svg
       theme: splitcortex
