@@ -84,7 +84,7 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
         .select({ id: pools.id })
         .from(pools)
         .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)));
-      if (!pool) throw app.httpErrors.notFound('Pool not found');
+      if (!pool) throw app.httpErrors.notFound('errors.poolNotFound');
       // Expired codes free their lookup id.
       await db.delete(enrollments).where(lte(enrollments.expiresAt, new Date()));
       for (let i = 0; i < 20; i++) {
@@ -108,7 +108,7 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
             .send({ enrollment: toDto(rows[0]), code: formatCode(lookupId, secret) });
         }
       }
-      throw app.httpErrors.serviceUnavailable('Could not allocate a code, try again');
+      throw app.httpErrors.serviceUnavailable('errors.codeAllocation');
     },
   );
 
@@ -166,7 +166,7 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
         .delete(enrollments)
         .where(and(eq(enrollments.id, enrollmentId), eq(enrollments.orgId, orgId)))
         .returning({ id: enrollments.id });
-      if (deleted.length === 0) throw app.httpErrors.notFound('Enrollment not found');
+      if (deleted.length === 0) throw app.httpErrors.notFound('errors.enrollmentNotFound');
       return reply.code(204).send(null);
     },
   );
@@ -175,7 +175,7 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
   // failure looks the same. ---
 
   const limit = ipRateLimit(app, 30);
-  const invalid = () => app.httpErrors.notFound('Invalid or expired code');
+  const invalid = () => app.httpErrors.notFound('errors.invalidCode');
 
   app.post(
     '/enroll/start',
@@ -342,7 +342,7 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
       });
       if ('error' in result) {
         if (result.error === 'duplicate') {
-          throw app.httpErrors.conflict('This device key is already registered');
+          throw app.httpErrors.conflict('errors.deviceKeyRegistered');
         }
         throw invalid();
       }

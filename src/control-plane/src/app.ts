@@ -11,6 +11,7 @@ import {
 import { sql } from 'drizzle-orm';
 import type { Db } from './db/client';
 import auth, { type VerifyToken } from './plugins/auth';
+import i18n from './plugins/i18n';
 import nodeAuth from './plugins/node-auth';
 import { apiKeyRoutes } from './routes/api-keys';
 import { benchmarkRoutes } from './routes/benchmarks';
@@ -92,6 +93,7 @@ export async function buildApp({
       usePkceWithAuthorizationCodeGrant: true,
     },
   });
+  await app.register(i18n);
   await app.register(auth, { verify });
   await app.register(nodeAuth, { db });
 

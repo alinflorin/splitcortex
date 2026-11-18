@@ -140,8 +140,39 @@ async fn post(
         .map_err(|_| EnrollError::Server("bad response".into()))
 }
 
+/// The `Accept-Language` value for this machine's locale (`LC_ALL`, `LC_MESSAGES`, `LANGUAGE`, `LANG`; `ro_RO.UTF-8` ->
+/// `ro`), so the control plane's errors come back in the user's language. English when nothing usable is set.
+pub fn accept_language() -> String {
+    language_from(
+        ["LC_ALL", "LC_MESSAGES", "LANGUAGE", "LANG"]
+            .iter()
+            .filter_map(|k| std::env::var(k).ok()),
+    )
+}
+
+fn language_from(values: impl Iterator<Item = String>) -> String {
+    for v in values {
+        // LANGUAGE may be a colon list; take the first entry's language part.
+        let first = v.split(':').next().unwrap_or("");
+        let lang = first.split(['_', '.', '@', '-']).next().unwrap_or("");
+        if !lang.is_empty()
+            && lang != "C"
+            && lang != "POSIX"
+            && lang.chars().all(|c| c.is_ascii_alphabetic())
+        {
+            return lang.to_ascii_lowercase();
+        }
+    }
+    "en".to_string()
+}
+
 pub fn http_client() -> Result<reqwest::Client> {
+    let mut headers = reqwest::header::HeaderMap::new();
+    if let Ok(v) = reqwest::header::HeaderValue::from_str(&accept_language()) {
+        headers.insert(reqwest::header::ACCEPT_LANGUAGE, v);
+    }
     reqwest::Client::builder()
+        .default_headers(headers)
         .user_agent(concat!("splitcortex-node/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(std::time::Duration::from_secs(15))
         .build()
@@ -305,5 +336,23 @@ mod tests {
             a.to_bytes()
         );
         std::fs::remove_dir_all(home).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod language_tests {
+    use super::language_from;
+
+    fn lang(vals: &[&str]) -> String {
+        language_from(vals.iter().map(|s| s.to_string()))
+    }
+
+    #[test]
+    fn takes_the_language_of_the_first_usable_locale() {
+        assert_eq!(lang(&["ro_RO.UTF-8"]), "ro");
+        assert_eq!(lang(&["C", "en_US.UTF-8"]), "en");
+        assert_eq!(lang(&["ro:en"]), "ro");
+        assert_eq!(lang(&["POSIX"]), "en");
+        assert_eq!(lang(&[]), "en");
     }
 }

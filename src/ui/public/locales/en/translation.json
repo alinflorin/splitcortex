@@ -168,6 +168,11 @@
       "body": "The REST API behind this web app."
     }
   },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you are looking for does not exist or has moved.",
+    "home": "Back to home"
+  },
   "about": {
     "title": "About SplitCortex",
     "hero": {

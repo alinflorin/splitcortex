@@ -101,8 +101,7 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
         await notifyConfigChange(db, seq);
         return reply.code(201).send(toDto(pool));
       } catch (err) {
-        if (isUniqueViolation(err))
-          throw app.httpErrors.conflict('A pool with this name already exists');
+        if (isUniqueViolation(err)) throw app.httpErrors.conflict('errors.poolNameTaken');
         throw err;
       }
     },
@@ -127,7 +126,7 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
         .select()
         .from(pools)
         .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)));
-      if (!pool) throw app.httpErrors.notFound('Pool not found');
+      if (!pool) throw app.httpErrors.notFound('errors.poolNotFound');
       return toDto(pool, await onlineByPool(db, orgId));
     },
   );
@@ -165,12 +164,11 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
           const seq = await recordConfigChange(tx, { entityType: 'pool', entityId: poolId, orgId });
           return { seq, pool };
         });
-        if (!result) throw app.httpErrors.notFound('Pool not found');
+        if (!result) throw app.httpErrors.notFound('errors.poolNotFound');
         await notifyConfigChange(db, result.seq);
         return toDto(result.pool, await onlineByPool(db, orgId));
       } catch (err) {
-        if (isUniqueViolation(err))
-          throw app.httpErrors.conflict('A pool with this name already exists');
+        if (isUniqueViolation(err)) throw app.httpErrors.conflict('errors.poolNameTaken');
         throw err;
       }
     },
@@ -213,7 +211,7 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
         if (deleted.length === 0) return null;
         return recordConfigChange(tx, { entityType: 'pool', entityId: poolId, orgId });
       });
-      if (seq === null) throw app.httpErrors.notFound('Pool not found');
+      if (seq === null) throw app.httpErrors.notFound('errors.poolNotFound');
       await notifyConfigChange(db, seq);
       return reply.code(204).send(null);
     },

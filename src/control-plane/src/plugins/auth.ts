@@ -51,13 +51,13 @@ export default fp<{ verify: VerifyToken }>(async (app, { verify }) => {
   app.decorate('authenticate', async (req: FastifyRequest) => {
     const header = req.headers.authorization;
     const token = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
-    if (!token) throw app.httpErrors.unauthorized('Missing bearer token');
+    if (!token) throw app.httpErrors.unauthorized('errors.missingToken');
 
     let claims: TokenClaims;
     try {
       claims = await verify(token);
     } catch {
-      throw app.httpErrors.unauthorized('Invalid token');
+      throw app.httpErrors.unauthorized('errors.invalidToken');
     }
 
     // Identities live in Dex; nothing is stored here. Memberships reference the lowercased email.

@@ -168,6 +168,11 @@
       "body": "API-ul REST din spatele acestei aplicații web."
     }
   },
+  "notFound": {
+    "title": "Pagina nu a fost găsită",
+    "body": "Pagina căutată nu există sau a fost mutată.",
+    "home": "Înapoi la start"
+  },
   "about": {
     "title": "Despre SplitCortex",
     "hero": {

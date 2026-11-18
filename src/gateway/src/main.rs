@@ -2,6 +2,7 @@ mod benchmark;
 mod cache;
 mod cluster;
 mod config;
+mod i18n;
 mod limits;
 mod node_ws;
 mod openai;
@@ -135,6 +136,7 @@ async fn main() -> Result<()> {
         .route("/node", get(node_ws::upgrade))
         .route("/v1/models", get(openai::models))
         .route("/v1/chat/completions", post(openai::chat_completions))
+        .layer(axum::middleware::from_fn(openai::localize))
         .with_state(app.clone());
 
     let (drain_delay, drain_timeout) = (cfg.drain_delay_secs, cfg.drain_timeout_secs);

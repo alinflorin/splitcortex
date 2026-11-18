@@ -22,7 +22,7 @@ import { requireOrgRole } from '../access';
 import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db, Tx } from '../db/client';
 import { models, poolModels, pools } from '../db/schema';
-import { isUniqueViolation } from '../errors';
+import { isUniqueViolation, withParams } from '../errors';
 import { fileNameFromUrl, normaliseHuggingFaceUrl } from '../models/hf';
 import type { ModelStorage } from '../storage/types';
 
@@ -62,17 +62,17 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
   );
 
   const needStorage = (): ModelStorage => {
-    if (!storage) throw app.httpErrors.serviceUnavailable('Model storage is not configured');
+    if (!storage) throw app.httpErrors.serviceUnavailable('errors.storageNotConfigured');
     return storage;
   };
-  const nameTaken = () => app.httpErrors.conflict('A model with this name already exists');
+  const nameTaken = () => app.httpErrors.conflict('errors.modelNameTaken');
 
   const findModel = async (orgId: string, modelId: string) => {
     const [m] = await db
       .select()
       .from(models)
       .where(and(eq(models.id, modelId), eq(models.orgId, orgId)));
-    if (!m) throw app.httpErrors.notFound('Model not found');
+    if (!m) throw app.httpErrors.notFound('errors.modelNotFound');
     return m;
   };
 
@@ -270,17 +270,17 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
       const store = needStorage();
       const model = await findModel(orgId, modelId);
       if (model.source !== 'upload' || model.status !== 'uploading' || !model.uploadId)
-        throw app.httpErrors.conflict('This model has no upload in progress');
+        throw app.httpErrors.conflict('errors.noUploadInProgress');
       const total = model.sizeBytes!;
       const partSize = partSizeFor(total);
       const count = Math.ceil(total / partSize);
-      if (partNumber > count) throw app.httpErrors.notFound('No such part');
+      if (partNumber > count) throw app.httpErrors.notFound('errors.noSuchPart');
       const expected = partNumber < count ? partSize : total - partSize * (count - 1);
       const length = Number(req.headers['content-length']);
       if (!Number.isInteger(length) || length !== expected)
-        throw app.httpErrors.badRequest(`This part must be exactly ${expected} bytes`);
+        throw withParams(app.httpErrors.badRequest('errors.partSize'), { expected });
       if (!(req.body as Readable | undefined)?.pipe)
-        throw app.httpErrors.unsupportedMediaType('Send the part as application/octet-stream');
+        throw app.httpErrors.unsupportedMediaType('errors.partContentType');
       return store.uploadPart(
         model.storageKey,
         model.uploadId,
@@ -317,7 +317,7 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
       const store = needStorage();
       const model = await findModel(orgId, modelId);
       if (model.source !== 'upload' || model.status !== 'uploading' || !model.uploadId)
-        throw app.httpErrors.conflict('This model has no upload in progress');
+        throw app.httpErrors.conflict('errors.noUploadInProgress');
 
       await store.completeMultipart(model.storageKey, model.uploadId, req.body.parts);
       const stored = await store.head(model.storageKey);
@@ -327,7 +327,7 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
           .update(models)
           .set({ status: 'failed', error: 'Uploaded size does not match', updatedAt: new Date() })
           .where(eq(models.id, modelId));
-        throw app.httpErrors.conflict('Uploaded size does not match the announced size');
+        throw app.httpErrors.conflict('errors.sizeMismatch');
       }
       const { seq, row } = await db.transaction(async (tx) => {
         const [row] = await tx
@@ -370,7 +370,7 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
       await requireOrgRole(app, db, req, orgId, 'admin');
       const model = await findModel(orgId, modelId);
       if (model.source !== 'huggingface' || model.status !== 'failed')
-        throw app.httpErrors.conflict('Only failed downloads can be retried');
+        throw app.httpErrors.conflict('errors.onlyFailedRetry');
       const [row] = await db
         .update(models)
         .set({ status: 'pending', error: null, progressBytes: 0, updatedAt: new Date() })
@@ -433,7 +433,7 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
         .select({ id: pools.id })
         .from(pools)
         .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)));
-      if (!pool) throw app.httpErrors.notFound('Pool not found');
+      if (!pool) throw app.httpErrors.notFound('errors.poolNotFound');
       const rows = await db
         .select({ model: models })
         .from(poolModels)
@@ -470,8 +470,8 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
         .select({ id: pools.id })
         .from(pools)
         .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)));
-      if (!pool) throw app.httpErrors.notFound('Pool not found');
-      if (model.status !== 'ready') throw app.httpErrors.conflict('The model is not ready yet');
+      if (!pool) throw app.httpErrors.notFound('errors.poolNotFound');
+      if (model.status !== 'ready') throw app.httpErrors.conflict('errors.modelNotReady');
       const seq = await db.transaction(async (tx) => {
         // One model per pool: serving a model replaces the previous one (nodes swap on their next sync).
         const [current] = await tx

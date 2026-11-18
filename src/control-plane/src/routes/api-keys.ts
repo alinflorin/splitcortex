@@ -102,13 +102,13 @@ export const apiKeyRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
       const poolIds = scope === 'pools' ? [...new Set(req.body.poolIds)] : [];
       const expires = expiresAt ? new Date(expiresAt) : null;
       if (expires && expires.getTime() <= Date.now())
-        throw app.httpErrors.badRequest('The expiry must be in the future');
+        throw app.httpErrors.badRequest('errors.expiryInPast');
       if (poolIds.length > 0) {
         const found = await db
           .select({ id: pools.id })
           .from(pools)
           .where(and(eq(pools.orgId, orgId), inArray(pools.id, poolIds)));
-        if (found.length !== poolIds.length) throw app.httpErrors.badRequest('Unknown pool');
+        if (found.length !== poolIds.length) throw app.httpErrors.badRequest('errors.unknownPool');
       }
 
       const secret = TOKEN_PREFIX + randomBytes(32).toString('base64url');
@@ -178,7 +178,7 @@ export const apiKeyRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
           .where(eq(apiKeyPools.keyId, keyId));
         return { seq, key, poolIds: links.map((l) => l.poolId) };
       });
-      if (!result) throw app.httpErrors.notFound('API key not found');
+      if (!result) throw app.httpErrors.notFound('errors.apiKeyNotFound');
       await notifyConfigChange(db, result.seq);
       return toDto(result.key, result.poolIds);
     },
@@ -215,7 +215,7 @@ export const apiKeyRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
           seq: await recordConfigChange(tx, { entityType: 'api_key', entityId: keyId, orgId }),
         };
       });
-      if (!result) throw app.httpErrors.notFound('API key not found');
+      if (!result) throw app.httpErrors.notFound('errors.apiKeyNotFound');
       if (result.seq !== undefined) await notifyConfigChange(db, result.seq);
       return reply.code(204).send(null);
     },

@@ -24,4 +24,20 @@ test.describe('deployment smoke', () => {
     await page.goto('/organisations');
     await page.waitForURL((u) => u.origin === dexUrl);
   });
+
+  test('control plane answers errors in the requested language', async ({ request }) => {
+    const en = await request.get(`${apiUrl}/organisations`);
+    expect(((await en.json()) as { message: string }).message).toBe('Missing bearer token');
+    const ro = await request.get(`${apiUrl}/organisations`, {
+      headers: { 'accept-language': 'ro-RO,ro;q=0.9' },
+    });
+    expect(((await ro.json()) as { message: string }).message).toBe('Lipsește token-ul bearer');
+    expect(ro.headers()['content-language']).toBe('ro');
+  });
+
+  test('an unknown page shows the 404 page', async ({ page }) => {
+    await page.goto('/no-such-page');
+    await expect(page.getByText('404')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Back to home' })).toBeVisible();
+  });
 });

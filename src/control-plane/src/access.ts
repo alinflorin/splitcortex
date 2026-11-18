@@ -21,7 +21,8 @@ export async function requireOrgRole(
     .select({ role: memberships.role })
     .from(memberships)
     .where(and(eq(memberships.orgId, orgId), eq(memberships.userEmail, req.user!.email)));
-  if (!row) throw app.httpErrors.notFound('Organisation not found');
-  if (roleRank[row.role] < roleRank[minimum]) throw app.httpErrors.forbidden('Insufficient role');
+  if (!row) throw app.httpErrors.notFound('errors.orgNotFound');
+  if (roleRank[row.role] < roleRank[minimum])
+    throw app.httpErrors.forbidden('errors.insufficientRole');
   return row.role;
 }

@@ -135,15 +135,13 @@ describe('nodes', () => {
       .insert(nodes)
       .values({ orgId, poolId, name: 'n', publicKey: 'cmp', fingerprint: 'F' })
       .returning();
-    await t.db
-      .insert(nodeStatus)
-      .values({
-        nodeId: node!.id,
-        connected: true,
-        backend: 'gpu',
-        maxContextTokens: 4096,
-        modalities: 'image,audio',
-      });
+    await t.db.insert(nodeStatus).values({
+      nodeId: node!.id,
+      connected: true,
+      backend: 'gpu',
+      maxContextTokens: 4096,
+      modalities: 'image,audio',
+    });
     const url = `/organisations/${orgId}/nodes/${node!.id}`;
     const fresh = (await call('GET', url, member)).json();
     expect(fresh).toMatchObject({ computeBackend: null, maxContextTokens: null });

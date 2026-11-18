@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { z } from 'zod';
 
 /** The OpenAI content parts the gateway takes: text, an image as a base64 data URL, an audio clip as base64. */
@@ -58,6 +59,7 @@ export type GatewayModel = z.infer<typeof modelsSchema>['data'][number];
 
 const headers = (key: string) => ({
   Authorization: `Bearer ${key}`,
+  'Accept-Language': i18n.language || 'en',
   'Content-Type': 'application/json',
 });
 

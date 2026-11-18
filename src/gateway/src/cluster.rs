@@ -26,6 +26,7 @@ use subtle::ConstantTimeEq;
 use tracing::{debug, warn};
 use uuid::Uuid;
 
+use crate::i18n::{Lang, Tr};
 use crate::openai::{self, ApiError};
 use crate::state::AppState;
 
@@ -168,12 +169,19 @@ pub async fn max_context(app: &AppState, pools: &[Uuid]) -> Option<u32> {
 
 /// Asks `peer` to serve a chat request for `key_hash` (already authenticated and limit-checked here). `Err` means the
 /// peer could not be reached; any HTTP answer, including an error, is returned as it is.
-pub async fn forward_chat(app: &AppState, peer: &Peer, key_hash: &str, body: Bytes) -> Result<Response, ()> {
+pub async fn forward_chat(
+    app: &AppState,
+    peer: &Peer,
+    key_hash: &str,
+    body: Bytes,
+    lang: Lang,
+) -> Result<Response, ()> {
     let req = Request::builder()
         .method("POST")
         .uri(format!("http://{}/internal/v1/chat/completions", peer.address))
         .header(header::AUTHORIZATION, format!("Bearer {}", app.internal_token))
         .header("x-sc-key", key_hash)
+        .header(header::ACCEPT_LANGUAGE, lang.tag())
         .header(header::CONTENT_TYPE, "application/json")
         .body(Full::new(body))
         .map_err(|_| ())?;
@@ -192,6 +200,7 @@ pub fn internal_router(app: Arc<AppState>) -> Router {
     Router::new()
         .route("/healthz", get(|| async { "ok" }))
         .route("/internal/v1/chat/completions", post(internal_chat))
+        .layer(axum::middleware::from_fn(openai::localize))
         .with_state(app)
 }
 
@@ -210,7 +219,7 @@ async fn internal_chat(
         return Err(ApiError::status(
             StatusCode::UNAUTHORIZED,
             "unauthorized",
-            "Unauthorized.",
+            Tr::new("unauthorized"),
         ));
     }
     let hash = headers.get("x-sc-key").and_then(|v| v.to_str().ok()).unwrap_or("");
@@ -223,7 +232,7 @@ async fn internal_chat(
                 return Err(ApiError::status(
                     StatusCode::UNAUTHORIZED,
                     "unauthorized",
-                    "Unknown key.",
+                    Tr::new("unknown_key"),
                 ))
             }
         },
@@ -232,8 +241,8 @@ async fn internal_chat(
         ApiError::status(
             StatusCode::PAYLOAD_TOO_LARGE,
             "request_too_large",
-            "The request body is too large.",
+            Tr::new("request_too_large"),
         )
     })?;
-    openai::chat_core(&app, key, body, true).await
+    openai::chat_core(&app, key, body, true, Lang::from_headers(&headers)).await
 }

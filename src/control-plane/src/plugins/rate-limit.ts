@@ -14,6 +14,6 @@ export function ipRateLimit(app: FastifyInstance, max: number, windowMs = 60_000
       hits.set(req.ip, { count: 1, resetAt: now + windowMs });
       return;
     }
-    if (++h.count > max) throw app.httpErrors.tooManyRequests('Too many requests');
+    if (++h.count > max) throw app.httpErrors.tooManyRequests('errors.tooManyRequests');
   };
 }

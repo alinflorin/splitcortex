@@ -3,6 +3,7 @@ import { PrivateRoute } from './auth/PrivateRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { About } from './pages/About';
 import { Home } from './pages/Home';
+import { NotFound } from './pages/NotFound';
 import { ApiKeysPage } from './pages/organisations/ApiKeysPage';
 import { MembersTab } from './pages/organisations/MembersTab';
 import { OrganisationLayout } from './pages/organisations/OrganisationLayout';
@@ -36,7 +37,7 @@ export function App() {
             <Route path="settings" element={<OrganisationSettingsTab />} />
           </Route>
         </Route>
-        <Route path="*" element={<Home />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );

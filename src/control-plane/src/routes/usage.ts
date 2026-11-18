@@ -3,6 +3,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { ErrorSchema, OrgIdParamsSchema, UsageQuerySchema, UsageSchema } from '../dto';
 import { requireOrgRole } from '../access';
 import type { Db } from '../db/client';
+import { withParams } from '../errors';
 import { usageRecords } from '../db/schema';
 
 const DAY_MS = 86_400_000;
@@ -29,9 +30,9 @@ export const usageRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db }
 
       const to = req.query.to ? new Date(req.query.to) : new Date();
       const from = req.query.from ? new Date(req.query.from) : new Date(to.getTime() - 7 * DAY_MS);
-      if (from >= to) throw app.httpErrors.badRequest('`from` must be before `to`');
+      if (from >= to) throw app.httpErrors.badRequest('errors.fromBeforeTo');
       if (to.getTime() - from.getTime() > MAX_RANGE_DAYS * DAY_MS)
-        throw app.httpErrors.badRequest(`Range is limited to ${MAX_RANGE_DAYS} days`);
+        throw withParams(app.httpErrors.badRequest('errors.rangeLimit'), { days: MAX_RANGE_DAYS });
 
       const bucket = sql<Date>`date_trunc(${sql.raw(`'${granularity}'`)}, ${usageRecords.bucket} at time zone 'UTC') at time zone 'UTC'`;
       const group =

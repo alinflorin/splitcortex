@@ -80,7 +80,7 @@ export const benchmarkRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { 
       .select({ id: pools.id })
       .from(pools)
       .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)));
-    if (!pool) throw app.httpErrors.notFound('Pool not found');
+    if (!pool) throw app.httpErrors.notFound('errors.poolNotFound');
   };
 
   app.get(
@@ -130,7 +130,7 @@ export const benchmarkRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { 
         .select({ modelId: poolModels.modelId })
         .from(poolModels)
         .where(eq(poolModels.poolId, poolId));
-      if (!assigned) throw app.httpErrors.conflict('The pool serves no model yet');
+      if (!assigned) throw app.httpErrors.conflict('errors.poolServesNoModel');
       const online = await db
         .select({ id: nodes.id })
         .from(nodes)
@@ -143,7 +143,7 @@ export const benchmarkRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { 
             sql`${nodeStatus.updatedAt} > now() - ${LIVE_STALENESS_MS / 1000} * interval '1 second'`,
           ),
         );
-      if (online.length === 0) throw app.httpErrors.conflict('No node of this pool is online');
+      if (online.length === 0) throw app.httpErrors.conflict('errors.noNodeOnline');
       const [open] = await db
         .select({ id: benchmarkResults.id })
         .from(benchmarkResults)
@@ -156,7 +156,7 @@ export const benchmarkRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { 
           ),
         )
         .limit(1);
-      if (open) throw app.httpErrors.conflict('A benchmark of this pool is still running');
+      if (open) throw app.httpErrors.conflict('errors.benchmarkRunning');
 
       const id = await db.transaction(async (tx) => {
         const [b] = await tx
@@ -201,7 +201,7 @@ export const benchmarkRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { 
           ),
         )
         .returning({ id: benchmarks.id });
-      if (gone.length === 0) throw app.httpErrors.notFound('Benchmark not found');
+      if (gone.length === 0) throw app.httpErrors.notFound('errors.benchmarkNotFound');
       return reply.code(204).send(null);
     },
   );

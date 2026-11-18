@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { httpFetch } from '../native/http';
 import {
   fingerprint,
@@ -55,7 +56,7 @@ async function post(baseUrl: string, path: string, body: object): Promise<Record
   try {
     res = await httpFetch(`${baseUrl.replace(/\/+$/, '')}${path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', 'Accept-Language': i18n.language || 'en' },
       body: JSON.stringify(body),
     });
   } catch {

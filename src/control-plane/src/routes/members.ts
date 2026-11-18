@@ -74,7 +74,8 @@ export const memberRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
     async (req, reply) => {
       const { orgId } = req.params;
       const actor = await requireOrgRole(app, db, req, orgId, 'admin');
-      if (!canManage(actor, req.body.role)) throw app.httpErrors.forbidden('Insufficient role');
+      if (!canManage(actor, req.body.role))
+        throw app.httpErrors.forbidden('errors.insufficientRole');
       try {
         const [row] = await db
           .insert(memberships)
@@ -82,7 +83,7 @@ export const memberRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
           .returning();
         return reply.code(201).send(toDto(row!));
       } catch (err) {
-        if (isUniqueViolation(err)) throw app.httpErrors.conflict('Already a member');
+        if (isUniqueViolation(err)) throw app.httpErrors.conflict('errors.alreadyMember');
         throw err;
       }
     },
@@ -121,11 +122,11 @@ export const memberRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
           .select()
           .from(memberships)
           .where(and(eq(memberships.orgId, orgId), eq(memberships.userEmail, email)));
-        if (!target) throw app.httpErrors.notFound('Member not found');
+        if (!target) throw app.httpErrors.notFound('errors.memberNotFound');
         if (!canManage(actor, target.role, req.body.role))
-          throw app.httpErrors.forbidden('Insufficient role');
+          throw app.httpErrors.forbidden('errors.insufficientRole');
         if (target.role === 'owner' && req.body.role !== 'owner' && owners.length <= 1)
-          throw app.httpErrors.conflict('An organisation needs at least one owner');
+          throw app.httpErrors.conflict('errors.needsOwner');
         const [row] = await tx
           .update(memberships)
           .set({ role: req.body.role })
@@ -168,11 +169,11 @@ export const memberRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
           .select()
           .from(memberships)
           .where(and(eq(memberships.orgId, orgId), eq(memberships.userEmail, email)));
-        if (!target) throw app.httpErrors.notFound('Member not found');
+        if (!target) throw app.httpErrors.notFound('errors.memberNotFound');
         if (!self && !canManage(actor, target.role))
-          throw app.httpErrors.forbidden('Insufficient role');
+          throw app.httpErrors.forbidden('errors.insufficientRole');
         if (target.role === 'owner' && owners.length <= 1)
-          throw app.httpErrors.conflict('An organisation needs at least one owner');
+          throw app.httpErrors.conflict('errors.needsOwner');
         await tx
           .delete(memberships)
           .where(and(eq(memberships.orgId, orgId), eq(memberships.userEmail, email)));

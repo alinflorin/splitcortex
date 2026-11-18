@@ -71,7 +71,7 @@ export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app,
           return { seq, created: org! };
         }));
       } catch (err) {
-        if (isUniqueViolation(err)) throw app.httpErrors.conflict('Slug already taken');
+        if (isUniqueViolation(err)) throw app.httpErrors.conflict('errors.slugTaken');
         throw err;
       }
       await notifyConfigChange(db, seq);
@@ -149,7 +149,7 @@ export const organisationRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app,
         await notifyConfigChange(db, seq);
         return { ...org, limits: limitsOf(org), createdAt: org.createdAt.toISOString(), role };
       } catch (err) {
-        if (isUniqueViolation(err)) throw app.httpErrors.conflict('Slug already taken');
+        if (isUniqueViolation(err)) throw app.httpErrors.conflict('errors.slugTaken');
         throw err;
       }
     },

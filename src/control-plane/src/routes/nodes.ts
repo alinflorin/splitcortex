@@ -95,7 +95,7 @@ export const nodeRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
         .select({ id: pools.id })
         .from(pools)
         .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)));
-      if (!pool) throw app.httpErrors.notFound('Pool not found');
+      if (!pool) throw app.httpErrors.notFound('errors.poolNotFound');
       const rows = await select()
         .where(and(eq(nodes.poolId, poolId), eq(nodes.orgId, orgId)))
         .orderBy(nodes.createdAt);
@@ -119,7 +119,7 @@ export const nodeRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
       const { orgId, nodeId } = req.params;
       await requireOrgRole(app, db, req, orgId);
       const [row] = await select().where(and(eq(nodes.id, nodeId), eq(nodes.orgId, orgId)));
-      if (!row) throw app.httpErrors.notFound('Node not found');
+      if (!row) throw app.httpErrors.notFound('errors.nodeNotFound');
       return toNodeDto(row);
     },
   );
@@ -155,7 +155,7 @@ export const nodeRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
         if (!updated) return null;
         return recordConfigChange(tx, { entityType: 'node', entityId: nodeId, orgId });
       });
-      if (result === null) throw app.httpErrors.notFound('Node not found');
+      if (result === null) throw app.httpErrors.notFound('errors.nodeNotFound');
       await notifyConfigChange(db, result);
       const [row] = await select().where(eq(nodes.id, nodeId));
       return toNodeDto(row!);
@@ -186,7 +186,7 @@ export const nodeRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
         if (deleted.length === 0) return null;
         return recordConfigChange(tx, { entityType: 'node', entityId: nodeId, orgId });
       });
-      if (seq === null) throw app.httpErrors.notFound('Node not found');
+      if (seq === null) throw app.httpErrors.notFound('errors.nodeNotFound');
       await notifyConfigChange(db, seq);
       return reply.code(204).send(null);
     },

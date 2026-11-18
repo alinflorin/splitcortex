@@ -43,7 +43,7 @@ export default fp<{ db: Db }>(async (app, { db }) => {
   app.decorateRequest('node', null);
 
   app.decorate('authenticateNode', async (req: FastifyRequest) => {
-    const deny = () => app.httpErrors.unauthorized('Invalid node credentials');
+    const deny = () => app.httpErrors.unauthorized('errors.invalidNodeCredentials');
     const header = req.headers.authorization;
     if (!header?.startsWith('Node ')) throw deny();
     const [nodeId, ts, sig, extra] = header.slice(5).split('.');

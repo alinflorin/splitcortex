@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { nodeAuthorization } from '../protocol/handshake';
 import type { Engine } from '../engine/types';
 import type { LogBuffer } from '../runtime/log';
@@ -179,6 +180,7 @@ export class ModelManager {
           headers: {
             Authorization: nodeAuthorization(nodeId, privateKey, 'GET', path),
             Range: `bytes=${offset}-${end}`,
+            'Accept-Language': i18n.language || 'en',
           },
         });
         if (res.status !== 206) throw new Error(`Download failed (HTTP ${res.status})`);

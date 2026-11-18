@@ -21,6 +21,7 @@ use uuid::Uuid;
 
 use crate::cache::{fetch_key, KeyRec, ModelRec, PoolRec};
 use crate::cluster;
+use crate::i18n::{Lang, Tr};
 use crate::limits::Subject;
 use crate::proto::envelope::Body;
 use crate::proto::{self, Envelope};
@@ -30,39 +31,44 @@ use crate::state::AppState;
 const FIRST_EVENT_TIMEOUT: Duration = Duration::from_secs(120);
 const EVENT_TIMEOUT: Duration = Duration::from_secs(120);
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ApiError {
     status: StatusCode,
     kind: &'static str,
     code: &'static str,
-    message: String,
+    message: Tr,
     retry_after: Option<u32>,
 }
 
 impl ApiError {
-    fn new(status: StatusCode, kind: &'static str, code: &'static str, message: impl Into<String>) -> Self {
+    fn new(status: StatusCode, kind: &'static str, code: &'static str, message: Tr) -> Self {
         Self {
             status,
             kind,
             code,
-            message: message.into(),
+            message,
             retry_after: None,
         }
     }
-    pub fn status(status: StatusCode, code: &'static str, message: &str) -> Self {
+    pub fn status(status: StatusCode, code: &'static str, message: Tr) -> Self {
         Self::new(status, "invalid_request_error", code, message)
     }
     fn too_many(what: &str, retry_after: u32) -> Self {
+        let what = match what {
+            "requests per minute" => "limit.requests_per_minute",
+            "tokens per minute" => "limit.tokens_per_minute",
+            _ => "limit.tokens_per_day",
+        };
         let mut e = Self::new(
             StatusCode::TOO_MANY_REQUESTS,
             "rate_limit_error",
             "rate_limit_exceeded",
-            format!("Rate limit reached: too many {what}. Try again in {retry_after} s."),
+            Tr::new("rate_limited").word("what", what).arg("secs", retry_after),
         );
         e.retry_after = Some(retry_after);
         e
     }
-    fn unavailable(message: &str) -> Self {
+    fn unavailable(message: Tr) -> Self {
         let mut e = Self::new(
             StatusCode::SERVICE_UNAVAILABLE,
             "server_error",
@@ -72,16 +78,37 @@ impl ApiError {
         e.retry_after = Some(5);
         e
     }
-}
 
-impl IntoResponse for ApiError {
-    fn into_response(self) -> Response {
-        let body = json!({ "error": { "message": self.message, "type": self.kind, "param": null, "code": self.code } });
+    /// The OpenAI-format error response in `lang`.
+    pub fn respond(&self, lang: Lang) -> Response {
+        let body = json!({ "error": { "message": self.message.render(lang), "type": self.kind, "param": null, "code": self.code } });
         let mut res = (self.status, Json(body)).into_response();
         if let Some(s) = self.retry_after {
             res.headers_mut().insert(header::RETRY_AFTER, HeaderValue::from(s));
         }
+        res.headers_mut()
+            .insert(header::CONTENT_LANGUAGE, HeaderValue::from_static(lang.tag()));
         res
+    }
+}
+
+/// Rendered in English here; the `localize` layer re-renders it in the request's language (the error rides along in the
+/// response extensions).
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        let mut res = self.respond(Lang::En);
+        res.extensions_mut().insert(self);
+        res
+    }
+}
+
+/// Middleware: answers an `ApiError` in the language of the request's `Accept-Language`.
+pub async fn localize(request: axum::extract::Request, next: axum::middleware::Next) -> Response {
+    let lang = Lang::from_headers(request.headers());
+    let res = next.run(request).await;
+    match res.extensions().get::<ApiError>() {
+        Some(e) if lang != Lang::En => e.respond(lang),
+        _ => res,
     }
 }
 
@@ -90,7 +117,7 @@ fn unauthorized() -> ApiError {
         StatusCode::UNAUTHORIZED,
         "invalid_request_error",
         "invalid_api_key",
-        "Incorrect API key provided.",
+        Tr::new("invalid_api_key"),
     )
 }
 
@@ -127,7 +154,7 @@ async fn authenticate(app: &Arc<AppState>, headers: &HeaderMap) -> Result<KeyRec
                     app.unknown_keys.lock().unwrap().insert(hash, Instant::now());
                     return Err(unauthorized());
                 }
-                Err(_) => return Err(ApiError::unavailable("Temporarily unavailable.")),
+                Err(_) => return Err(ApiError::unavailable(Tr::new("temporarily_unavailable"))),
             }
         }
     };
@@ -233,7 +260,7 @@ const IMAGE_TOKENS: u32 = 256;
 /// Audio is encoded at 6.25 tokens per second of sound (one per 160 ms).
 const AUDIO_TOKENS_PER_SEC: f64 = 6.25;
 
-fn bad_request(code: &'static str, message: impl Into<String>) -> ApiError {
+fn bad_request(code: &'static str, message: Tr) -> ApiError {
     ApiError::new(StatusCode::BAD_REQUEST, "invalid_request_error", code, message)
 }
 
@@ -251,31 +278,31 @@ struct Converted {
     limit: usize,
 }
 
-fn decode_b64(data: &str, what: &str) -> Result<Vec<u8>, ApiError> {
+fn decode_b64(data: &str, what: &'static str) -> Result<Vec<u8>, ApiError> {
     use base64::Engine as _;
     base64::engine::general_purpose::STANDARD
         .decode(data.trim())
-        .map_err(|_| bad_request("invalid_base64", format!("The {what} is not valid base64.")))
+        .map_err(|_| bad_request("invalid_base64", Tr::new("invalid_base64").word("what", what)))
 }
 
 /// `data:<mime>;base64,<data>` -> (mime, bytes). Remote URLs are refused: the gateway never fetches anything for a client.
-fn decode_data_url(url: &str, what: &str) -> Result<(String, Vec<u8>), ApiError> {
+fn decode_data_url(url: &str, what: &'static str) -> Result<(String, Vec<u8>), ApiError> {
     let Some(rest) = url.strip_prefix("data:") else {
         return Err(bad_request(
             "unsupported_media_url",
-            format!("The {what} must be a base64 `data:` URL; the gateway does not fetch URLs."),
+            Tr::new("unsupported_media_url").word("what", what),
         ));
     };
     let Some((meta, data)) = rest.split_once(',') else {
         return Err(bad_request(
             "invalid_data_url",
-            format!("The {what} is not a valid data URL."),
+            Tr::new("invalid_data_url").word("what", what),
         ));
     };
     let Some(mime) = meta.strip_suffix(";base64") else {
         return Err(bad_request(
             "invalid_data_url",
-            format!("The {what} must be base64 encoded."),
+            Tr::new("data_url_not_base64").word("what", what),
         ));
     };
     Ok((mime.trim().to_ascii_lowercase(), decode_b64(data, what)?))
@@ -334,12 +361,7 @@ fn convert_message(m: &Msg, acc: &mut Converted) -> Result<(), ApiError> {
             });
             return Ok(());
         }
-        _ => {
-            return Err(bad_request(
-                "invalid_request",
-                "message content must be a string or an array of parts",
-            ))
-        }
+        _ => return Err(bad_request("invalid_request", Tr::new("content_shape"))),
     };
     let mut text: Vec<&str> = Vec::new();
     let mut out: Vec<proto::ContentPart> = Vec::new();
@@ -356,40 +378,41 @@ fn convert_message(m: &Msg, acc: &mut Converted) -> Result<(), ApiError> {
             }
             "image_url" | "input_audio" => {
                 if m.role != "user" {
-                    return Err(bad_request(
-                        "invalid_media_role",
-                        "Images and audio are only accepted in user messages.",
-                    ));
+                    return Err(bad_request("invalid_media_role", Tr::new("invalid_media_role")));
                 }
                 let (mime, data, is_image) = if kind == "image_url" {
                     let url = part
                         .get("image_url")
                         .and_then(|v| v.get("url").unwrap_or(v).as_str())
-                        .ok_or_else(|| bad_request("invalid_request", "image_url needs a `url`"))?;
+                        .ok_or_else(|| bad_request("invalid_request", Tr::new("image_needs_url")))?;
                     let (mime, data) = decode_data_url(url, "image")?;
                     let mime = image_mime(&mime).ok_or_else(|| {
                         bad_request(
                             "unsupported_media_type",
-                            format!("Unsupported image type `{mime}`; use JPEG, PNG, BMP or GIF."),
+                            Tr::new("unsupported_image_type").arg("mime", &mime),
                         )
                     })?;
                     (mime, data, true)
                 } else {
                     let a = part
                         .get("input_audio")
-                        .ok_or_else(|| bad_request("invalid_request", "input_audio needs `data` and `format`"))?;
-                    let format = a.get("format").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
+                        .ok_or_else(|| bad_request("invalid_request", Tr::new("audio_needs_data")))?;
+                    let format = a
+                        .get("format")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .to_ascii_lowercase();
                     let mime = audio_mime(&format).ok_or_else(|| {
                         bad_request(
                             "unsupported_media_type",
-                            format!("Unsupported audio format `{format}`; use wav, mp3 or flac."),
+                            Tr::new("unsupported_audio_format").arg("format", &format),
                         )
                     })?;
                     let data = decode_b64(a.get("data").and_then(Value::as_str).unwrap_or(""), "audio")?;
                     (mime, data, false)
                 };
                 if data.is_empty() {
-                    return Err(bad_request("invalid_request", "A media part is empty."));
+                    return Err(bad_request("invalid_request", Tr::new("media_empty")));
                 }
                 acc.media_bytes += data.len();
                 acc.media_parts += 1;
@@ -398,10 +421,9 @@ fn convert_message(m: &Msg, acc: &mut Converted) -> Result<(), ApiError> {
                         StatusCode::PAYLOAD_TOO_LARGE,
                         "invalid_request_error",
                         "media_too_large",
-                        format!(
-                            "A request may carry at most {MAX_MEDIA_PARTS} images or audio clips and {} MiB of them.",
-                            acc.limit >> 20
-                        ),
+                        Tr::new("media_too_large")
+                            .arg("parts", MAX_MEDIA_PARTS)
+                            .arg("mib", acc.limit >> 20),
                     ));
                 }
                 has_media = true;
@@ -417,7 +439,9 @@ fn convert_message(m: &Msg, acc: &mut Converted) -> Result<(), ApiError> {
                     });
                 } else {
                     acc.mods |= registry::AUDIO;
-                    acc.media_tokens += (audio_seconds(mime, &media.data) * AUDIO_TOKENS_PER_SEC).ceil().max(1.0) as u32;
+                    acc.media_tokens += (audio_seconds(mime, &media.data) * AUDIO_TOKENS_PER_SEC)
+                        .ceil()
+                        .max(1.0) as u32;
                     out.push(proto::ContentPart {
                         part: Some(proto::content_part::Part::Audio(media)),
                     });
@@ -426,9 +450,7 @@ fn convert_message(m: &Msg, acc: &mut Converted) -> Result<(), ApiError> {
             other => {
                 return Err(bad_request(
                     "unsupported_content_type",
-                    format!(
-                        "Unsupported content part type `{other}`. Supported: `text`, `image_url` (base64 data URL), `input_audio`."
-                    ),
+                    Tr::new("unsupported_part_type").arg("kind", other),
                 ))
             }
         }
@@ -513,22 +535,28 @@ pub async fn chat_completions(
             StatusCode::PAYLOAD_TOO_LARGE,
             "invalid_request_error",
             "request_too_large",
-            "The request body is too large.",
+            Tr::new("request_too_large"),
         )
     })?;
-    chat_core(&app, key, body, false).await
+    chat_core(&app, key, body, false, Lang::from_headers(&parts.headers)).await
 }
 
 /// Serves a chat request of an authenticated key. `forwarded`: another gateway instance already checked the limits and
 /// sent the request here because this instance holds the node; it is only served from local nodes and not forwarded on.
-pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded: bool) -> Result<Response, ApiError> {
+pub async fn chat_core(
+    app: &Arc<AppState>,
+    key: KeyRec,
+    body: Bytes,
+    forwarded: bool,
+    lang: Lang,
+) -> Result<Response, ApiError> {
     let app = app.clone();
     let req: ChatReq = serde_json::from_slice(&body).map_err(|e| {
         ApiError::new(
             StatusCode::BAD_REQUEST,
             "invalid_request_error",
             "invalid_request",
-            format!("Invalid request body: {e}"),
+            Tr::new("invalid_body").arg("detail", e),
         )
     })?;
     if req.messages.is_empty() {
@@ -536,15 +564,15 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
             StatusCode::BAD_REQUEST,
             "invalid_request_error",
             "invalid_request",
-            "messages must not be empty",
+            Tr::new("messages_empty"),
         ));
     }
     if app.draining.load(std::sync::atomic::Ordering::Relaxed) {
         // Shutting down: peers and clients try another instance (503), requests already running finish.
-        return Err(ApiError::unavailable("This instance is shutting down; try again."));
+        return Err(ApiError::unavailable(Tr::new("shutting_down")));
     }
     if !app.usage.healthy() {
-        return Err(ApiError::unavailable("Usage metering is behind; try again shortly."));
+        return Err(ApiError::unavailable(Tr::new("metering_behind")));
     }
 
     // Resolve the pool from the model among the key's pools.
@@ -557,10 +585,7 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
             StatusCode::NOT_FOUND,
             "invalid_request_error",
             "model_not_found",
-            format!(
-                "The model `{}` does not exist or you do not have access to it.",
-                req.model
-            ),
+            Tr::new("model_not_found").arg("model", &req.model),
         ));
     }
 
@@ -594,10 +619,13 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
             }
         }
         if any && have & mods != mods {
-            let missing = registry::modality_names(mods & !have).join(" and ");
+            let missing = registry::modality_names(mods & !have)
+                .into_iter()
+                .map(|n| if n == "image" { "word.image" } else { "word.audio" })
+                .collect();
             return Err(bad_request(
                 "unsupported_modality",
-                format!("This model does not accept {missing} input: no node of it can process it."),
+                Tr::new("unsupported_modality").words("missing", missing),
             ));
         }
     }
@@ -642,10 +670,9 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
             StatusCode::BAD_REQUEST,
             "invalid_request_error",
             "context_length_exceeded",
-            format!(
-                "This model's maximum context length is {} tokens, but the request needs about {need} (prompt plus requested output).",
-                largest.unwrap_or(0)
-            ),
+            Tr::new("context_exceeded")
+                .arg("max", largest.unwrap_or(0))
+                .arg("need", need),
         ));
     }
 
@@ -656,7 +683,7 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
     }
 
     let mut tried: Vec<Uuid> = Vec::new();
-    let mut last = ApiError::unavailable("No node is available for this model right now.");
+    let mut last = ApiError::unavailable(Tr::new("no_node"));
     for _ in 0..2 {
         // The pool with the lowest load per eligible node.
         let target = holders
@@ -718,7 +745,7 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
                     StatusCode::BAD_GATEWAY,
                     "server_error",
                     "node_failed",
-                    "The node failed to answer.",
+                    Tr::new("node_failed"),
                 );
                 continue;
             }
@@ -726,7 +753,7 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
                 let id = format!("chatcmpl-{}", Uuid::new_v4().simple());
                 let created = chrono::Utc::now().timestamp();
                 return Ok(if req.stream {
-                    stream_response(run, rx, first, id, created, req.model).into_response()
+                    stream_response(run, rx, first, id, created, req.model, lang).into_response()
                 } else {
                     collect_response(run, rx, first, id, created, req.model).await?
                 });
@@ -737,7 +764,7 @@ pub async fn chat_core(app: &Arc<AppState>, key: KeyRec, body: Bytes, forwarded:
     if !forwarded {
         let ids: Vec<Uuid> = holders.iter().map(|(p, _)| p.id).collect();
         for peer in cluster::peers_with_pools(&app, &ids, &registry::modality_names(mods)).await {
-            match cluster::forward_chat(&app, &peer, &key.hash, body.clone()).await {
+            match cluster::forward_chat(&app, &peer, &key.hash, body.clone(), lang).await {
                 // 502/503 mean "that instance has no node for it right now": try the next one.
                 Ok(res) if !matches!(res.status().as_u16(), 502 | 503) => return Ok(res),
                 _ => continue,
@@ -781,6 +808,7 @@ fn stream_response(
     id: String,
     created: i64,
     model: String,
+    lang: Lang,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (tx, out) = mpsc::channel::<Result<Event, Infallible>>(64);
     tokio::spawn(async move {
@@ -818,12 +846,18 @@ fn stream_response(
                     return;
                 }
                 NodeEvent::Error { code, message } => {
+                    let message = Tr::new("node_error").arg("message", message).render(lang);
                     send(json!({ "error": { "message": message, "type": "server_error", "code": code } }).to_string())
                         .await;
                     return;
                 }
                 NodeEvent::Disconnected => {
-                    send(json!({ "error": { "message": "The node disconnected.", "type": "server_error", "code": "node_disconnected" } }).to_string()).await;
+                    let message = Tr::new("node_disconnected").render(lang);
+                    send(
+                        json!({ "error": { "message": message, "type": "server_error", "code": "node_disconnected" } })
+                            .to_string(),
+                    )
+                    .await;
                     return;
                 }
             }
@@ -867,7 +901,7 @@ async fn collect_response(
                     StatusCode::BAD_GATEWAY,
                     "server_error",
                     "node_error",
-                    message,
+                    Tr::new("node_error").arg("message", message),
                 ))
             }
             NodeEvent::Disconnected => {
@@ -875,7 +909,7 @@ async fn collect_response(
                     StatusCode::BAD_GATEWAY,
                     "server_error",
                     "node_disconnected",
-                    "The node disconnected.",
+                    Tr::new("node_disconnected"),
                 ))
             }
         }
@@ -997,5 +1031,32 @@ mod tests {
         wav[28..32].copy_from_slice(&32_000u32.to_le_bytes()); // 16 kHz, mono, 16 bit
         let s = audio_seconds("audio/wav", &wav);
         assert!((s - 1.0).abs() < 0.01, "{s}");
+    }
+
+    #[tokio::test]
+    async fn errors_are_answered_in_the_requested_language() {
+        use http_body_util::BodyExt;
+        let err = ApiError::too_many("requests per minute", 7);
+        for (lang, text) in [
+            (
+                Lang::En,
+                "Rate limit reached: too many requests per minute. Try again in 7 s.",
+            ),
+            (
+                Lang::Ro,
+                "Limita de cereri pe minut a fost atinsă. Încearcă din nou în 7 s.",
+            ),
+        ] {
+            let res = err.respond(lang);
+            assert_eq!(res.status(), StatusCode::TOO_MANY_REQUESTS);
+            assert_eq!(res.headers()[header::CONTENT_LANGUAGE], lang.tag());
+            let body = res.into_body().collect().await.unwrap().to_bytes();
+            let v: Value = serde_json::from_slice(&body).unwrap();
+            assert_eq!(v["error"]["message"], text);
+            assert_eq!(
+                v["error"]["code"], "rate_limit_exceeded",
+                "the code is never translated"
+            );
+        }
     }
 }

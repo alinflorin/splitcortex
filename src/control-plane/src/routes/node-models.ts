@@ -74,7 +74,7 @@ export const nodeModelRoutes: FastifyPluginAsyncZod<{
         .innerJoin(organisations, eq(organisations.id, nodes.orgId))
         .innerJoin(pools, eq(pools.id, nodes.poolId))
         .where(eq(nodes.id, req.node!.id));
-      if (!row) throw app.httpErrors.unauthorized('Invalid node credentials');
+      if (!row) throw app.httpErrors.unauthorized('errors.invalidNodeCredentials');
       return {
         nodeId: row.node.id,
         name: row.node.name,
@@ -130,20 +130,24 @@ export const nodeModelRoutes: FastifyPluginAsyncZod<{
       },
     },
     async (req, reply) => {
-      if (!storage) throw app.httpErrors.serviceUnavailable('Model storage is not configured');
+      if (!storage) throw app.httpErrors.serviceUnavailable('errors.storageNotConfigured');
       const [row] = await poolModel(req.node!, req.params.modelId);
-      if (!row) throw app.httpErrors.notFound('Model not found');
+      if (!row) throw app.httpErrors.notFound('errors.modelNotFound');
       const m = row.model;
       const stored =
         m.sizeBytes !== null ? { size: m.sizeBytes } : await storage.head(m.storageKey);
-      if (!stored) throw app.httpErrors.notFound('Model not found');
+      if (!stored) throw app.httpErrors.notFound('errors.modelNotFound');
 
       const range = parseRange(req.headers.range, stored.size);
       if (range === 'invalid')
         return reply
           .code(416)
           .header('content-range', `bytes */${stored.size}`)
-          .send({ statusCode: 416, error: 'Range Not Satisfiable', message: 'Invalid range' });
+          .send({
+            statusCode: 416,
+            error: 'Range Not Satisfiable',
+            message: req.t('errors.invalidRange'),
+          });
 
       reply
         .header('accept-ranges', 'bytes')

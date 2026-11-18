@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import type { ZodType } from 'zod';
 
 export class ApiError extends Error {
@@ -25,6 +26,7 @@ export async function request<T>(
   const res = await fetch(`${base()}/api${path}`, {
     method,
     headers: {
+      'Accept-Language': i18n.language || 'en',
       ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
     },
@@ -60,6 +62,7 @@ export function putPart(
     xhr.open('PUT', `${base()}/api${path}`);
     if (token) xhr.setRequestHeader('authorization', `Bearer ${token}`);
     xhr.setRequestHeader('content-type', 'application/octet-stream');
+    xhr.setRequestHeader('accept-language', i18n.language || 'en');
     xhr.upload.onprogress = (e) => onProgress(e.loaded);
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
