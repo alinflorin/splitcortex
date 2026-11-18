@@ -83,9 +83,21 @@ dex:
       - secretName: dex-tls
         hosts:
           - dex.splitcortex.127.0.0.1.nip.io
+  # Custom login theme (templates/dex-theme.yaml, files in chart/files/dex-theme) mounted next to Dex's built-in themes.
+  volumes:
+    - name: theme
+      configMap:
+        name: dex-theme
+  volumeMounts:
+    - name: theme
+      mountPath: /srv/dex/web/themes/splitcortex
   config:
     # Public URL of Dex (must match what clients/browsers reach); override per environment.
     issuer: https://dex.splitcortex.127.0.0.1.nip.io
+    frontend:
+      issuer: SplitCortex
+      logoURL: theme/logo.svg
+      theme: splitcortex
     storage:
       type: kubernetes
       config:

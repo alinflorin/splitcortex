@@ -1,0 +1,14 @@
+{{- if .Values.dex.enabled }}
+# Custom Dex login theme (mounted at /srv/dex/web/themes/splitcortex, selected by dex.config.frontend.theme).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-theme
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+data:
+  styles.css: |-
+{{ .Files.Get "files/dex-theme/styles.css" | indent 4 }}
+  logo.svg: |-
+{{ .Files.Get "files/dex-theme/logo.svg" | indent 4 }}
+{{- end }}
