@@ -9,6 +9,11 @@ metadata:
 data:
   styles.css: |-
 {{ .Files.Get "files/dex-theme/styles.css" | indent 4 }}
+  theme.js: |-
+{{ .Files.Get "files/dex-theme/theme.js" | indent 4 }}
+  # Dex's stock header.html plus the theme.js script tag (copied from the Dex image; re-check on Dex upgrades).
+  header.html: |-
+{{ .Files.Get "files/dex-theme/header.html" | indent 4 }}
   logo.svg: |-
 {{ .Files.Get "files/dex-theme/logo.svg" | indent 4 }}
 {{- end }}

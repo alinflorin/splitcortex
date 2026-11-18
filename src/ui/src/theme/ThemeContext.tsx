@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FluentProvider, teamsDarkTheme, teamsLightTheme } from '@fluentui/react-components';
+import { setSharedCookie } from '../lib/sharedCookie';
 import { useMediaQuery } from '../lib/useMediaQuery';
 
 // Same typeface on every OS: Inter is self-hosted (src/fonts.css); the rest is a system fallback.
@@ -21,6 +22,7 @@ interface ThemeContextValue {
 }
 
 const STORAGE_KEY = 'sc-theme';
+
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function initialPreference(): ThemePreference {
@@ -36,6 +38,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (preference === 'system') window.localStorage.removeItem(STORAGE_KEY);
     else window.localStorage.setItem(STORAGE_KEY, preference);
+    // The Dex login theme reads this cookie; "system" removes it so Dex follows the OS.
+    setSharedCookie(STORAGE_KEY, preference === 'system' ? null : preference);
   }, [preference]);
 
   useEffect(() => {

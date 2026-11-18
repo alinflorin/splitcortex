@@ -91,6 +91,10 @@ dex:
   volumeMounts:
     - name: theme
       mountPath: /srv/dex/web/themes/splitcortex
+    # header.html = Dex's own plus one script tag (theme.js follows the web app's light/dark choice).
+    - name: theme
+      mountPath: /srv/dex/web/templates/header.html
+      subPath: header.html
   config:
     # Public URL of Dex (must match what clients/browsers reach); override per environment.
     issuer: https://dex.splitcortex.127.0.0.1.nip.io

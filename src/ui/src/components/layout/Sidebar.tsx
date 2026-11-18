@@ -40,20 +40,6 @@ const useStyles = makeStyles({
     width: '264px',
     backgroundColor: tokens.colorNeutralBackground2,
     borderRight: `1px solid ${tokens.colorNeutralStroke3}`,
-    // The active page gets an accent bullet to the left of its item (Fluent marks it with aria-current).
-    '& .fui-NavItem': { position: 'relative' },
-    '& .fui-NavItem[aria-current="page"]': { color: tokens.colorBrandForeground1 },
-    '& .fui-NavItem[aria-current="page"]::before': {
-      content: '""',
-      position: 'absolute',
-      left: '-2px',
-      top: '50%',
-      width: '6px',
-      height: '6px',
-      transform: 'translateY(-50%)',
-      borderRadius: '50%',
-      backgroundColor: tokens.colorBrandBackground,
-    },
   },
   header: {
     display: 'flex',

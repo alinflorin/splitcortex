@@ -6,22 +6,40 @@
   --sc-muted: #5b6075;
   --sc-border: #e3e5ee;
   --sc-bg: #f6f7fb;
+  --sc-panel: #fff;
+  --sc-panel-hover: var(--sc-bg);
+  color-scheme: light;
 }
-body, .theme-body {
+body,
+.theme-body {
   background: var(--sc-bg);
   color: var(--sc-text);
   font-size: 14px;
-  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    'Segoe UI',
+    -apple-system,
+    BlinkMacSystemFont,
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
 }
 .theme-navbar {
   background: transparent;
   border: 0;
   box-shadow: none;
 }
-.theme-navbar__logo-wrap { display: flex; justify-content: center; padding: 8px 0; }
-.theme-navbar__logo { height: 48px; width: auto; }
+.theme-navbar__logo-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+.theme-navbar__logo {
+  height: 48px;
+  width: auto;
+}
 .theme-panel {
-  background: #fff;
+  background: var(--sc-panel);
   border: 1px solid var(--sc-border);
   border-radius: 8px;
   box-shadow: none;
@@ -29,14 +47,41 @@ body, .theme-body {
   max-width: 400px;
   margin: 0 auto;
 }
-.theme-heading { color: var(--sc-text); font-size: 20px; font-weight: 600; text-align: center; margin: 0 0 20px; }
-.theme-form-label { color: var(--sc-muted); font-size: 13px; }
+.theme-heading {
+  color: var(--sc-text);
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 20px;
+}
+.theme-panel {
+  width: calc(100% - 32px);
+  max-width: 400px;
+  box-sizing: border-box;
+  margin-top: 16px;
+}
+.theme-form-row {
+  margin: 0 0 16px;
+}
+.theme-form-label {
+  color: var(--sc-muted);
+  font-size: 13px;
+  margin: 0 0 6px;
+  text-align: left;
+}
+.theme-form-label label {
+  display: block;
+}
 .theme-form-input {
+  display: block;
+  width: 100%;
+  padding: 0 10px;
+  font: inherit;
   border: 1px solid var(--sc-border);
   border-radius: 4px;
   height: 36px;
   box-sizing: border-box;
-  background: #fff;
+  background: var(--sc-panel);
   color: var(--sc-text);
   box-shadow: none;
 }
@@ -45,8 +90,14 @@ body, .theme-body {
   outline: 2px solid rgba(79, 93, 240, 0.2);
 }
 /* Provider buttons: same width, fixed height, icon + single-line label (Fluent "medium" control, 4px radius). */
-.theme-form-row > a, .dex-btn-wrap { display: block; margin: 0 0 8px; text-decoration: none; }
-.dex-btn, .theme-btn-provider {
+.theme-form-row > a,
+.dex-btn-wrap {
+  display: block;
+  margin: 0 0 8px;
+  text-decoration: none;
+}
+.dex-btn,
+.theme-btn-provider {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -57,7 +108,7 @@ body, .theme-body {
   min-height: 40px;
   padding: 0 12px;
   margin: 0;
-  background: #fff;
+  background: var(--sc-panel);
   color: var(--sc-text);
   border: 1px solid var(--sc-border);
   border-radius: 4px;
@@ -67,7 +118,10 @@ body, .theme-body {
   font-weight: 600;
   cursor: pointer;
 }
-.dex-btn:hover, .theme-btn-provider:hover { background: var(--sc-bg); }
+.dex-btn:hover,
+.theme-btn-provider:hover {
+  background: var(--sc-panel-hover);
+}
 .dex-btn-icon {
   float: none;
   flex: 0 0 auto;
@@ -93,15 +147,42 @@ body, .theme-body {
   border: 1px solid var(--sc-brand);
   color: #fff;
   height: 36px;
+  justify-content: center;
+  margin-top: 8px;
   font-weight: 600;
   border-radius: 4px;
   box-shadow: none;
 }
-.theme-btn--primary:hover { background: var(--sc-brand-hover); border-color: var(--sc-brand-hover); }
-.theme-link, a { color: var(--sc-brand); }
-.theme-error-message, .dex-error-box { border-radius: 8px; }
+.theme-btn--primary:hover {
+  background: var(--sc-brand-hover);
+  border-color: var(--sc-brand-hover);
+}
+.theme-link,
+a {
+  color: var(--sc-brand);
+}
+.theme-error-message,
+.dex-error-box {
+  border-radius: 8px;
+}
+/* Dark: the UI's choice arrives as data-theme (theme.js reads the sc-theme cookie the web app sets); without a choice, follow the OS. */
+:root[data-theme='dark'] {
+  --sc-text: #e8eaf6;
+  --sc-muted: #9aa0ba;
+  --sc-border: #2a2f45;
+  --sc-bg: #0e1120;
+  --sc-panel: #151932;
+  --sc-panel-hover: #1c2140;
+  color-scheme: dark;
+}
 @media (prefers-color-scheme: dark) {
-  :root { --sc-text: #e8eaf6; --sc-muted: #9aa0ba; --sc-border: #2a2f45; --sc-bg: #0e1120; }
-  .theme-panel, .theme-form-input, .theme-btn-provider { background: #151932; }
-  .theme-btn-provider:hover { background: #1c2140; }
+  :root:not([data-theme]) {
+    --sc-text: #e8eaf6;
+    --sc-muted: #9aa0ba;
+    --sc-border: #2a2f45;
+    --sc-bg: #0e1120;
+    --sc-panel: #151932;
+    --sc-panel-hover: #1c2140;
+    color-scheme: dark;
+  }
 }
