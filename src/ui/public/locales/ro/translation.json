@@ -99,7 +99,7 @@
         },
         "two": {
           "title": "Alege un model și un pool",
-          "body": "Adaugă un model de pe Hugging Face sau încarcă un fișier .litertlm, apoi atribuie-l unui pool. Fiecare dispozitiv din pool îl descarcă și îl servește."
+          "body": "Adaugă un model LiteRT-LM printr-un link sau încarcă fișierul lui .litertlm, apoi atribuie-l unui pool. Fiecare dispozitiv din pool îl descarcă și îl servește."
         },
         "three": {
           "title": "Apelează API-ul",
@@ -209,7 +209,7 @@
         "title": "Aplicația ta",
         "body": "Orice client OpenAI sau un simplu apel HTTP, autentificat cu o cheie API."
       },
-      "leg1": "HTTPS + SSE",
+      "leg1": "HTTPS",
       "leg1Sub": "inițiat de client, per cerere",
       "gateway": {
         "title": "Gateway",
@@ -225,7 +225,7 @@
       "leg2Sub": "inițiat de dispozitiv, de lungă durată",
       "node": {
         "title": "Dispozitivul tău",
-        "body": "Rulează modelul pe dispozitiv și trimite tokenii înapoi pe singura lui conexiune."
+        "body": "Rulează modele LiteRT-LM pe dispozitiv și trimite tokenii înapoi pe singura lui conexiune."
       }
     },
     "principles": {
@@ -278,7 +278,7 @@
         },
         "web": {
           "title": "Nod web",
-          "body": "Nimic de instalat: o filă de browser servește cât timp rămâne deschisă."
+          "body": "Nimic de instalat: o filă de browser servește cu WebGPU cât timp rămâne deschisă."
         }
       }
     },

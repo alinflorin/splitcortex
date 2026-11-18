@@ -99,7 +99,7 @@
         },
         "two": {
           "title": "Pick a model and a pool",
-          "body": "Add a model from Hugging Face or upload a .litertlm file, then assign it to a pool. Every device in the pool downloads and serves it."
+          "body": "Add a LiteRT-LM model by link or upload its .litertlm file, then assign it to a pool. Every device in the pool downloads and serves it."
         },
         "three": {
           "title": "Call the API",
@@ -209,7 +209,7 @@
         "title": "Your application",
         "body": "Any OpenAI client or plain HTTP call, authenticated with an API key."
       },
-      "leg1": "HTTPS + SSE",
+      "leg1": "HTTPS",
       "leg1Sub": "client-initiated, per request",
       "gateway": {
         "title": "Gateway",
@@ -225,7 +225,7 @@
       "leg2Sub": "device-initiated, long-lived",
       "node": {
         "title": "Your device",
-        "body": "Runs the model on the device and streams tokens back over its single connection."
+        "body": "Runs LiteRT-LM models on the device and streams tokens back over its single connection."
       }
     },
     "principles": {
@@ -278,7 +278,7 @@
         },
         "web": {
           "title": "Web node",
-          "body": "Nothing to install: a browser tab serves for as long as it stays open."
+          "body": "Nothing to install: a browser tab serves with WebGPU for as long as it stays open."
         }
       }
     },
