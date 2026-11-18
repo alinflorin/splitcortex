@@ -419,7 +419,7 @@ rateLimit:
   node:
     average: 10
     period: 1s
-    burst: 100
+    burst: 500
 
 # Dev-only helpers. Keep disabled in stg/prd (set in values-stg.yaml / values-prd.yaml).
 dev:
