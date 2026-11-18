@@ -19,7 +19,6 @@ import {
   BRAND_FROM,
   BRAND_TO,
   CardGrid,
-  Chips,
   CtaBand,
   FeatureCard,
   GradientText,
@@ -304,14 +303,6 @@ export function About() {
             />
           ))}
         </CardGrid>
-      </Section>
-
-      <Section
-        eyebrow={t('about.stack.eyebrow')}
-        title={t('about.stack.title')}
-        subtitle={t('about.stack.subtitle')}
-      >
-        <Chips items={list('about.stack.items')} />
       </Section>
 
       <CtaBand title={t('about.cta.title')} body={t('about.cta.body')}>

@@ -189,8 +189,8 @@
         "label": "OpenAI-format API"
       },
       "engine": {
-        "value": "LiteRT",
-        "label": "on-device engine"
+        "value": "Local",
+        "label": "inference, on your hardware"
       }
     },
     "story": {
@@ -213,7 +213,7 @@
       "leg1Sub": "client-initiated, per request",
       "gateway": {
         "title": "Gateway",
-        "body": "A Rust service at the edge that handles every request in four steps.",
+        "body": "Handles every request in four steps.",
         "steps": [
           "Authenticate the API key",
           "Check the limits",
@@ -221,11 +221,11 @@
           "Meter tokens in and out"
         ]
       },
-      "leg2": "wss + protobuf",
+      "leg2": "Secure WebSocket",
       "leg2Sub": "device-initiated, long-lived",
       "node": {
         "title": "Your device",
-        "body": "Runs the model with LiteRT-LM and streams tokens back over its single connection."
+        "body": "Runs the model on the device and streams tokens back over its single connection."
       }
     },
     "principles": {
@@ -278,25 +278,9 @@
         },
         "web": {
           "title": "Web node",
-          "body": "Nothing to install: a browser tab serves with WebGPU for as long as it stays open."
+          "body": "Nothing to install: a browser tab serves for as long as it stays open."
         }
       }
-    },
-    "stack": {
-      "eyebrow": "Technology",
-      "title": "The stack",
-      "subtitle": "Chosen for a small, predictable footprint.",
-      "items": [
-        "Rust gateway",
-        "TypeScript control plane",
-        "LiteRT-LM engine",
-        "Protobuf over wss",
-        "PostgreSQL",
-        "Dex (OIDC)",
-        "React and Fluent UI",
-        "React Native and Expo",
-        "Tauri 2"
-      ]
     },
     "cta": {
       "title": "See it for yourself",

@@ -189,8 +189,8 @@
         "label": "API în format OpenAI"
       },
       "engine": {
-        "value": "LiteRT",
-        "label": "motor pe dispozitiv"
+        "value": "Local",
+        "label": "inferență, pe hardware-ul tău"
       }
     },
     "story": {
@@ -213,7 +213,7 @@
       "leg1Sub": "inițiat de client, per cerere",
       "gateway": {
         "title": "Gateway",
-        "body": "Un serviciu în Rust, la marginea rețelei, care procesează fiecare cerere în patru pași.",
+        "body": "Procesează fiecare cerere în patru pași.",
         "steps": [
           "Autentifică cheia API",
           "Verifică limitele",
@@ -221,11 +221,11 @@
           "Măsoară tokenii de intrare și ieșire"
         ]
       },
-      "leg2": "wss + protobuf",
+      "leg2": "WebSocket securizat",
       "leg2Sub": "inițiat de dispozitiv, de lungă durată",
       "node": {
         "title": "Dispozitivul tău",
-        "body": "Rulează modelul cu LiteRT-LM și trimite tokenii înapoi pe singura lui conexiune."
+        "body": "Rulează modelul pe dispozitiv și trimite tokenii înapoi pe singura lui conexiune."
       }
     },
     "principles": {
@@ -278,25 +278,9 @@
         },
         "web": {
           "title": "Nod web",
-          "body": "Nimic de instalat: o filă de browser servește cu WebGPU cât timp rămâne deschisă."
+          "body": "Nimic de instalat: o filă de browser servește cât timp rămâne deschisă."
         }
       }
-    },
-    "stack": {
-      "eyebrow": "Tehnologie",
-      "title": "Stack-ul",
-      "subtitle": "Ales pentru un consum mic și previzibil.",
-      "items": [
-        "Gateway în Rust",
-        "Plan de control în TypeScript",
-        "Motor LiteRT-LM",
-        "Protobuf peste wss",
-        "PostgreSQL",
-        "Dex (OIDC)",
-        "React și Fluent UI",
-        "React Native și Expo",
-        "Tauri 2"
-      ]
     },
     "cta": {
       "title": "Vezi cu ochii tăi",
