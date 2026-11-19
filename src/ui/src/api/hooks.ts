@@ -97,6 +97,12 @@ export function useUpdateOrganisation(orgId: string) {
   });
 }
 
+/** Deletes the signed-in account (memberships only; Dex is untouched). The caller signs out afterwards. */
+export function useDeleteAccount() {
+  const req = useRequest();
+  return useMutation({ mutationFn: () => req('DELETE', '/me', null) });
+}
+
 export function useDeleteOrganisation(orgId: string) {
   const req = useRequest();
   const qc = useQueryClient();

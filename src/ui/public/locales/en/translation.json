@@ -689,5 +689,13 @@
       "noMic": "The microphone is not available or access was denied.",
       "modalityMissing": "No node of this model reports {{kind}} input right now; the request may be refused."
     }
+  },
+  "userSettings": {
+    "title": "Account settings",
+    "subtitle": "Your account on SplitCortex.",
+    "delete": "Delete account",
+    "deleteTitle": "Delete your account?",
+    "deleteMessage": "This removes you from all your organisations and cannot be undone. Your sign-in itself is not affected: you can sign in again and start fresh. You cannot delete your account while you are the only owner of an organisation.",
+    "deleted": "Account deleted"
   }
 }

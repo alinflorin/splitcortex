@@ -110,7 +110,7 @@ export async function buildApp({
 
   await app.register(
     async (api) => {
-      await api.register(meRoutes);
+      await api.register(meRoutes, { db });
       await api.register(organisationRoutes, { db });
       await api.register(memberRoutes, { db });
       await api.register(poolRoutes, { db });

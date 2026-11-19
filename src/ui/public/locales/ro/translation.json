@@ -689,5 +689,13 @@
       "noMic": "Microfonul nu este disponibil sau accesul a fost refuzat.",
       "modalityMissing": "Niciun nod al acestui model nu raportează momentan suport pentru {{kind}}; cererea poate fi refuzată."
     }
+  },
+  "userSettings": {
+    "title": "Setări cont",
+    "subtitle": "Contul tău în SplitCortex.",
+    "delete": "Șterge contul",
+    "deleteTitle": "Ștergi contul?",
+    "deleteMessage": "Ești eliminat din toate organizațiile și acțiunea nu poate fi anulată. Autentificarea în sine nu este afectată: te poți autentifica din nou și o iei de la zero. Nu poți șterge contul cât timp ești singurul proprietar al unei organizații.",
+    "deleted": "Cont șters"
   }
 }

@@ -13,6 +13,8 @@ export const en = {
   'errors.alreadyMember': 'Already a member',
   'errors.memberNotFound': 'Member not found',
   'errors.needsOwner': 'An organisation needs at least one owner',
+  'errors.accountOwnsOrgs':
+    'You are the only owner of: {{orgs}}. Transfer ownership or delete these organisations first',
   'errors.poolNameTaken': 'A pool with this name already exists',
   'errors.poolNotFound': 'Pool not found',
   'errors.expiryInPast': 'The expiry must be in the future',
@@ -55,6 +57,8 @@ export const ro: Record<MessageKey, string> = {
   'errors.alreadyMember': 'Este deja membru',
   'errors.memberNotFound': 'Membrul nu a fost găsit',
   'errors.needsOwner': 'O organizație are nevoie de cel puțin un proprietar',
+  'errors.accountOwnsOrgs':
+    'Ești singurul proprietar al: {{orgs}}. Transferă proprietatea sau șterge mai întâi aceste organizații',
   'errors.poolNameTaken': 'Există deja un pool cu acest nume',
   'errors.poolNotFound': 'Pool-ul nu a fost găsit',
   'errors.expiryInPast': 'Data de expirare trebuie să fie în viitor',
