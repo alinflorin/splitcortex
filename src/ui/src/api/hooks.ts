@@ -1,8 +1,8 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { z } from 'zod';
-import { putPart, request } from './client';
+import { useFreshToken } from '../auth/useFreshToken';
+import { ApiError, putPart, request } from './client';
 import type { Method } from './client';
 import {
   apiKeyRequest,
@@ -34,14 +34,23 @@ import type { PutPart } from '../lib/uploadParts';
  * wait for it (the sidebar mounts before the OIDC redirect has completed, and a tokenless 401 would be cached).
  */
 function useRequest() {
-  const token = useAuth().user?.access_token;
-  const req = <T>(
+  const hasToken = Boolean(useAuth().user?.access_token);
+  const getToken = useFreshToken();
+  const req = async <T>(
     method: Method,
     path: string,
     schema: Parameters<typeof request<T>>[3],
     body?: unknown,
-  ) => request<T>(token, method, path, schema, body);
-  return Object.assign(req, { ready: Boolean(token) });
+  ) => {
+    try {
+      return await request<T>(await getToken(), method, path, schema, body);
+    } catch (err) {
+      // The token can still be rejected (clock skew, session revoked): renew once and replay.
+      if (!(err instanceof ApiError) || err.status !== 401) throw err;
+      return request<T>(await getToken(true), method, path, schema, body);
+    }
+  };
+  return Object.assign(req, { ready: hasToken });
 }
 
 const keys = {
@@ -401,15 +410,11 @@ export function useStartModelUpload(orgId: string) {
 
 /** Uploads one part of a browser upload; reads the freshest token for every part (uploads outlive token lifetimes). */
 export function usePartUploader(orgId: string) {
-  const token = useAuth().user?.access_token;
-  const tokenRef = useRef(token);
-  useEffect(() => {
-    tokenRef.current = token;
-  }, [token]);
+  const getToken = useFreshToken();
   return (modelId: string): PutPart =>
-    (partNumber, body, onProgress, signal) =>
+    async (partNumber, body, onProgress, signal) =>
       putPart(
-        tokenRef.current,
+        await getToken(),
         `/organisations/${orgId}/models/${modelId}/parts/${partNumber}`,
         body,
         onProgress,

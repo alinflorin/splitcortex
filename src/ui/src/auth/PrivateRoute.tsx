@@ -11,14 +11,34 @@ export function PrivateRoute() {
   const { t } = useTranslation();
   const redirecting = useRef(false);
 
-  const { isLoading, isAuthenticated, activeNavigator, error, signinRedirect } = auth;
+  const { isLoading, isAuthenticated, activeNavigator, error, signinRedirect, signinSilent, user } =
+    auth;
+  const hasRefreshToken = !!user?.refresh_token;
   const returnTo = location.pathname + location.search;
 
   useEffect(() => {
     if (isLoading || isAuthenticated || activeNavigator || error || redirecting.current) return;
     redirecting.current = true;
-    void signinRedirect({ state: { returnTo } });
-  }, [isLoading, isAuthenticated, activeNavigator, error, signinRedirect, returnTo]);
+    const toDex = () => void signinRedirect({ state: { returnTo } });
+    if (!hasRefreshToken) {
+      toDex();
+      return;
+    }
+    // The stored access token expired while no tab was open (automaticSilentRenew only runs while the page is
+    // loaded): trade the refresh token for a new one first, and only send the user to Dex if that fails.
+    signinSilent().then((renewed) => {
+      if (!renewed) toDex();
+    }, toDex);
+  }, [
+    isLoading,
+    isAuthenticated,
+    activeNavigator,
+    error,
+    signinRedirect,
+    signinSilent,
+    hasRefreshToken,
+    returnTo,
+  ]);
 
   if (isAuthenticated) return <Outlet />;
 

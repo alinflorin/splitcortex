@@ -9,6 +9,7 @@ import { PrivateRoute } from './PrivateRoute';
 vi.mock('react-oidc-context', () => ({ useAuth: vi.fn() }));
 
 const signinRedirect = vi.fn();
+const signinSilent = vi.fn();
 
 function mockAuth(state: Record<string, unknown>) {
   vi.mocked(useAuth).mockReturnValue({
@@ -17,6 +18,7 @@ function mockAuth(state: Record<string, unknown>) {
     activeNavigator: undefined,
     error: undefined,
     signinRedirect,
+    signinSilent,
     ...state,
   } as unknown as ReturnType<typeof useAuth>);
 }
@@ -32,6 +34,7 @@ const routes = (
 describe('PrivateRoute', () => {
   beforeEach(() => {
     signinRedirect.mockReset();
+    signinSilent.mockReset();
     vi.mocked(useAuth).mockReset();
   });
 
@@ -49,6 +52,22 @@ describe('PrivateRoute', () => {
     expect(signinRedirect).toHaveBeenCalledWith({ state: { returnTo: '/settings?tab=1' } });
     expect(screen.getByText(en.auth.redirecting)).toBeInTheDocument();
     expect(screen.queryByText('secret')).toBeNull();
+  });
+
+  it('renews an expired session with the refresh token instead of going to Dex', async () => {
+    signinSilent.mockResolvedValue({ access_token: 'new' });
+    mockAuth({ user: { refresh_token: 'r', expired: true } });
+    await renderApp(routes, '/settings');
+    await waitFor(() => expect(signinSilent).toHaveBeenCalledTimes(1));
+    expect(signinRedirect).not.toHaveBeenCalled();
+  });
+
+  it('falls back to Dex when the refresh is rejected', async () => {
+    signinSilent.mockRejectedValue({ error: 'invalid_grant' });
+    mockAuth({ user: { refresh_token: 'r', expired: true } });
+    await renderApp(routes, '/settings');
+    await waitFor(() => expect(signinRedirect).toHaveBeenCalledTimes(1));
+    expect(signinSilent).toHaveBeenCalledTimes(1);
   });
 
   it('waits while loading', async () => {
