@@ -9,6 +9,7 @@ import {
   PhoneLaptop24Regular,
   PlugConnected24Regular,
 } from '@fluentui/react-icons';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
@@ -118,6 +119,12 @@ export function Home() {
   const navigate = useNavigate();
   const signedIn = !!user;
   const signIn = () => void auth.signinRedirect();
+
+  // the page renders after load, so the browser cannot scroll to `/#run` itself
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (id) document.getElementById(id)?.scrollIntoView();
+  }, []);
 
   const features = [
     { key: 'pools', icon: <BrainCircuit24Regular /> },
@@ -250,6 +257,7 @@ export function Home() {
       </Section>
 
       <Section
+        id="run"
         eyebrow={t('home.run.eyebrow')}
         title={t('home.run.title')}
         subtitle={t('home.run.subtitle')}

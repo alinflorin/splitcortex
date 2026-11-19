@@ -369,6 +369,7 @@
     "details": "Details",
     "devices": "Devices",
     "devicesEmpty": "No devices in this pool yet.",
+    "getApp": "Need the app? Get it on the home page",
     "serving": {
       "label": "Serving type",
       "replicated": "Replicated",

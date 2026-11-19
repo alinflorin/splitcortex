@@ -3,12 +3,13 @@ import {
   Body1,
   Button,
   Dropdown,
+  Link,
   Option,
   Text,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
-import { Add20Regular, Dismiss20Regular } from '@fluentui/react-icons';
+import { Add20Regular, Dismiss20Regular, Open16Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -19,7 +20,6 @@ import {
   useUnassignModel,
 } from '../../api/hooks';
 import type { Pool } from '../../api/schemas';
-import { AppDownloads } from '../../components/AppDownloads';
 import { QueryBoundary } from '../../components/QueryBoundary';
 import { CardList, ItemCard } from '../../components/cards/cards';
 import { useToast } from '../../components/feedback/useToast';
@@ -38,7 +38,12 @@ const useStyles = makeStyles({
     '@media (max-width: 599px)': { flexDirection: 'column', alignItems: 'stretch' },
   },
   dropdown: { flexGrow: 1, minWidth: '220px' },
-  addRow: { display: 'flex', flexWrap: 'wrap', gap: tokens.spacingHorizontalS },
+  addRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalL,
+  },
 });
 
 /** The devices of a pool as cards; each opens the node view. */
@@ -51,15 +56,20 @@ export function PoolNodes({ pool, admin = false }: { pool: Pool; admin?: boolean
 
   return (
     <>
-      {admin && (
-        <div className={styles.addRow}>
-          <Button icon={<Add20Regular />} onClick={() => setEnrolling(true)}>
-            {t('enroll.add')}
-          </Button>
-          <EnrollDeviceDialog pool={pool} open={enrolling} onClose={() => setEnrolling(false)} />
-        </div>
-      )}
-      <AppDownloads />
+      <div className={styles.addRow}>
+        {admin && (
+          <>
+            <Button appearance="primary" icon={<Add20Regular />} onClick={() => setEnrolling(true)}>
+              {t('enroll.add')}
+            </Button>
+            <EnrollDeviceDialog pool={pool} open={enrolling} onClose={() => setEnrolling(false)} />
+          </>
+        )}
+        {/* the apps and their install steps live on the home page; a new tab keeps this page where it is */}
+        <Link href="/#run" target="_blank" rel="noopener noreferrer" inline>
+          {t('pools.getApp')} <Open16Regular />
+        </Link>
+      </div>
       <QueryBoundary query={query}>
         {(nodes) =>
           nodes.length === 0 ? (

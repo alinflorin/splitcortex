@@ -369,6 +369,7 @@
     "details": "Detalii",
     "devices": "Dispozitive",
     "devicesEmpty": "Încă nu există dispozitive în acest pool.",
+    "getApp": "Ai nevoie de aplicație? O găsești pe pagina principală",
     "serving": {
       "label": "Tip de servire",
       "replicated": "Replicat",
