@@ -15,7 +15,7 @@ dependencies:
     repository: https://charts.jetstack.io
     condition: cert-manager.enabled
   - name: postgres
-    version: 1.6.8
+    version: 1.6.9
     repository: https://groundhog2k.github.io/helm-charts/
     condition: postgres.enabled
   - name: dex
