@@ -1,0 +1,7 @@
+# generated protobuf copies
+**/protocol/gen/
+# lockfiles
+pnpm-lock.yaml
+Cargo.lock
+# Helm templates are not valid YAML
+chart/templates/

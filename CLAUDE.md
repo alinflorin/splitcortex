@@ -86,6 +86,7 @@ CI/CD, release streams, deploy: [docs/commands-and-ci.md](docs/commands-and-ci.m
 - `src/ui`, `src/web-node`, `src/desktop-node`, `src/control-plane`, `src/mobile-node` are each their own pnpm project: `pnpm install`, `pnpm typecheck`, `pnpm test`, `pnpm format` (run before committing; Prettier config at repo root). UI/web node/control plane: `pnpm dev`/`pnpm build`; control plane also `pnpm db:generate`/`pnpm db:migrate`; mobile: `pnpm exec expo export --platform android`, `expo run:android`.
 - `e2e`: `pnpm install`, `pnpm dev [playwright args]` (login from git-ignored `e2e/.env` or asked; target = `E2E_APP_URL`, default local), `pnpm test[:platform|:web-node|:cli|:desktop|:mobile]` (needs `E2E_EMAIL`/`E2E_PASSWORD` in the environment or `e2e/.env`), `pnpm typecheck`, `pnpm format`.
 - `src/cli-node`: `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo build --release` (`python3 scripts/fetch-litert.py` first).
+- **Knowledge graph (graphify, code only, `graphify-out/` git-ignored, excludes in `.graphifyignore`)**: after changing code, **run `graphify update .`** (AST only, no API cost) so the graph stays current; query it with `graphify query|path|explain` before grepping. Full rebuild: `graphify extract . --code-only --cargo`, then `graphify cluster-only . --no-label`.
 - Releases (tags are created by `create-tags.yaml` from `VERSIONS.txt`): server tags `vX.Y.Z` (lockstep chart/ui/control-plane/gateway; same build promoted stg → prd), `mobile-node-v…`, `desktop-node-v…`, `cli-node-v…`. Versions = tag without `v`. **Push release tags one at a time** (separate `git push origin <tag>`, seconds apart): GitHub fires no tag workflows when more than 3 tags arrive in one push.
 - **"Release everything"** (when the user says this): (1) make sure `main` is pushed and clean; (2) find the next **common** version: the highest `X.Y.Z` among `v*`, `mobile-node-v*`, `desktop-node-v*`, `cli-node-v*` plus one patch (ask if a minor/major bump seems intended); (3) write the four tag names with that same version (`vX.Y.Z`, `mobile-node-vX.Y.Z`, `desktop-node-vX.Y.Z`, `cli-node-vX.Y.Z`) into `VERSIONS.txt` and push to `main`: `create-tags.yaml` creates the missing tags one by one with the `GH_TOKEN` secret (tags cannot be pushed from cloud sessions; by hand, push them **one by one** instead); (4) then check the release runs.
 
@@ -102,3 +103,14 @@ CI/CD, release streams, deploy: [docs/commands-and-ci.md](docs/commands-and-ci.m
 - **Keep CLAUDE.md and README.md up to date** in the same change as any decision, architecture, security, stack, command or layout change (CLAUDE.md for rules, README for product overview).
 - Small focused commits; do not commit unless asked.
 - Open research (multi-device sharding) belongs in the README roadmap (details in [docs/sharding-research.md](docs/sharding-research.md)), not as speculative code. Direction: only an opt-in **local cluster mode** (same-LAN nodes as one logical node behind `NodeChannel`/placement), never across the internet; stay on Google's runtime (custom pipeline on LiteRT behind the engine interface, no llama.cpp). Not built; see README roadmap.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. When the answer is under a Markdown heading, `graphify section "<heading>"` prints that section's text, so the .md need not be opened. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
