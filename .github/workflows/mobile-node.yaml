@@ -43,8 +43,8 @@ jobs:
       # Bundles the JS for Android: catches import and Metro errors without a device.
       - run: pnpm exec expo export --platform android --output-dir "$RUNNER_TEMP/export"
 
+  # Runs in parallel with verify (the workflow still fails if either fails; github-release waits for the whole workflow).
   android:
-    needs: verify
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -116,13 +116,13 @@ jobs:
           done
           echo "::error::could not install NDK $NDK_VERSION"
           exit 1
-      # Only releases build all four ABIs; every other run builds x86_64 (what the e2e emulator and local emulators run) alone, which cuts the
-      # native compile and link work to a quarter; the CI debug APK is therefore emulator-only.
+      # LiteRT-LM only ships arm64-v8a and x86_64 (the patched library filters to those), so armeabi-v7a and x86 could never run the engine:
+      # releases build just those two (phones + the e2e emulator); every other run builds x86_64 alone (the CI debug APK is emulator-only).
       - name: Build APK
         working-directory: src/mobile-node/android
         run: |
           if [ "$GITHUB_REF_TYPE" = tag ]; then
-            ./gradlew assembleRelease --build-cache
+            ./gradlew assembleRelease --build-cache -PreactNativeArchitectures=arm64-v8a,x86_64
           else
             ./gradlew assembleDebug --build-cache -PreactNativeArchitectures=x86_64
           fi
