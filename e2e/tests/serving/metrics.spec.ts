@@ -104,10 +104,16 @@ test('the web app charts the traffic of the pool and the node', async ({ page })
   await signIn(page);
   await page.goto(`/organisations/${ws.org.id}/metrics`);
   await expect(page.getByText('Requests', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('No data in this period.')).toHaveCount(0);
+  // Some charts are empty by design (refusals are all zero, a CI runner has no battery or temperature), so only
+  // the charts the test's traffic feeds must have data.
+  for (const title of ['Requests', 'Tokens', 'Request duration']) {
+    await expect(
+      page.getByRole('img', { name: title, exact: true }).getByText('No data in this period.'),
+    ).toHaveCount(0);
+  }
   const [n] = await ws.nodes();
   await page.goto(`/organisations/${ws.org.id}/pools/${ws.pool.id}`);
   await expect(page.getByText('Metrics').first()).toBeVisible();
-  await page.goto(`/organisations/${ws.org.id}/pools/${ws.pool.id}/nodes/${n!.id}`);
+  await page.goto(`/organisations/${ws.org.id}/nodes/${n!.id}`);
   await expect(page.getByText('CPU', { exact: true }).first()).toBeVisible();
 });
