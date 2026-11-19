@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 
-use rand::Rng;
+use rand::RngExt;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -247,19 +247,19 @@ impl Registry {
         if cands.is_empty() {
             return None;
         }
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let chosen = match balancing {
             "round_robin" => {
                 let mut sorted = cands.clone();
                 sorted.sort_by_key(|c| c.node_id);
                 sorted[self.rr.fetch_add(1, Ordering::Relaxed) % sorted.len()]
             }
-            "random" => cands[rng.gen_range(0..cands.len())],
+            "random" => cands[rng.random_range(0..cands.len())],
             "least_in_flight" => *cands.iter().min_by_key(|c| c.load()).unwrap(),
             // weighted_p2c: two random choices, keep the one with the lower load per unit of speed.
             _ => {
-                let a = cands[rng.gen_range(0..cands.len())];
-                let b = cands[rng.gen_range(0..cands.len())];
+                let a = cands[rng.random_range(0..cands.len())];
+                let b = cands[rng.random_range(0..cands.len())];
                 if score(a) <= score(b) {
                     a
                 } else {

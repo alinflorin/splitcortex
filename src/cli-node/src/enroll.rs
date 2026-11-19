@@ -10,7 +10,7 @@ use crate::handshake::node_authorization;
 use crate::storage::Dirs;
 use anyhow::{Context, Result};
 use ed25519_dalek::SigningKey;
-use rand::RngCore;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -82,7 +82,7 @@ pub fn get_or_create_identity(dirs: &Dirs) -> Result<SigningKey> {
         return Ok(SigningKey::from_bytes(&seed));
     }
     let mut seed = [0u8; 32];
-    rand::thread_rng().fill_bytes(&mut seed);
+    rand::rng().fill_bytes(&mut seed);
     dirs.secret_set(KEY, &hex_encode(&seed))?;
     Ok(SigningKey::from_bytes(&seed))
 }
@@ -192,7 +192,7 @@ pub async fn enroll(
     let http = http_client().map_err(|e| EnrollError::Server(e.to_string()))?;
 
     let mut sid = [0u8; 16];
-    rand::thread_rng().fill_bytes(&mut sid);
+    rand::rng().fill_bytes(&mut sid);
     let pake = start_pake(&secret, &sid);
 
     let started = post(

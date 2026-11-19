@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
     // one-off identity Job uses `--out` and turns the file into two Secrets (see docs/gateway.md).
     let mut args = std::env::args().skip(1);
     if args.next().as_deref() == Some("keygen") {
-        let key = SigningKey::generate(&mut rand::rngs::OsRng);
+        let key = SigningKey::generate(&mut rand::rng());
         let text = format!(
             "GATEWAY_PRIVATE_KEY={}\nGATEWAY_PUBLIC_KEY={}\n",
             B64.encode(key.to_bytes()),

@@ -19,18 +19,20 @@ pub struct DeviceInfo {
 
 #[tauri::command]
 pub fn device_info(app: tauri::AppHandle) -> DeviceInfo {
-    let mut sys = System::new();
-    sys.refresh_memory();
-    sys.refresh_cpu_list(sysinfo::CpuRefreshKind::nothing());
+    let sys = System::new().ok().map(|mut sys| {
+        sys.refresh_memory();
+        sys.refresh_cpu_list(sysinfo::CpuRefreshKind::nothing());
+        sys
+    });
     DeviceInfo {
-        name: System::host_name().unwrap_or_else(|| "Desktop node".into()),
+        name: System::host_name().unwrap_or_else(|_| "Desktop node".into()),
         os: System::name().unwrap_or_default(),
         os_version: System::os_version().unwrap_or_default(),
         model: format!("{} {}", System::distribution_id(), std::env::consts::ARCH)
             .trim()
             .to_string(),
-        cpu_cores: sys.cpus().len() as u32,
-        memory_total_mb: sys.total_memory() / (1024 * 1024),
+        cpu_cores: sys.as_ref().map_or(0, |s| s.cpus().len() as u32),
+        memory_total_mb: sys.as_ref().map_or(0, |s| s.total_memory() / (1024 * 1024)),
         app_version: app.package_info().version.to_string(),
     }
 }
@@ -46,10 +48,10 @@ pub struct Telemetry {
     temperature_c: f32,
 }
 
-pub struct Sampler(Mutex<System>);
+pub struct Sampler(Mutex<Option<System>>);
 impl Default for Sampler {
     fn default() -> Self {
-        Sampler(Mutex::new(System::new()))
+        Sampler(Mutex::new(System::new().ok()))
     }
 }
 
@@ -59,12 +61,15 @@ impl Default for Sampler {
 pub fn telemetry(sampler: State<'_, Sampler>) -> Telemetry {
     let mut sys = sampler.0.lock().unwrap_or_else(|e| e.into_inner());
     let pid = Pid::from_u32(std::process::id());
-    sys.refresh_processes(ProcessesToUpdate::Some(&[pid]), true);
+    if let Some(sys) = sys.as_mut() {
+        sys.refresh_processes(ProcessesToUpdate::Some(&[pid]), true);
+    }
     let cores = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(1) as f32;
     let (cpu, mem) = sys
-        .process(pid)
+        .as_ref()
+        .and_then(|s| s.process(pid))
         .map(|p| (p.cpu_usage() / cores, p.memory() as f64 / (1024.0 * 1024.0)))
         .unwrap_or((-1.0, 0.0));
     Telemetry {

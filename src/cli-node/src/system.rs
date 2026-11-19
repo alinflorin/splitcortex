@@ -7,15 +7,17 @@ use sysinfo::{Pid, ProcessesToUpdate, System};
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn device_info() -> DeviceInfo {
-    let mut sys = System::new();
-    sys.refresh_memory();
-    sys.refresh_cpu_list(sysinfo::CpuRefreshKind::nothing());
+    let sys = System::new().ok().map(|mut sys| {
+        sys.refresh_memory();
+        sys.refresh_cpu_list(sysinfo::CpuRefreshKind::nothing());
+        sys
+    });
     let join = |a: Option<String>, b: Option<String>| {
         let s = [a, b].into_iter().flatten().collect::<Vec<_>>().join(" ");
         (!s.is_empty()).then_some(s)
     };
     DeviceInfo {
-        name: System::host_name().unwrap_or_else(|| "CLI node".into()),
+        name: System::host_name().unwrap_or_else(|_| "CLI node".into()),
         platform: "cli".into(),
         device_model: Some(
             format!("{} {}", System::distribution_id(), std::env::consts::ARCH)
@@ -23,10 +25,16 @@ pub fn device_info() -> DeviceInfo {
                 .to_string(),
         )
         .filter(|s| !s.is_empty()),
-        os_version: join(System::name(), System::os_version()),
+        os_version: join(System::name().ok(), System::os_version().ok()),
         app_version: APP_VERSION.into(),
-        cpu_cores: Some(sys.cpus().len() as u32).filter(|n| *n > 0),
-        memory_total_mb: Some(sys.total_memory() / (1024 * 1024)).filter(|n| *n > 0),
+        cpu_cores: sys
+            .as_ref()
+            .map(|s| s.cpus().len() as u32)
+            .filter(|n| *n > 0),
+        memory_total_mb: sys
+            .as_ref()
+            .map(|s| s.total_memory() / (1024 * 1024))
+            .filter(|n| *n > 0),
     }
 }
 
@@ -39,10 +47,10 @@ pub struct Telemetry {
     pub temperature_c: f64,
 }
 
-pub struct Sampler(Mutex<System>);
+pub struct Sampler(Mutex<Option<System>>);
 impl Default for Sampler {
     fn default() -> Self {
-        Sampler(Mutex::new(System::new()))
+        Sampler(Mutex::new(System::new().ok()))
     }
 }
 
@@ -52,12 +60,15 @@ impl Sampler {
     pub fn sample(&self) -> Telemetry {
         let mut sys = self.0.lock().unwrap_or_else(|e| e.into_inner());
         let pid = Pid::from_u32(std::process::id());
-        sys.refresh_processes(ProcessesToUpdate::Some(&[pid]), true);
+        if let Some(sys) = sys.as_mut() {
+            sys.refresh_processes(ProcessesToUpdate::Some(&[pid]), true);
+        }
         let cores = std::thread::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(1) as f32;
         let (cpu, mem) = sys
-            .process(pid)
+            .as_ref()
+            .and_then(|s| s.process(pid))
             .map(|p| ((p.cpu_usage() / cores) as f64, p.memory() / (1024 * 1024)))
             .unwrap_or((-1.0, 0));
         Telemetry {

@@ -453,11 +453,15 @@ fn gpu_present() -> bool {
 }
 
 pub fn caps() -> Caps {
-    let mut sys = sysinfo::System::new();
-    sys.refresh_memory();
+    let total = sysinfo::System::new()
+        .map(|mut sys| {
+            sys.refresh_memory();
+            sys.total_memory()
+        })
+        .unwrap_or(0);
     Caps {
         gpu_available: gpu_present(),
-        total_memory_mb: sys.total_memory() / (1024 * 1024),
+        total_memory_mb: total / (1024 * 1024),
     }
 }
 

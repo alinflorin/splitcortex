@@ -11,7 +11,7 @@ use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::IsIdentity;
 use ed25519_dalek::{Signer, SigningKey};
 use hkdf::Hkdf;
-use rand::RngCore;
+use rand::Rng;
 use sha2::{Digest, Sha256, Sha512};
 
 /// Crockford base32 without I, L, O, U.
@@ -111,7 +111,7 @@ pub struct Pake {
 pub fn start_pake(secret: &str, sid: &[u8]) -> Pake {
     // 48 random bytes read little-endian and reduced mod the group order (the same sampling as the JS side).
     let mut wide = [0u8; 64];
-    rand::thread_rng().fill_bytes(&mut wide[..48]);
+    rand::rng().fill_bytes(&mut wide[..48]);
     start_pake_with(secret, sid, Scalar::from_bytes_mod_order_wide(&wide))
 }
 
@@ -160,7 +160,7 @@ fn key(isk: &[u8], sid: &[u8], label: &str) -> [u8; 32] {
 /// ChaCha20-Poly1305; wire format `nonce(12) || ciphertext || tag(16)`.
 pub fn seal(isk: &[u8], sid: &[u8], label: &str, plain: &[u8]) -> Vec<u8> {
     let mut nonce = [0u8; 12];
-    rand::thread_rng().fill_bytes(&mut nonce);
+    rand::rng().fill_bytes(&mut nonce);
     let ct = ChaCha20Poly1305::new(&key(isk, sid, label).into())
         .encrypt(&Nonce::from(nonce), plain)
         .expect("encryption cannot fail");

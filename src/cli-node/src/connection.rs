@@ -8,7 +8,7 @@ use crate::proto::{self, envelope::Body};
 use ed25519_dalek::SigningKey;
 use futures_util::{SinkExt, StreamExt};
 use prost::Message as _;
-use rand::RngCore;
+use rand::Rng;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::{Notify, mpsc};
@@ -215,7 +215,7 @@ async fn session(
     let send_raw = |body: Body| Message::Binary(encode(body).into());
 
     let mut nonce = [0u8; 32];
-    rand::thread_rng().fill_bytes(&mut nonce);
+    rand::rng().fill_bytes(&mut nonce);
     sink.send(send_raw(Body::ClientHello(proto::ClientHello {
         protocol_version: PROTOCOL_VERSION,
         node_id: o.node_id.clone(),

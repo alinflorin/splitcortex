@@ -10,7 +10,7 @@ use axum::response::Response;
 use ed25519_dalek::{Signature, Signer, Verifier};
 use futures_util::{SinkExt, StreamExt};
 use prost::Message as _;
-use rand::RngCore;
+use rand::Rng;
 use serde_json::json;
 use tokio::sync::mpsc;
 use tracing::{debug, info};
@@ -101,7 +101,7 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
     // 2. ServerHello: the gateway proves its key first (the node pinned it at enrollment). Sent for any node id so an
     //    unknown id is indistinguishable from a bad signature.
     let mut server_nonce = vec![0u8; 32];
-    rand::rngs::OsRng.fill_bytes(&mut server_nonce);
+    rand::rng().fill_bytes(&mut server_nonce);
     let sig = app
         .signing_key
         .sign(&signed(GATEWAY_HELLO, &[&hello.nonce, hello.node_id.as_bytes()]));
