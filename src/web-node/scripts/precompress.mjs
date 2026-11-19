@@ -9,6 +9,9 @@ import { brotliCompressSync, constants } from 'node:zlib';
 const root = process.argv[2] ?? 'dist';
 const TYPES = new Set(['.html', '.js', '.mjs', '.css', '.json', '.svg', '.txt', '.wasm', '.xml']);
 const MIN_BYTES = 512;
+// Quality 11 is far too slow for the tens-of-MB WASM files (minutes per file in the image build); 9 is much faster and
+// only slightly larger. Everything else is small, so it keeps the best ratio.
+const quality = (path) => (extname(path) === '.wasm' ? 9 : 11);
 
 let files = 0;
 let before = 0;
@@ -24,7 +27,7 @@ const compress = (path) => {
   const input = readFileSync(path);
   const output = brotliCompressSync(input, {
     params: {
-      [constants.BROTLI_PARAM_QUALITY]: 11,
+      [constants.BROTLI_PARAM_QUALITY]: quality(path),
       [constants.BROTLI_PARAM_SIZE_HINT]: input.length,
     },
   });
