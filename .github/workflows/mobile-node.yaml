@@ -21,7 +21,9 @@ permissions:
 # verifies it and produces a debug APK artifact; mobile-node-release.yaml calls it on a mobile-node-vX.Y.Z tag, which builds a signed release APK
 # (secrets ANDROID_KEYSTORE_*) and attaches it to the GitHub release.
 jobs:
+  # Not run on release tags: the commit was already verified by the push to main.
   verify:
+    if: github.ref_type != 'tag'
     runs-on: ubuntu-latest
     defaults:
       run:
