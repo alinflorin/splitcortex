@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 anyhow = "1"
 axum = { version = "0.8", features = ["ws"] }
-base64 = "0.22"
+base64 = "0.23"
 bytes = "1"
 ed25519-dalek = { version = "2", features = ["rand_core"] }
 futures-util = "0.3"
