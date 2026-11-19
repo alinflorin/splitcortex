@@ -65,6 +65,17 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       - run: pnpm install --frozen-lockfile
+      # React Native's CMake build uses ccache automatically when it is installed (reactnative.dev/docs/build-speed),
+      # so the native C++ (RN, Hermes glue, our modules) is not recompiled when unchanged.
+      - name: Install ccache
+        run: sudo apt-get install -y --no-install-recommends ccache
+      - name: Cache ccache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/ccache
+          key: ccache-android-${{ github.ref_type == 'tag' && 'release' || 'debug' }}-${{ hashFiles('src/mobile-node/pnpm-lock.yaml') }}
+          restore-keys: ccache-android-${{ github.ref_type == 'tag' && 'release' || 'debug' }}-
+      - run: ccache --set-config=max_size=1G
       # Tags build a signed release APK whose version follows the tag; everything else a debug APK.
       - name: Set version and signing
         if: github.ref_type == 'tag'
@@ -105,9 +116,17 @@ jobs:
           done
           echo "::error::could not install NDK $NDK_VERSION"
           exit 1
+      # Only releases build all four ABIs; every other run builds x86_64 (what the e2e emulator and local emulators run) alone, which cuts the
+      # native compile and link work to a quarter; the CI debug APK is therefore emulator-only.
       - name: Build APK
         working-directory: src/mobile-node/android
-        run: ./gradlew ${{ github.ref_type == 'tag' && 'assembleRelease' || 'assembleDebug' }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            ./gradlew assembleRelease --build-cache
+          else
+            ./gradlew assembleDebug --build-cache -PreactNativeArchitectures=x86_64
+          fi
+      - run: ccache --show-stats
       # Tag builds are named after the version (splitcortex-mobile-node-vX.Y.Z.apk), others after the commit.
       - name: Name the APK
         run: |
