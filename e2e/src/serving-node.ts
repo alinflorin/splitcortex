@@ -13,7 +13,7 @@ import { ensureModelFile } from './model.ts';
 
 /** The node binary (the workflow installs the newest cli-node release; locally `cargo build --release`). */
 export const bin = resolve(
-  process.env.E2E_CLI_BIN ?? '../src/cli-node/target/release/splitcortex-node',
+  process.env.E2E_CLI_BIN ?? '.cache/cli-node/splitcortex-node',
 );
 export const MODEL = 'e2e-smollm2-135m';
 export const hi = [{ role: 'user', content: 'Say hello.' }];
@@ -63,8 +63,10 @@ export async function startServingNode(): Promise<ServingNode> {
   let stderr = '';
   let serving: ChildProcess | undefined;
   const launch = () => {
-    serving = spawn(bin, ['run'], { env, stdio: ['ignore', 'ignore', 'pipe'] });
-    serving.stderr?.on('data', (d: Buffer) => (stderr = (stderr + d.toString()).slice(-4000)));
+    serving = spawn(bin, ['run'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    // The node logs to stdout (tracing's default writer) and the engine library to stderr: keep the tail of both.
+    for (const out of [serving.stdout, serving.stderr])
+      out?.on('data', (d: Buffer) => (stderr = (stderr + d.toString()).slice(-4000)));
   };
   launch();
   return {
@@ -84,7 +86,9 @@ export async function startServingNode(): Promise<ServingNode> {
         },
         240_000,
         3_000,
-      );
+      ).catch((e: Error) => {
+        throw new Error(`${e.message}\nnode log:\n${stderr}`);
+      });
     },
     async halt() {
       const p = serving;

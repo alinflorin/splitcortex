@@ -8,7 +8,7 @@ import { createWorkspace, type Workspace } from '../../src/api.ts';
 import { appUrl } from '../../src/env.ts';
 
 // A pool that requires approval: the device enrolls but stays pending until an admin approves it.
-const bin = resolve(process.env.E2E_CLI_BIN ?? '../src/cli-node/target/release/splitcortex-node');
+const bin = resolve(process.env.E2E_CLI_BIN ?? '.cache/cli-node/splitcortex-node');
 test.skip(!existsSync(bin) && !process.env.CI, `no CLI binary at ${bin} (set E2E_CLI_BIN)`);
 test.describe.configure({ mode: 'serial' });
 

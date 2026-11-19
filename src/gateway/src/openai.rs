@@ -750,7 +750,7 @@ pub async fn chat_core(
             started: Instant::now(),
             ttft: None,
         };
-        let (_, pool_running) = app.registry.pool_load(pool.org_id, pool.id, model.id, 0, 0);
+        let pool_running = app.registry.pool_running(pool.org_id, pool.id, model.id);
         app.metrics.in_flight(pool.org_id, pool.id, pool_running);
         let msg = Envelope {
             body: Some(Body::InferenceRequest(proto::InferenceRequest {

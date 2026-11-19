@@ -140,6 +140,29 @@ fn create_engine(
     }
 }
 
+/// The library accepts an engine with the encoders on even for a model that has none, and only fails when the first
+/// conversation is created ("tf_lite_audio_encoder_hw not found in the model"). Creating and dropping one conversation
+/// here makes that case fall back to text only instead of failing every request.
+fn probe_conversation(api: &Arc<Api>, engine: Handle) -> Result<(), String> {
+    unsafe {
+        let mut cfg: Handle = ptr::null_mut();
+        let st = (api.conv_config_create)(&mut cfg);
+        if st != 0 {
+            return Err(api.error("conversation config", st));
+        }
+        let mut conv: Handle = ptr::null_mut();
+        let st = (api.conv_create)(engine, cfg, &mut conv);
+        let result = if st != 0 {
+            Err(api.error("conversation", st))
+        } else {
+            (api.conv_delete)(conv);
+            Ok(())
+        };
+        (api.conv_config_delete)(cfg);
+        result
+    }
+}
+
 /// Loads a model with the best settings the library accepts: image and audio input first (a model without the
 /// encoders, or a device without the memory for them, is rejected), then text only; with MTP first, then without.
 /// Returns the engine and whether media input is on.
@@ -155,7 +178,17 @@ fn create_best(
     for media in [true, false] {
         for mtp in if mtp { vec![true, false] } else { vec![false] } {
             match create_engine(api, path, backend, ctx, mtp, media, cache_dir) {
-                Ok(e) => return Ok((e, media)),
+                Ok(e) => match if media {
+                    probe_conversation(api, e)
+                } else {
+                    Ok(())
+                } {
+                    Ok(()) => return Ok((e, media)),
+                    Err(why) => {
+                        unsafe { (api.engine_delete)(e) };
+                        last = why;
+                    }
+                },
                 Err(e) => last = e,
             }
         }

@@ -43,7 +43,12 @@ test('traffic shows up as pool metrics with latency', async () => {
     'the gateway to write the pool metrics',
     async () => {
       const x = await metrics();
-      return sum(x, (p) => p.requests) >= 3 ? x : undefined;
+      // Requests come from usage_records, latency and in-flight from pool_metrics: the gateway flushes them separately.
+      const ready =
+        sum(x, (p) => p.requests) >= 3 &&
+        sum(x, (p) => p.peakInFlight) > 0 &&
+        x.pools.some((p) => p.latencyP50Ms !== null && p.latencyP50Ms > 0);
+      return ready ? x : undefined;
     },
     180_000,
     5_000,

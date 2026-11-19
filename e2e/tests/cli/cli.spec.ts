@@ -9,7 +9,7 @@ import { appUrl } from '../../src/env.ts';
 
 // Drives the real splitcortex-node binary against a deployed stack. E2E_CLI_BIN points at it (the workflow installs the
 // newest cli-node release with install.sh; locally: `cargo build --release` in src/cli-node, the default below).
-const bin = resolve(process.env.E2E_CLI_BIN ?? '../src/cli-node/target/release/splitcortex-node');
+const bin = resolve(process.env.E2E_CLI_BIN ?? '.cache/cli-node/splitcortex-node');
 test.skip(!existsSync(bin) && !process.env.CI, `no CLI binary at ${bin} (set E2E_CLI_BIN)`);
 test.describe.configure({ mode: 'serial' });
 

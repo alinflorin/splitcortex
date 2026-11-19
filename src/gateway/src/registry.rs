@@ -195,6 +195,17 @@ impl Registry {
         (n, load)
     }
 
+    /// Requests running right now on the nodes of the pool that have `model` ready, full or not (`pool_load` only counts
+    /// nodes that can still take a request, so a node at capacity would read as zero).
+    pub fn pool_running(&self, org: Uuid, pool: Uuid, model: Uuid) -> u32 {
+        let nodes = self.nodes.read().unwrap();
+        nodes
+            .values()
+            .filter(|c| c.org_id == org && c.pool_id == pool && *c.ready_model.lock().unwrap() == Some(model))
+            .map(|c| c.load())
+            .sum()
+    }
+
     /// (smallest, largest) known context window among the nodes that have `model` ready, busy or not; None when no
     /// ready node reports one. A node that reports nothing is not counted.
     pub fn context_range(&self, org: Uuid, pool: Uuid, model: Uuid) -> Option<(u32, u32)> {
@@ -483,6 +494,20 @@ mod tests {
         assert_eq!(reg.context_range(Uuid::new_v4(), pool, model), None);
         reg.register(unknown.clone());
         assert!(reg.pool_load(org, pool, model, 1_000_000, 0).0 >= 1);
+    }
+
+    #[test]
+    fn running_counts_a_node_that_is_at_capacity() {
+        let (org, pool, model) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let reg = Registry::default();
+        let node = conn(org, pool, Some(model));
+        reg.register(node.clone());
+        assert_eq!(reg.pool_running(org, pool, model), 0);
+        node.in_flight.store(node.capacity, Ordering::Relaxed);
+        // pool_load only counts nodes that can still take a request, pool_running counts what is running
+        assert_eq!(reg.pool_load(org, pool, model, 0, 0), (0, 0));
+        assert_eq!(reg.pool_running(org, pool, model), node.capacity);
+        assert_eq!(reg.pool_running(Uuid::new_v4(), pool, model), 0);
     }
 
     #[test]

@@ -5,6 +5,7 @@ import { appUrl, isLocalStack } from './src/env.ts';
 // splitcortex-node binary), api (the control plane's rules and the enrollment limits, no node), serving (the gateway and control plane with a live node: inference, keys, limits, metering), desktop (the Tauri app through tauri-driver), mobile (the Android app through Maestro), perf (load against the gateway with simulated nodes, run on demand).
 // Suites for a binary or device that is not present skip locally and fail in CI.
 export default defineConfig({
+  globalSetup: './src/global-setup.ts',
   timeout: 120_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
