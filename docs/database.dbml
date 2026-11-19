@@ -1,0 +1,362 @@
+// SplitCortex database (Postgres). Paste into https://dbdiagram.io
+// Source of truth: src/control-plane/src/db/schema.ts (Drizzle) + drizzle/*.sql
+// Refs marked "logical" have NO foreign key in the database (gateway-written tables on purpose).
+
+Enum org_role {
+  owner
+  admin
+  member
+}
+
+Enum serving_type {
+  replicated
+}
+
+Enum balancing_type {
+  weighted_p2c
+  least_in_flight
+  round_robin
+  random
+}
+
+Enum model_source {
+  huggingface
+  upload
+}
+
+Enum model_status {
+  pending
+  downloading
+  uploading
+  ready
+  failed
+}
+
+Table organisations {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name text [not null]
+  slug text [not null, unique]
+  limit_requests_per_minute integer [note: 'null = unlimited']
+  limit_tokens_per_minute integer [note: 'null = unlimited']
+  limit_tokens_per_day bigint [note: 'null = unlimited, per UTC day']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table memberships {
+  org_id uuid [not null]
+  user_email text [not null, note: 'Lowercased email from the Dex token. No users table: Dex owns identities.']
+  role org_role [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (org_id, user_email) [pk]
+  }
+}
+
+Table pools {
+  id uuid [pk, default: `gen_random_uuid()`]
+  org_id uuid [not null]
+  name text [not null]
+  require_approval boolean [not null, default: false]
+  serving_type serving_type [not null, default: 'replicated']
+  balancing_type balancing_type [not null, default: 'weighted_p2c']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (org_id, name) [unique, name: 'pools_org_id_name_unique']
+  }
+}
+
+Table nodes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  org_id uuid [not null]
+  pool_id uuid [not null]
+  name text [not null]
+  public_key text [not null, unique, note: 'Device-generated key; gateway authenticates by proof of possession']
+  fingerprint text [not null]
+  approved boolean [not null, default: true]
+  platform text
+  device_model text
+  os_version text
+  app_version text
+  cpu_cores integer
+  memory_total_mb integer
+  compute_backend text [note: 'admin override: cpu | gpu; null = device decides']
+  max_context_tokens integer [note: 'admin override']
+  keep_screen_on boolean [note: 'admin override']
+  enable_mtp boolean [note: 'admin override']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    pool_id [name: 'nodes_pool_idx']
+  }
+}
+
+Table enrollments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  org_id uuid [not null]
+  pool_id uuid [not null]
+  created_by text [not null]
+  lookup_id text [not null, unique]
+  secret text [not null, note: 'PAKE password; row lives ~10 min']
+  expires_at timestamptz [not null]
+  attempts integer [not null, default: 0]
+  max_attempts integer [not null, default: 3]
+  session_sid text
+  session_isk text
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table node_status {
+  node_id uuid [pk]
+  connected boolean [not null, default: false]
+  connected_since timestamptz
+  cpu_percent double
+  memory_used_mb integer
+  battery_percent integer
+  charging boolean
+  temperature_c double
+  in_flight integer [not null, default: 0]
+  tokens_per_sec double
+  backend text
+  max_context_tokens integer
+  modalities text [note: 'comma separated: image, audio; empty = text only']
+  gateway_id text [note: 'logical: gateway_instances.id']
+  gateway_keys text
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Written by the gateway only'
+}
+
+Table gateway_instances {
+  id text [pk]
+  address text [not null]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: 'Written by the gateways only (heartbeat)'
+}
+
+Table benchmarks {
+  id uuid [pk, default: `gen_random_uuid()`]
+  org_id uuid [not null]
+  pool_id uuid [not null]
+  created_by text [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (pool_id, created_at) [name: 'benchmarks_pool_idx']
+  }
+}
+
+Table benchmark_results {
+  id uuid [pk, default: `gen_random_uuid()`]
+  benchmark_id uuid [not null]
+  node_id uuid [not null]
+  status text [not null, default: 'pending', note: 'pending | running | done | failed']
+  error text
+  ttft_ms integer
+  total_ms integer
+  tokens integer
+  tokens_per_sec double
+  started_at timestamptz
+  finished_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (benchmark_id, node_id) [unique, name: 'benchmark_results_unique']
+  }
+}
+
+Table models {
+  id uuid [pk, default: `gen_random_uuid()`]
+  org_id uuid [not null]
+  name text [not null]
+  source model_source [not null]
+  source_url text
+  file_name text [not null]
+  status model_status [not null]
+  error text
+  storage_key text [not null, note: 'Object key in the models bucket']
+  upload_id text [note: 'Open multipart upload']
+  size_bytes bigint
+  progress_bytes bigint [not null, default: 0]
+  sha256 text
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (org_id, name) [unique, name: 'models_org_id_name_unique']
+    status [name: 'models_status_idx']
+  }
+}
+
+Table pool_models {
+  pool_id uuid [not null, unique, note: 'One model per pool']
+  model_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (pool_id, model_id) [pk]
+  }
+}
+
+Table api_keys {
+  id uuid [pk, default: `gen_random_uuid()`]
+  org_id uuid [not null]
+  name text [not null]
+  prefix text [not null]
+  hash text [not null, unique, note: 'SHA-256 of the secret; the secret is never stored']
+  all_pools boolean [not null]
+  expires_at timestamptz
+  created_by text [not null]
+  last_used_at timestamptz [note: 'written by the gateway']
+  revoked_at timestamptz [note: 'soft delete']
+  limit_requests_per_minute integer
+  limit_tokens_per_minute integer
+  limit_tokens_per_day bigint
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    org_id [name: 'api_keys_org_idx']
+  }
+}
+
+Table api_key_pools {
+  key_id uuid [not null]
+  pool_id uuid [not null]
+
+  indexes {
+    (key_id, pool_id) [pk]
+    pool_id [name: 'api_key_pools_pool_idx']
+  }
+}
+
+Table config_changes {
+  seq bigserial [pk]
+  entity_type text [not null]
+  entity_id uuid [not null]
+  org_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Change feed for the gateway config cache (plus NOTIFY config_changes). No FKs.'
+}
+
+Table usage_records {
+  bucket timestamptz [not null, note: 'start of the minute, UTC']
+  org_id uuid [not null]
+  pool_id uuid [not null, note: 'logical: no FK, history outlives pools']
+  key_id uuid [not null, note: 'logical: no FK, history outlives keys']
+  model text [not null]
+  tokens_in bigint [not null, default: 0]
+  tokens_out bigint [not null, default: 0]
+  requests bigint [not null, default: 0]
+  errors bigint [not null, default: 0]
+
+  indexes {
+    (bucket, org_id, pool_id, key_id, model) [pk]
+    (org_id, bucket) [name: 'usage_records_org_bucket_idx']
+  }
+
+  Note: 'Written by the gateway only (additive upsert)'
+}
+
+Table usage_flushes {
+  batch_id uuid [pk]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Idempotency marker, one row per flushed batch'
+}
+
+Table audit_logs {
+  id uuid [pk, default: `gen_random_uuid()`]
+  org_id uuid [not null]
+  occurred_at timestamptz [not null, default: `now()`]
+  source text [not null, note: 'control_plane | gateway']
+  actor_type text [not null, note: 'user | api_key | node | system']
+  actor_id text
+  action text [not null, note: 'dotted verb, e.g. pool.create']
+  entity_type text
+  entity_id text
+  outcome text [not null, note: 'success | denied | failed']
+  ip text
+  metadata jsonb
+
+  indexes {
+    (org_id, occurred_at) [name: 'audit_logs_org_time_idx']
+    occurred_at [name: 'audit_logs_time_idx']
+  }
+
+  Note: 'Pruned after 90 days. No prompts, completions or key material.'
+}
+
+Table pool_metrics {
+  bucket timestamptz [not null]
+  org_id uuid [not null]
+  pool_id uuid [not null, note: 'logical: no FK']
+  rate_limited bigint [not null, default: 0]
+  unavailable bigint [not null, default: 0]
+  peak_in_flight integer [not null, default: 0]
+  latency_hist "integer[]" [not null]
+  ttft_hist "integer[]" [not null]
+
+  indexes {
+    (bucket, org_id, pool_id) [pk]
+    (org_id, bucket) [name: 'pool_metrics_org_bucket_idx']
+    bucket [name: 'pool_metrics_bucket_idx']
+  }
+
+  Note: 'Written by the gateway only, pruned (default 7 days)'
+}
+
+Table node_metrics {
+  bucket timestamptz [not null]
+  node_id uuid [not null, note: 'logical: no FK']
+  org_id uuid [not null]
+  pool_id uuid [not null, note: 'logical: no FK']
+  cpu_percent double
+  memory_used_mb integer
+  battery_percent integer
+  charging boolean
+  temperature_c double
+  in_flight integer [not null, default: 0]
+  tokens_per_sec double
+
+  indexes {
+    (bucket, node_id) [pk]
+    (org_id, bucket) [name: 'node_metrics_org_bucket_idx']
+    bucket [name: 'node_metrics_bucket_idx']
+  }
+
+  Note: 'Written by the gateway only, pruned with pool_metrics'
+}
+
+// ---- Foreign keys (all ON DELETE CASCADE) ----
+Ref: memberships.org_id > organisations.id [delete: cascade]
+Ref: pools.org_id > organisations.id [delete: cascade]
+Ref: nodes.org_id > organisations.id [delete: cascade]
+Ref: nodes.pool_id > pools.id [delete: cascade]
+Ref: enrollments.org_id > organisations.id [delete: cascade]
+Ref: enrollments.pool_id > pools.id [delete: cascade]
+Ref: node_status.node_id - nodes.id [delete: cascade]
+Ref: benchmarks.org_id > organisations.id [delete: cascade]
+Ref: benchmarks.pool_id > pools.id [delete: cascade]
+Ref: benchmark_results.benchmark_id > benchmarks.id [delete: cascade]
+Ref: benchmark_results.node_id > nodes.id [delete: cascade]
+Ref: models.org_id > organisations.id [delete: cascade]
+Ref: pool_models.pool_id - pools.id [delete: cascade]
+Ref: pool_models.model_id > models.id [delete: cascade]
+Ref: api_keys.org_id > organisations.id [delete: cascade]
+Ref: api_key_pools.key_id > api_keys.id [delete: cascade]
+Ref: api_key_pools.pool_id > pools.id [delete: cascade]
+Ref: usage_records.org_id > organisations.id [delete: cascade]
+Ref: audit_logs.org_id > organisations.id [delete: cascade]
+Ref: pool_metrics.org_id > organisations.id [delete: cascade]
+Ref: node_metrics.org_id > organisations.id [delete: cascade]
+
+// ---- Logical references only (no FK in the database) ----
+Ref: usage_records.pool_id > pools.id
+Ref: usage_records.key_id > api_keys.id
+Ref: pool_metrics.pool_id > pools.id
+Ref: node_metrics.node_id > nodes.id
+Ref: node_metrics.pool_id > pools.id
+Ref: node_status.gateway_id > gateway_instances.id
