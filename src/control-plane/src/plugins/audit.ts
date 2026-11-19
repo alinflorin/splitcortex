@@ -177,9 +177,12 @@ export default fp<{ db: Db }>(async (app, { db }) => {
     }
     const orgId = params.orgId ?? (typeof created.id === 'string' ? created.id : undefined);
     if (!orgId || !UUID.test(orgId)) return payload;
+    // An API key is created as { key: { id }, secret }: the id is one level down.
+    const nested = created.key as { id?: unknown } | undefined;
     const entityId =
       (rule.entityParam ? params[rule.entityParam] : undefined) ??
       (typeof created.id === 'string' ? created.id : undefined) ??
+      (typeof nested?.id === 'string' ? nested.id : undefined) ??
       (typeof body.email === 'string' ? body.email : undefined);
 
     const metadata: Record<string, unknown> = { ...rule.meta?.(body) };

@@ -53,6 +53,8 @@ export async function startServingNode(): Promise<ServingNode> {
   const model = await ws.serveModel(MODEL, file);
   const { secret } = await ws.apiKey();
   await promisify(execFile)(bin, ['join', '--code', await ws.code()], { env });
+  // A CI runner has no GPU (Vulkan: "Found no drivers"), so "auto" would pick a backend that cannot load the model.
+  await promisify(execFile)(bin, ['config', '--compute', 'cpu'], { env });
   let stderr = '';
   let serving: ChildProcess | undefined;
   const launch = () => {

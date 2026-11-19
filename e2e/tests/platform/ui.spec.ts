@@ -22,7 +22,7 @@ test('creates an organisation', async ({ page }) => {
   await page.getByLabel('Name').fill(`E2E UI ${slug}`);
   await page.getByLabel('Slug').fill(slug);
   await page.getByRole('button', { name: 'Create', exact: true }).click();
-  await expect(page.getByText(`E2E UI ${slug}`)).toBeVisible();
+  await expect(page.getByRole('main').getByText(`E2E UI ${slug}`)).toBeVisible();
   const org = (await ws.cp.listOrgs()).find((o) => o.slug === slug);
   expect(org).toBeTruthy();
   created.push(org!.id);
