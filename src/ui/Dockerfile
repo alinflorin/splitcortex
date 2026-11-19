@@ -8,6 +8,8 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm test
 RUN pnpm build
+# Brotli copies of the compressible files; Caddy serves them (`precompressed br`).
+RUN node scripts/precompress.mjs dist
 
 FROM caddy:2-alpine
 COPY Caddyfile /etc/caddy/Caddyfile

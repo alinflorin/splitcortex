@@ -6,6 +6,7 @@
 # TLS is terminated by the ingress (Traefik); this only serves the static SPA.
 :8080 {
 	root * /srv
+	# Brotli comes precompressed from the image (file_server below); other encodings are done on the fly.
 	encode zstd gzip
 
 	handle /healthz {
@@ -41,6 +42,8 @@
 	# handle blocks above and would rewrite /healthz and /version.json to the index page.
 	handle {
 		try_files {path} /index.html
-		file_server
+		file_server {
+			precompressed br
+		}
 	}
 }

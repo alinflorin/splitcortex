@@ -45,4 +45,4 @@ Charts use **`@fluentui/react-charts`** (Fluent UI Charting v9, themed by the Fl
 
 ## Container
 
-`Dockerfile` (multi-stage: pnpm test, pnpm build, Caddy on 8080 with SPA fallback, `/healthz`, non-root; `Caddyfile`), `Dockerfile.dev` (Vite on 8080 for Tilt); chart `ui-deployment/ui-service/ui-ingress.yaml` under `ui:` (ingress on by default at the web app host).
+`Dockerfile` (multi-stage: pnpm test, pnpm build, precompress, Caddy on 8080 with SPA fallback, `/healthz`, non-root; `Caddyfile`), `Dockerfile.dev` (Vite on 8080 for Tilt); chart `ui-deployment/ui-service/ui-ingress.yaml` under `ui:` (ingress on by default at the web app host). **Brotli**: `scripts/precompress.mjs` (Node zlib, quality 11) writes `.br` copies of the compressible files after `pnpm build` and Caddy serves them (`file_server { precompressed br }`); other encodings (zstd, gzip) are done on the fly by `encode`.

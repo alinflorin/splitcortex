@@ -11,6 +11,8 @@ RUN pnpm test
 ARG APP_VERSION=
 ENV VITE_APP_VERSION=$APP_VERSION
 RUN pnpm build
+# Brotli copies of the compressible files; Caddy serves them (`precompressed br`).
+RUN node scripts/precompress.mjs dist
 
 FROM caddy:2-alpine
 COPY Caddyfile /etc/caddy/Caddyfile
