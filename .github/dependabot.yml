@@ -1,6 +1,18 @@
 # .github/dependabot.yml
 version: 2
 
+# Public Helm repos that Dependabot's egress proxy blocks unless declared here.
+registries:
+  helm-dex:
+    type: helm-registry
+    url: https://charts.dexidp.io
+  helm-groundhog2k:
+    type: helm-registry
+    url: https://groundhog2k.github.io/helm-charts
+  helm-derwitt:
+    type: helm-registry
+    url: https://charts.derwitt.dev
+
 updates:
   # ---------- pnpm projects (the "npm" ecosystem covers pnpm lockfiles) ----------
   - package-ecosystem: npm
@@ -111,6 +123,10 @@ updates:
   # ---------- Helm chart dependencies (Traefik, cert-manager, Dex, Postgres, ...) ----------
   - package-ecosystem: helm
     directory: /chart
+    registries:
+      - helm-dex
+      - helm-groundhog2k
+      - helm-derwitt
     schedule:
       interval: weekly
       day: thursday
