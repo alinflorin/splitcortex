@@ -68,7 +68,10 @@ jobs:
       # React Native's CMake build uses ccache automatically when it is installed (reactnative.dev/docs/build-speed),
       # so the native C++ (RN, Hermes glue, our modules) is not recompiled when unchanged.
       - name: Install ccache
-        run: sudo apt-get install -y --no-install-recommends ccache
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: ccache
+          version: 1
       - name: Cache ccache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:

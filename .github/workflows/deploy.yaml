@@ -78,11 +78,16 @@ jobs:
 
       # Dex wants a bcrypt hash, the e2e workflow needs the plain password: GitHub holds the password, the hash is made
       # here on every deploy (the salt changes, the password does not).
+      - name: Install htpasswd
+        if: inputs.environment == 'stg'
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: apache2-utils
+          version: 1
       - name: Hash the e2e user's password
         if: inputs.environment == 'stg'
         run: |
           [ -n "$E2E_EMAIL" ] && [ -n "$E2E_PASSWORD" ] || { echo "::error::Set the environment secrets E2E_EMAIL and E2E_PASSWORD"; exit 1; }
-          sudo apt-get install -y --no-install-recommends apache2-utils >/dev/null
           hash="$(printf '%s' "$E2E_PASSWORD" | htpasswd -inBC 10 '' | tr -d ':\n' | sed 's/^\$2y/$2a/')"
           echo "::add-mask::$hash"
           echo "E2E_PASSWORD_HASH=$hash" >> "$GITHUB_ENV"

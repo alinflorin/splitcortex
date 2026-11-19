@@ -31,11 +31,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # Cached .debs (restored in seconds instead of apt-get update + download + install).
       - name: Install Linux dependencies
         if: startsWith(matrix.platform, 'ubuntu')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          version: 1
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
         with:
@@ -60,9 +62,12 @@ jobs:
 
       - name: Fetch the LiteRT-LM library
         run: pnpm litert:fetch
+      # Lints are platform-independent enough to run once, on Linux x64 (clippy is the slowest step on Windows); tests run everywhere.
       - run: cargo fmt --check
+        if: matrix.platform == 'ubuntu-22.04'
         working-directory: src/desktop-node/src-tauri
       - run: cargo clippy --all-targets -- -D warnings
+        if: matrix.platform == 'ubuntu-22.04'
         working-directory: src/desktop-node/src-tauri
       - run: cargo test
         working-directory: src/desktop-node/src-tauri

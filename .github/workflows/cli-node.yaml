@@ -43,8 +43,11 @@ jobs:
 
       - name: Fetch the LiteRT-LM library
         run: python scripts/fetch-litert.py
+      # Lints run once, on Linux x64 (clippy is the slowest step on Windows); tests run everywhere.
       - run: cargo fmt --check
+        if: matrix.platform == 'ubuntu-22.04'
       - run: cargo clippy --all-targets -- -D warnings
+        if: matrix.platform == 'ubuntu-22.04'
       - run: cargo test
 
       - name: Check the install script

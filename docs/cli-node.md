@@ -28,7 +28,7 @@ Rust 2024, `tokio`, `tokio-tungstenite` (wss), `reqwest` (**rustls with OS root 
 ## Release and CI
 
 - **Tag `cli-node-vX.Y.Z`** (own stream). `cli-node-release.yaml` creates the release (**not** latest) then builds on linux x64 (`ubuntu-22.04`), linux arm64 (`ubuntu-22.04-arm`), macOS arm64, Windows x64: `set-version.py`, `fetch-litert.py --required`, `cargo build --release --target`, `package.py` (binary + `litert/<library>` at the archive top, `.sha256`), `gh release upload`. No macOS Intel (no library). No release-cache workflow, no secrets.
-- **CI** `cli-node.yaml` (path filter includes `src/gateway/proto/**`) on the same four platforms: `cargo fmt --check`, `cargo clippy --all-targets -D warnings`, `cargo test` (library fetched), `shellcheck install.sh` on Linux. Not a deployed service (no image/chart/Tiltfile).
+- **CI** `cli-node.yaml` (path filter includes `src/gateway/proto/**`) on the same four platforms: `cargo test` (library fetched) on all, `cargo fmt --check` and `cargo clippy --all-targets -D warnings` only on Linux x64; release profile is thin LTO with 16 codegen units, `shellcheck install.sh` on Linux. Not a deployed service (no image/chart/Tiltfile).
 
 ## Verified
 
