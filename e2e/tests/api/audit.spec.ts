@@ -50,7 +50,7 @@ const entry = (action: string, entityId?: string) =>
 
 test('creating the organisation and the pool is recorded with who did it', async () => {
   const org = await entry('organisation.create', ws.org.id);
-  expect(org).toMatchObject({ outcome: 'success', actorType: 'user', source: 'control-plane' });
+  expect(org).toMatchObject({ outcome: 'success', actorType: 'user', source: 'control_plane' });
   expect(org.actorId).toBeTruthy();
   const pool = await entry('pool.create', ws.pool.id);
   expect(pool.entityType).toBe('pool');
