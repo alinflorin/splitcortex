@@ -38,7 +38,12 @@ export default function ChartBody({
       lineChartData: stable.map((s) => ({
         legend: s.name,
         color: s.color,
-        data: s.points.map((p) => ({ x: new Date(p.at), y: p.value as number })),
+        // The library renders a one-point series through a code path that emits an unkeyed list (React key
+        // warning), so repeat the point: same position, same look.
+        data: (s.points.length === 1 ? [s.points[0]!, s.points[0]!] : s.points).map((p) => ({
+          x: new Date(p.at),
+          y: p.value as number,
+        })),
       })),
     }),
     [stable, title],
