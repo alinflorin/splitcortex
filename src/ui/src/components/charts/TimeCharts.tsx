@@ -4,10 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { ItemCard } from '../cards/cards';
 
 // The chart library (d3 and friends) is large: it loads when the first chart is drawn.
+/** Plot height plus room for the legend. */
+const CHART_BOX_HEIGHT = 270;
 const ChartBody = lazy(() => import('./ChartBody'));
 
 const useStyles = makeStyles({
-  chart: { width: '100%', minWidth: 0 },
+  // The chart fills its parent (height: 100%) and measures it, so the parent needs a definite height: with an
+  // auto height it depends on the chart itself and the chart resizes forever ("Maximum update depth exceeded").
+  chart: { width: '100%', minWidth: 0, height: `${CHART_BOX_HEIGHT}px` },
   muted: { color: tokens.colorNeutralForeground3 },
 });
 
@@ -51,7 +55,11 @@ export function ChartCard({
     color: s.color ?? SERIES_COLORS[i % SERIES_COLORS.length]!,
     points: s.points.filter((p) => p.value !== null),
   }));
-  const any = filled.some((s) => s.points.length > 0);
+  // A stacked chart whose bars are all 0 has a zero-height axis, which the chart library cannot lay out
+  // (it loops re-rendering), so that case shows the empty message too.
+  const any = filled.some((s) =>
+    stacked ? s.points.some((p) => p.value !== 0) : s.points.length > 0,
+  );
 
   return (
     <ItemCard title={title} subtitle={subtitle}>
