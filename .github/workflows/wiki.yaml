@@ -23,7 +23,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check out the wiki
         run: git clone "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.wiki.git" "$RUNNER_TEMP/wiki"
