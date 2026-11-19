@@ -94,3 +94,53 @@ test('deletes a pool after confirming', async ({ page }) => {
     status: 404,
   });
 });
+
+test('the audit log page lists what was done in the organisation', async ({ page }) => {
+  const org = await ws.cp.createOrg();
+  created.push(org.id);
+  await ws.cp.createPool(org.id, 'ui-audit-pool');
+  await signIn(page);
+  await page.goto(`/organisations/${org.id}/audit`);
+  await expect(page.getByRole('heading', { name: 'Audit log' })).toBeVisible();
+  // Rows are written just after each API response; the page shows them newest first.
+  await expect(page.getByText('Pool created').first()).toBeVisible();
+  await expect(page.getByText('Organisation created').first()).toBeVisible();
+  // The category filter narrows the list.
+  await page.getByRole('combobox', { name: 'Category' }).click();
+  await page.getByRole('option', { name: 'Pools' }).click();
+  await expect(page.getByText('Pool created').first()).toBeVisible();
+  await expect(page.getByText('Organisation created')).toHaveCount(0);
+  // The outcome filter: nothing was denied.
+  await page.getByRole('combobox', { name: 'Outcome' }).click();
+  await page.getByRole('option', { name: 'Denied' }).click();
+  await expect(page.getByText('Nothing recorded for these filters.')).toBeVisible();
+});
+
+test('the metrics page renders the charts of an organisation', async ({ page }) => {
+  const org = await ws.cp.createOrg();
+  created.push(org.id);
+  await signIn(page);
+  await page.goto(`/organisations/${org.id}/metrics`);
+  await expect(page.getByText('Requests', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Time to first token').first()).toBeVisible();
+  await expect(page.getByText('CPU', { exact: true }).first()).toBeVisible();
+  // Switching the period keeps the page working (no data yet in a new organisation is fine).
+  await page.getByRole('combobox', { name: 'Period' }).click();
+  await page.getByRole('option', { name: 'Last 15 minutes' }).click();
+  await expect(page.getByText('Requests', { exact: true }).first()).toBeVisible();
+});
+
+test('account deletion is refused while the account is the only owner of an organisation', async ({
+  page,
+}) => {
+  // ws.org (made in beforeAll) has this login as its only owner. Confirming must therefore fail and change nothing;
+  // the success path would remove the shared e2e login from every suite's organisation (see tests/api/account.spec.ts).
+  await signIn(page);
+  await page.goto('/user-settings');
+  await expect(page.getByRole('heading', { name: 'Account settings' })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete account' }).click();
+  await expect(page.getByText('Delete your account?')).toBeVisible();
+  await page.getByRole('button', { name: 'Delete' }).last().click();
+  await expect(page.getByText('Account deleted')).toHaveCount(0);
+  expect((await ws.cp.listOrgs()).map((o) => o.id)).toContain(ws.org.id);
+});

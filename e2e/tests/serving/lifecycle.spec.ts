@@ -19,6 +19,22 @@ test.afterAll(async () => {
 const one = { max_tokens: 1 };
 const nodes = () => node.ws.nodes();
 
+// The gateway's own audit rows (issue #22), written straight to Postgres in batches, so poll for them.
+const gatewayAudit = (action: string) =>
+  waitFor(
+    `the audit row ${action}`,
+    async () => {
+      const r = await node.ws.cp.send(
+        'GET',
+        `/organisations/${node.ws.org.id}/audit-logs?action=${action}&limit=50`,
+      );
+      const items = (r.body as { items: { source: string; outcome: string }[] }).items;
+      return items.find((e) => e.source === 'gateway');
+    },
+    60_000,
+    2_000,
+  );
+
 test('the node reports its status, device and engine settings', async () => {
   const online = await waitFor(
     'the node to report live',
@@ -29,6 +45,10 @@ test('the node reports its status, device and engine settings', async () => {
   expect(online.approved).toBe(true);
   expect(['cpu', 'gpu']).toContain(online.live!.backend);
   expect(online.live!.maxContextTokens).toBeGreaterThan(0);
+});
+
+test('the gateway audits the node connecting', async () => {
+  expect((await gatewayAudit('node.connected')).outcome).toBe('success');
 });
 
 test('a benchmark measures every online node of the pool', async () => {
@@ -83,6 +103,8 @@ test('an organisation-wide limit applies to every key and can be lifted', async 
   } finally {
     await ws.cp.setOrgLimits(ws.org.id, { requestsPerMinute: null });
   }
+  // Hitting the limit is audited by the gateway.
+  expect(await gatewayAudit('limit.exceeded')).toBeTruthy();
   // The counter window is a minute; after it, and the lifted limit, requests pass again.
   await waitFor(
     'requests to pass after the limit is lifted',
@@ -103,4 +125,5 @@ test('revoking the node disconnects it and it stops serving', async () => {
     60_000,
     1_000,
   );
+  expect(await gatewayAudit('node.disconnected')).toBeTruthy();
 });
