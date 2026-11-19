@@ -43,6 +43,7 @@ impl Usage {
         }
     }
 
+    #[allow(clippy::too_many_arguments)] // one flat call per finished request keeps the hot path simple
     pub fn record(&self, org: Uuid, pool: Uuid, key: Uuid, model: &str, tokens_in: u32, tokens_out: u32, error: bool) {
         let minute = Utc::now().timestamp() / 60 * 60;
         let mut buf = self.buf.lock().unwrap();

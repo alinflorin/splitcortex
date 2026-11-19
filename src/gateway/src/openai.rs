@@ -1016,7 +1016,7 @@ mod tests {
         );
         assert!(matches!(m.parts[2].part, Some(proto::content_part::Part::Audio(ref a)) if a.mime_type == "audio/wav"));
         assert_eq!(c.mods, registry::IMAGE | registry::AUDIO);
-        assert!(c.media_tokens >= IMAGE_TOKENS + 1);
+        assert!(c.media_tokens > IMAGE_TOKENS);
     }
 
     #[test]
