@@ -13,6 +13,7 @@ import { PoolFormDialog } from './PoolFormDialog';
 import { PoolBenchmarks } from './PoolBenchmarks';
 import { PoolModels, PoolNodes } from './PoolSections';
 import { UsageView } from './UsageView';
+import { MetricsView } from './MetricsView';
 import { useDeletePoolAction } from './useDeletePoolAction';
 
 const useStyles = makeStyles({
@@ -109,6 +110,11 @@ export function PoolPage() {
             <section className={styles.section}>
               <Subtitle1>{t('usage.title')}</Subtitle1>
               <UsageView orgId={org.id} poolId={pool.id} />
+            </section>
+
+            <section className={styles.section}>
+              <Subtitle1>{t('metrics.title')}</Subtitle1>
+              <MetricsView orgId={org.id} poolId={pool.id} />
             </section>
 
             <PoolFormDialog

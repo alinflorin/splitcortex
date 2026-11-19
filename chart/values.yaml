@@ -305,6 +305,13 @@ controlPlane:
     schedule: "43 3 * * *"   # daily
     retentionDays: 90
     command: [node, dist/db/audit-prune-cli.js]   # Tilt overrides it to use tsx
+  # CronJob deleting per-organisation metrics rows (pool_metrics, node_metrics) older than retentionDays
+  # (src/db/metrics-prune.ts).
+  metricsPrune:
+    enabled: true
+    schedule: "53 * * * *"   # hourly
+    retentionDays: 7
+    command: [node, dist/db/metrics-prune-cli.js]   # Tilt overrides it to use tsx
   ingress:
     enabled: true
     className: traefik   # keep equal to ingress.className

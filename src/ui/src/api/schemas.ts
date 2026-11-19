@@ -79,6 +79,41 @@ export const usageSchema = z.object({
 });
 export type Usage = z.infer<typeof usageSchema>;
 
+export const metricsSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  step: z.enum(['1m', '5m', '15m', '1h']),
+  pools: z.array(
+    z.object({
+      bucket: z.string(),
+      requests: z.number(),
+      errors: z.number(),
+      tokensIn: z.number(),
+      tokensOut: z.number(),
+      rateLimited: z.number(),
+      unavailable: z.number(),
+      peakInFlight: z.number(),
+      latencyP50Ms: z.number().nullable(),
+      latencyP95Ms: z.number().nullable(),
+      ttftP50Ms: z.number().nullable(),
+      ttftP95Ms: z.number().nullable(),
+    }),
+  ),
+  nodes: z.array(
+    z.object({
+      bucket: z.string(),
+      nodesReporting: z.number(),
+      cpuPercent: z.number().nullable(),
+      memoryUsedMb: z.number().nullable(),
+      batteryPercent: z.number().nullable(),
+      temperatureC: z.number().nullable(),
+      inFlight: z.number(),
+      tokensPerSec: z.number().nullable(),
+    }),
+  ),
+});
+export type Metrics = z.infer<typeof metricsSchema>;
+
 export const auditEntrySchema = z.object({
   id: z.string(),
   occurredAt: z.string(),

@@ -503,6 +503,9 @@ struct Run {
     /// Count the generated tokens against the key's and organisation's limits (not for forwarded requests: the instance
     /// that received the request counts those).
     limited: bool,
+    started: Instant,
+    /// Time from sending the request to the node's first event.
+    ttft: Option<Duration>,
 }
 
 impl Drop for Run {
@@ -532,6 +535,9 @@ impl Drop for Run {
             let _ = node.tx.try_send(Outbound::Send(cancel));
         }
         if self.record {
+            self.app
+                .metrics
+                .request(self.org, self.pool, self.started.elapsed(), self.ttft);
             self.app.usage.record(
                 self.org,
                 self.pool,
@@ -670,6 +676,7 @@ pub async fn chat_core(
             app.limiter.refresh_day(&app.db, subject, &limits).await;
             if let Err(r) = app.limiter.check(subject, &limits, now) {
                 key_event(&app, &key, "limit.exceeded", json!({ "what": r.what }));
+                app.metrics.rate_limited(key.org_id, holders[0].0.id);
                 return Err(ApiError::too_many(r.what, r.retry_after_secs));
             }
         }
@@ -740,7 +747,11 @@ pub async fn chat_core(
             finished: false,
             record: true,
             limited: !forwarded,
+            started: Instant::now(),
+            ttft: None,
         };
+        let (_, pool_running) = app.registry.pool_load(pool.org_id, pool.id, model.id, 0, 0);
+        app.metrics.in_flight(pool.org_id, pool.id, pool_running);
         let msg = Envelope {
             body: Some(Body::InferenceRequest(proto::InferenceRequest {
                 request_id,
@@ -751,6 +762,7 @@ pub async fn chat_core(
                 top_p: req.top_p.unwrap_or(0.0),
             })),
         };
+        let sent = Instant::now();
         let first = if node.tx.send(Outbound::Send(msg)).await.is_err() {
             Some(NodeEvent::Disconnected)
         } else {
@@ -773,6 +785,7 @@ pub async fn chat_core(
                 continue;
             }
             Some(first) => {
+                run.ttft = Some(sent.elapsed());
                 let id = format!("chatcmpl-{}", Uuid::new_v4().simple());
                 let created = chrono::Utc::now().timestamp();
                 return Ok(if req.stream {
@@ -793,6 +806,9 @@ pub async fn chat_core(
                 _ => continue,
             }
         }
+    }
+    if !forwarded {
+        app.metrics.unavailable(key.org_id, holders[0].0.id);
     }
     Err(last)
 }

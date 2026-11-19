@@ -13,3 +13,4 @@ export * from './api-key';
 export * from './benchmark';
 export * from './enrollment';
 export * from './audit';
+export * from './metrics';

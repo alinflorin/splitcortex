@@ -17,6 +17,7 @@ import {
   nodeSchema,
   organisationSchema,
   poolSchema,
+  metricsSchema,
   usageSchema,
   type AddMemberForm,
   type ApiKeyForm,
@@ -57,6 +58,7 @@ const keys = {
     ['organisations', id, 'pools', poolId, 'models'] as const,
   benchmarks: (id: string, poolId: string) =>
     ['organisations', id, 'pools', poolId, 'benchmarks'] as const,
+  metrics: (id: string, params: string) => ['organisations', id, 'metrics', params] as const,
   usage: (id: string, params: string) => ['organisations', id, 'usage', params] as const,
 };
 
@@ -228,6 +230,36 @@ export function useUsage(orgId: string, params: UsageParams) {
     enabled: req.ready,
     queryKey: keys.usage(orgId, qs),
     queryFn: () => req('GET', `/organisations/${orgId}/usage?${qs}`, usageSchema),
+  });
+}
+
+export interface MetricsParams {
+  /** Window length in ms, ending now; it slides with every refresh. */
+  windowMs: number;
+  poolId?: string;
+  nodeId?: string;
+}
+
+/** Operational metrics of an organisation, narrowed to a pool or a node; `live` refreshes it every 15 s. */
+export function useMetrics(orgId: string, params: MetricsParams, live: boolean) {
+  const req = useRequest();
+  const key = [params.windowMs, params.poolId ?? '', params.nodeId ?? ''].join('|');
+  return useQuery({
+    enabled: req.ready,
+    queryKey: keys.metrics(orgId, key),
+    refetchInterval: live ? 15_000 : false,
+    // Keep the old chart on screen while a new window loads.
+    placeholderData: (previous) => previous,
+    queryFn: () => {
+      const to = new Date();
+      const qs = new URLSearchParams({
+        from: new Date(to.getTime() - params.windowMs).toISOString(),
+        to: to.toISOString(),
+        ...(params.poolId ? { poolId: params.poolId } : {}),
+        ...(params.nodeId ? { nodeId: params.nodeId } : {}),
+      }).toString();
+      return req('GET', `/organisations/${orgId}/metrics?${qs}`, metricsSchema);
+    },
   });
 }
 

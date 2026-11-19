@@ -317,6 +317,20 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
             conn.tps_bits.store(t.tokens_per_sec.to_bits(), Ordering::Relaxed);
             conn.ctx_tokens.store(t.max_context_tokens, Ordering::Relaxed);
             let backend = (t.backend == "cpu" || t.backend == "gpu").then_some(t.backend.clone());
+            app.metrics.node(
+                conn.org_id,
+                conn.pool_id,
+                node,
+                crate::metrics::NodeSample {
+                    cpu_percent: (t.cpu_percent >= 0.0).then_some(t.cpu_percent),
+                    memory_used_mb: (t.memory_used_mb > 0).then_some(t.memory_used_mb as i32),
+                    battery_percent: (t.battery_percent >= 0).then_some(t.battery_percent),
+                    charging: (t.battery_percent >= 0).then_some(t.charging),
+                    temperature_c: (t.temperature_c > -100.0).then_some(t.temperature_c),
+                    in_flight: conn.load() as i32,
+                    tokens_per_sec: (t.tokens_per_sec > 0.0).then_some(t.tokens_per_sec),
+                },
+            );
             let _ = sqlx::query(
                 "insert into node_status (node_id, connected, cpu_percent, memory_used_mb, battery_percent, charging, \
                  temperature_c, in_flight, tokens_per_sec, backend, max_context_tokens, gateway_id, modalities, updated_at) \

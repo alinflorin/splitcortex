@@ -1,0 +1,48 @@
+{{- if and .Values.controlPlane.enabled .Values.controlPlane.metricsPrune.enabled }}
+{{- /*
+  Metrics retention (src/control-plane/src/db/metrics-prune.ts): deletes rows older than retentionDays. Runs with the
+  control plane image and the same environment (database).
+*/ -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: control-plane-metrics-prune
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: control-plane-metrics-prune
+spec:
+  schedule: {{ .Values.controlPlane.metricsPrune.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            {{- include "splitcortex.selectorLabels" (dict "ctx" . "component" "control-plane-metrics-prune") | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: prune
+              image: {{ include "splitcortex.image" (dict "root" . "image" .Values.controlPlane.image) | quote }}
+              imagePullPolicy: {{ .Values.controlPlane.image.pullPolicy }}
+              command:
+                {{- toYaml .Values.controlPlane.metricsPrune.command | nindent 16 }}
+              env:
+                {{- include "splitcortex.controlPlaneEnv" . | nindent 16 }}
+                - name: METRICS_RETENTION_DAYS
+                  value: {{ .Values.controlPlane.metricsPrune.retentionDays | quote }}
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: {{ .Values.controlPlane.readOnlyRootFilesystem }}
+                capabilities: {drop: [ALL]}
+              volumeMounts:
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - name: tmp
+              emptyDir: {}
+{{- end }}

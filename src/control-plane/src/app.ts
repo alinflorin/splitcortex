@@ -27,6 +27,7 @@ import { nodeRoutes } from './routes/nodes';
 import { organisationRoutes } from './routes/organisations';
 import { poolRoutes } from './routes/pools';
 import { usageRoutes } from './routes/usage';
+import { metricsRoutes } from './routes/metrics';
 
 export interface AppDeps {
   db: Db;
@@ -121,6 +122,7 @@ export async function buildApp({
       await api.register(modelRoutes, { db, storage });
       await api.register(nodeModelRoutes, { db, storage });
       await api.register(usageRoutes, { db });
+      await api.register(metricsRoutes, { db });
       await api.register(auditRoutes, { db });
       await api.register(apiKeyRoutes, { db });
       await api.register(benchmarkRoutes, { db });

@@ -444,7 +444,8 @@
     "settings": "Setări",
     "models": "Modele",
     "apiKeys": "Chei API",
-    "audit": "Jurnal de audit"
+    "audit": "Jurnal de audit",
+    "metrics": "Metrici"
   },
   "nodes": {
     "status": {
@@ -762,5 +763,38 @@
       "benchmark.run": "Benchmark pornit",
       "benchmark.delete": "Benchmark șters"
     }
+  },
+  "metrics": {
+    "title": "Metrici",
+    "subtitle": "Starea și performanța în timp real a pool-urilor și dispozitivelor tale. Păstrate 7 zile.",
+    "range": "Perioadă",
+    "live": "Live",
+    "noData": "Nu există date în această perioadă.",
+    "ranges": {
+      "15m": "Ultimele 15 minute",
+      "1h": "Ultima oră",
+      "6h": "Ultimele 6 ore",
+      "24h": "Ultimele 24 de ore",
+      "7d": "Ultimele 7 zile"
+    },
+    "requests": "Cereri",
+    "errors": "Erori",
+    "tokens": "Tokeni",
+    "latency": "Durata cererii",
+    "ttft": "Timp până la primul token",
+    "latencyHint": "Estimare pe intervale",
+    "refused": "Cereri refuzate",
+    "rateLimited": "Limitate (429)",
+    "unavailable": "Niciun dispozitiv disponibil",
+    "peakInFlight": "Vârf de cereri în curs",
+    "tokensPerSec": "Tokeni pe secundă",
+    "cpu": "CPU",
+    "memory": "Memorie",
+    "battery": "Baterie",
+    "temperature": "Temperatură",
+    "nodeInFlight": "Cereri în curs",
+    "nodesReporting": "Dispozitive active",
+    "lowest": "Cea mai mică dintre dispozitive",
+    "highest": "Cea mai mare dintre dispozitive"
   }
 }

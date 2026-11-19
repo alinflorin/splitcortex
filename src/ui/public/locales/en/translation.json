@@ -444,7 +444,8 @@
     "settings": "Settings",
     "models": "Models",
     "apiKeys": "API keys",
-    "audit": "Audit log"
+    "audit": "Audit log",
+    "metrics": "Metrics"
   },
   "nodes": {
     "status": {
@@ -762,5 +763,38 @@
       "benchmark.run": "Benchmark started",
       "benchmark.delete": "Benchmark deleted"
     }
+  },
+  "metrics": {
+    "title": "Metrics",
+    "subtitle": "Live health and performance of your pools and devices. Kept for 7 days.",
+    "range": "Period",
+    "live": "Live",
+    "noData": "No data in this period.",
+    "ranges": {
+      "15m": "Last 15 minutes",
+      "1h": "Last hour",
+      "6h": "Last 6 hours",
+      "24h": "Last 24 hours",
+      "7d": "Last 7 days"
+    },
+    "requests": "Requests",
+    "errors": "Errors",
+    "tokens": "Tokens",
+    "latency": "Request duration",
+    "ttft": "Time to first token",
+    "latencyHint": "Estimate from buckets",
+    "refused": "Refused requests",
+    "rateLimited": "Rate limited (429)",
+    "unavailable": "No device available",
+    "peakInFlight": "Peak running requests",
+    "tokensPerSec": "Tokens per second",
+    "cpu": "CPU",
+    "memory": "Memory",
+    "battery": "Battery",
+    "temperature": "Temperature",
+    "nodeInFlight": "Running requests",
+    "nodesReporting": "Devices reporting",
+    "lowest": "Lowest among devices",
+    "highest": "Highest among devices"
   }
 }

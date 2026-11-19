@@ -5,6 +5,7 @@ mod cluster;
 mod config;
 mod i18n;
 mod limits;
+mod metrics;
 mod node_ws;
 mod openai;
 mod proto;
@@ -75,6 +76,7 @@ async fn main() -> Result<()> {
     let cache: cache::SharedCache = Arc::new(RwLock::new(cache::Cache::default()));
     let changed = Arc::new(Notify::new());
     let audit = Arc::new(audit::Audit::default());
+    let metrics = Arc::new(metrics::Metrics::default());
     let (ready_tx, ready_rx) = watch::channel(false);
     let usage = Arc::new(usage::Usage::new(cfg.usage_max_buckets, cfg.usage_max_age_secs));
 
@@ -92,6 +94,7 @@ async fn main() -> Result<()> {
         registry: Default::default(),
         usage: usage.clone(),
         audit: audit.clone(),
+        metrics: metrics.clone(),
         signing_key: cfg.signing_key,
         next_key: cfg.next_key,
         limiter: Default::default(),
@@ -110,6 +113,7 @@ async fn main() -> Result<()> {
     tokio::spawn(cache::run(db.clone(), cache, changed, Arc::new(ready_tx)));
     tokio::spawn(usage::flush_loop(usage.clone(), db.clone()));
     tokio::spawn(audit::flush_loop(audit.clone(), db.clone()));
+    tokio::spawn(metrics::flush_loop(metrics.clone(), db.clone()));
     tokio::spawn(node_ws::reconcile_loop(app.clone()));
     tokio::spawn(node_ws::heartbeat_loop(app.clone()));
     tokio::spawn(cluster::instance_loop(app.clone()));
@@ -152,6 +156,7 @@ async fn main() -> Result<()> {
 
     // Flush the usage counters and leave the directory before exiting.
     usage.flush(&db).await;
+    metrics.flush(&db).await;
     cluster::leave(&app).await;
     Ok(())
 }

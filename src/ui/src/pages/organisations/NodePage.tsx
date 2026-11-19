@@ -22,6 +22,7 @@ import { useToast } from '../../components/feedback/useToast';
 import { NodeStatusBadge } from '../../components/status/StatusBadge';
 import { formatAgo, formatBytes } from '../../lib/format';
 import { isAdmin } from '../../lib/roles';
+import { MetricsView } from './MetricsView';
 import { useOrganisationContext } from './OrganisationLayout';
 
 const useStyles = makeStyles({
@@ -246,6 +247,11 @@ export function NodePage() {
                   )
                 }
               />
+
+              <section className={styles.section}>
+                <Subtitle1>{t('metrics.title')}</Subtitle1>
+                <MetricsView orgId={org.id} nodeId={node.id} />
+              </section>
 
               <section className={styles.section}>
                 <Subtitle1>{t('nodes.live')}</Subtitle1>

@@ -15,6 +15,7 @@ import { PoolPage } from './pages/organisations/PoolPage';
 import { PoolsTab } from './pages/organisations/PoolsTab';
 import { AuditPage } from './pages/organisations/AuditPage';
 import { UsageTab } from './pages/organisations/UsageTab';
+import { MetricsTab } from './pages/organisations/MetricsTab';
 import { Playground } from './pages/Playground';
 import { UserSettings } from './pages/UserSettings';
 
@@ -37,6 +38,7 @@ export function App() {
             <Route path="api-keys" element={<ApiKeysPage />} />
             <Route path="members" element={<MembersTab />} />
             <Route path="usage" element={<UsageTab />} />
+            <Route path="metrics" element={<MetricsTab />} />
             <Route path="audit" element={<AuditPage />} />
             <Route path="settings" element={<OrganisationSettingsTab />} />
           </Route>

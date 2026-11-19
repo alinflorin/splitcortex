@@ -3,8 +3,11 @@ import { Body1, Dropdown, Field, Option, makeStyles, tokens } from '@fluentui/re
 import { useTranslation } from 'react-i18next';
 import { useUsage } from '../../api/hooks';
 import type { UsageParams } from '../../api/hooks';
+import type { Usage } from '../../api/schemas';
 import { QueryBoundary } from '../../components/QueryBoundary';
 import { CardList, ItemCard, Stat, StatRow } from '../../components/cards/cards';
+import { ChartCard } from '../../components/charts/TimeCharts';
+import type { ChartSeries } from '../../components/charts/TimeCharts';
 
 const HOUR = 3_600_000;
 const RANGES = { '24h': 24 * HOUR, '7d': 7 * 24 * HOUR, '30d': 30 * 24 * HOUR } as const;
@@ -41,6 +44,31 @@ export function UsageView({ orgId, poolId }: { orgId: string; poolId?: string })
   });
 
   const number = new Intl.NumberFormat(i18n.language);
+  // One point per period: groups are summed, the cards below keep the split.
+  const perPeriod = (rows: Usage['series'], pick: (p: Usage['series'][number]) => number) => {
+    const sums = new Map<string, number>();
+    for (const p of rows) sums.set(p.bucket, (sums.get(p.bucket) ?? 0) + pick(p));
+    return [...sums].map(([at, value]) => ({ at, value }));
+  };
+  const charts = (rows: Usage['series']): { title: string; series: ChartSeries[] }[] => [
+    {
+      title: t('usage.requests'),
+      series: [
+        {
+          name: t('usage.requests'),
+          points: perPeriod(rows, (p) => p.requests - p.errors),
+        },
+        { name: t('usage.errors'), points: perPeriod(rows, (p) => p.errors) },
+      ],
+    },
+    {
+      title: t('metrics.tokens'),
+      series: [
+        { name: t('usage.tokensIn'), points: perPeriod(rows, (p) => p.tokensIn) },
+        { name: t('usage.tokensOut'), points: perPeriod(rows, (p) => p.tokensOut) },
+      ],
+    },
+  ];
   const when = (iso: string) =>
     new Date(iso).toLocaleString(i18n.language, {
       dateStyle: 'medium',
@@ -97,22 +125,29 @@ export function UsageView({ orgId, poolId }: { orgId: string; poolId?: string })
             {usage.series.length === 0 ? (
               <Body1 className={styles.muted}>{t('usage.empty')}</Body1>
             ) : (
-              <CardList>
-                {usage.series.map((p) => (
-                  <ItemCard
-                    key={`${p.bucket}|${p.group ?? ''}`}
-                    title={when(p.bucket)}
-                    subtitle={p.group ?? undefined}
-                  >
-                    <StatRow>
-                      <Stat label={t('usage.requests')} value={number.format(p.requests)} />
-                      <Stat label={t('usage.tokensIn')} value={number.format(p.tokensIn)} />
-                      <Stat label={t('usage.tokensOut')} value={number.format(p.tokensOut)} />
-                      <Stat label={t('usage.errors')} value={number.format(p.errors)} />
-                    </StatRow>
-                  </ItemCard>
-                ))}
-              </CardList>
+              <>
+                <CardList variant="grid">
+                  {charts(usage.series).map((c) => (
+                    <ChartCard key={c.title} title={c.title} series={c.series} stacked />
+                  ))}
+                </CardList>
+                <CardList>
+                  {usage.series.map((p) => (
+                    <ItemCard
+                      key={`${p.bucket}|${p.group ?? ''}`}
+                      title={when(p.bucket)}
+                      subtitle={p.group ?? undefined}
+                    >
+                      <StatRow>
+                        <Stat label={t('usage.requests')} value={number.format(p.requests)} />
+                        <Stat label={t('usage.tokensIn')} value={number.format(p.tokensIn)} />
+                        <Stat label={t('usage.tokensOut')} value={number.format(p.tokensOut)} />
+                        <Stat label={t('usage.errors')} value={number.format(p.errors)} />
+                      </StatRow>
+                    </ItemCard>
+                  ))}
+                </CardList>
+              </>
             )}
           </div>
         )}

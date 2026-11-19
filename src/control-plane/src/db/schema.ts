@@ -403,3 +403,63 @@ export const auditLogs = pgTable(
     index('audit_logs_time_idx').on(t.occurredAt),
   ],
 );
+
+/**
+ * Per-organisation operational metrics of the gateway, one row per minute and pool, written by the gateway only (in
+ * additive batches, never fail-closed). Requests, errors and tokens live in `usage_records`; this holds what that
+ * lacks: requests refused by limits (429), requests no node could serve (502/503), latency histograms and the peak
+ * in-flight count. Histograms are counts per bucket (bounds in `dto/metrics.ts`), so rows of several gateway instances
+ * and several minutes add up exactly. No prompts, completions or key material. Pruned by `control-plane-metrics-prune`
+ * (default 7 days).
+ */
+export const poolMetrics = pgTable(
+  'pool_metrics',
+  {
+    bucket: timestamp('bucket', { withTimezone: true }).notNull(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    poolId: uuid('pool_id').notNull(),
+    rateLimited: bigint('rate_limited', { mode: 'number' }).notNull().default(0),
+    unavailable: bigint('unavailable', { mode: 'number' }).notNull().default(0),
+    peakInFlight: integer('peak_in_flight').notNull().default(0),
+    /** Total request duration, counts per bucket. */
+    latencyHist: integer('latency_hist').array().notNull(),
+    /** Time until the first node event, counts per bucket. */
+    ttftHist: integer('ttft_hist').array().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.bucket, t.orgId, t.poolId] }),
+    index('pool_metrics_org_bucket_idx').on(t.orgId, t.bucket),
+    index('pool_metrics_bucket_idx').on(t.bucket),
+  ],
+);
+
+/**
+ * Telemetry history of single nodes, one row per node and minute (the last report of that minute), written by the
+ * gateway from the nodes' `Telemetry` messages. `org_id`/`pool_id` are the node's at the time. Pruned together with
+ * `pool_metrics`.
+ */
+export const nodeMetrics = pgTable(
+  'node_metrics',
+  {
+    bucket: timestamp('bucket', { withTimezone: true }).notNull(),
+    nodeId: uuid('node_id').notNull(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    poolId: uuid('pool_id').notNull(),
+    cpuPercent: doublePrecision('cpu_percent'),
+    memoryUsedMb: integer('memory_used_mb'),
+    batteryPercent: integer('battery_percent'),
+    charging: boolean('charging'),
+    temperatureC: doublePrecision('temperature_c'),
+    inFlight: integer('in_flight').notNull().default(0),
+    tokensPerSec: doublePrecision('tokens_per_sec'),
+  },
+  (t) => [
+    primaryKey({ columns: [t.bucket, t.nodeId] }),
+    index('node_metrics_org_bucket_idx').on(t.orgId, t.bucket),
+    index('node_metrics_bucket_idx').on(t.bucket),
+  ],
+);

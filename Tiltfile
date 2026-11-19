@@ -84,13 +84,14 @@ k8s_yaml(local(
     '--show-only templates/control-plane-deployment.yaml --show-only templates/control-plane-service.yaml ' +
     '--show-only templates/control-plane-ingress.yaml --show-only templates/control-plane-migrate-job.yaml ' +
     '--show-only templates/garage-bootstrap-job.yaml --show-only templates/control-plane-sweep-cronjob.yaml ' +
-    '--show-only templates/control-plane-audit-prune-cronjob.yaml ' +
+    '--show-only templates/control-plane-audit-prune-cronjob.yaml --show-only templates/control-plane-metrics-prune-cronjob.yaml ' +
     '--set controlPlane.readOnlyRootFilesystem=false ' +
     # The dev image has no build output: run the migrator through tsx (cwd is /app).
     "--set 'controlPlane.migrate.command={./node_modules/.bin/tsx,src/db/migrate.ts}' " +
     "--set 'garage.bootstrap.command={./node_modules/.bin/tsx,src/storage/bootstrap-cli.ts}' " +
     "--set 'controlPlane.sweep.command={./node_modules/.bin/tsx,src/storage/sweep-cli.ts}' " +
-    "--set 'controlPlane.auditPrune.command={./node_modules/.bin/tsx,src/db/audit-prune-cli.ts}'",
+    "--set 'controlPlane.auditPrune.command={./node_modules/.bin/tsx,src/db/audit-prune-cli.ts}' " +
+    "--set 'controlPlane.metricsPrune.command={./node_modules/.bin/tsx,src/db/metrics-prune-cli.ts}'",
     quiet=True,
 ))
 # The chart runs migrations as a Helm hook (post-install/pre-upgrade); under Tilt it is a plain Job that must
@@ -102,6 +103,8 @@ k8s_resource('garage-bootstrap', resource_deps=['chart'], labels=['apps'])
 k8s_resource('control-plane-sweep', resource_deps=['chart'], labels=['apps'], auto_init=False)
 # Audit log retention CronJob (daily; trigger it manually from the Tilt UI).
 k8s_resource('control-plane-audit-prune', resource_deps=['chart'], labels=['apps'], auto_init=False)
+# Metrics retention CronJob (hourly; trigger it manually from the Tilt UI).
+k8s_resource('control-plane-metrics-prune', resource_deps=['chart'], labels=['apps'], auto_init=False)
 k8s_resource('control-plane', resource_deps=['chart', 'control-plane-migrate', 'garage-bootstrap', 'gateway-identity'], labels=['apps'],
              links=['https://app.splitcortex.127.0.0.1.nip.io/api/docs'])
 
