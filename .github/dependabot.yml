@@ -2,16 +2,23 @@
 version: 2
 
 # Public Helm repos that Dependabot's egress proxy blocks unless declared here.
+# The schema requires credentials; these repos are public, so placeholders are fine.
 registries:
   helm-dex:
     type: helm-registry
     url: https://charts.dexidp.io
+    username: anonymous
+    password: anonymous
   helm-groundhog2k:
     type: helm-registry
     url: https://groundhog2k.github.io/helm-charts
+    username: anonymous
+    password: anonymous
   helm-derwitt:
     type: helm-registry
     url: https://charts.derwitt.dev
+    username: anonymous
+    password: anonymous
 
 updates:
   # ---------- pnpm projects (the "npm" ecosystem covers pnpm lockfiles) ----------
