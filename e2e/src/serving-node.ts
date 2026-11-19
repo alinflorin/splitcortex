@@ -47,7 +47,12 @@ export interface ServingNode {
 export async function startServingNode(): Promise<ServingNode> {
   expect(existsSync(bin), `no CLI binary at ${bin} (set E2E_CLI_BIN)`).toBe(true);
   const home = mkdtempSync(join(tmpdir(), 'splitcortex-cli-e2e-'));
-  const env = { ...process.env, SPLITCORTEX_HOME: home, SPLITCORTEX_URL: appUrl };
+  const env = {
+    ...process.env,
+    SPLITCORTEX_HOME: home,
+    SPLITCORTEX_URL: appUrl,
+    RUST_LOG: process.env.RUST_LOG ?? 'info',
+  };
   const file = await ensureModelFile(); // cached between runs, downloaded when missing
   const ws = await createWorkspace();
   const model = await ws.serveModel(MODEL, file);
@@ -74,7 +79,7 @@ export async function startServingNode(): Promise<ServingNode> {
           if (serving?.exitCode !== null) throw new Error(`run exited early:\n${stderr}`);
           const r = await chat(secret, { max_tokens: 1 });
           if (r.status === 404 || r.status === 503) return undefined;
-          expect(r.status, stderr).toBe(200);
+          expect(r.status, `${await r.clone().text()}\n${stderr}`).toBe(200);
           return true;
         },
         240_000,

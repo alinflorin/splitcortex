@@ -295,6 +295,17 @@ jobs:
           packages: webkit2gtk-driver xvfb
           execute_install_scripts: true
           version: 1
+      # tauri-driver needs WebKitWebDriver on the PATH. The cached restore does not always leave it there (the alternatives
+      # symlink is made by a post-install script), so find it, and install the package normally if it is not on disk at all.
+      - name: Put WebKitWebDriver on the PATH
+        run: |
+          find_driver() { command -v WebKitWebDriver || find /usr/lib /usr/libexec -name WebKitWebDriver -type f 2>/dev/null | head -1; }
+          p="$(find_driver)"
+          if [ -z "$p" ]; then sudo apt-get update && sudo apt-get install -y webkit2gtk-driver; p="$(find_driver)"; fi
+          [ -n "$p" ] || { echo "::error::WebKitWebDriver not found"; exit 1; }
+          echo "WebKitWebDriver: $p"
+          [ "$(command -v WebKitWebDriver)" = "$p" ] || sudo ln -sf "$p" /usr/local/bin/WebKitWebDriver
+          command -v WebKitWebDriver
       - name: Install the desktop app (newest release's .deb) and the WebDriver
         working-directory: .
         env:
