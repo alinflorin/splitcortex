@@ -287,6 +287,14 @@ jobs:
           cache-dependency-path: e2e/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
 
+      # Cached .debs; execute_install_scripts runs the post-install scripts (library symlinks, ldconfig). If a run ever fails to
+      # find webkit libraries, bump `version` (the action saves whatever it installed, even after a failed download).
+      - name: Install the WebDriver and Xvfb (cached)
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: webkit2gtk-driver xvfb
+          execute_install_scripts: true
+          version: 1
       - name: Install the desktop app (newest release's .deb) and the WebDriver
         working-directory: .
         env:
@@ -297,8 +305,9 @@ jobs:
           fi
           echo "Testing $tag"
           gh release download "$tag" --pattern '*_amd64.deb' --dir "$RUNNER_TEMP/desktop"
-          sudo apt-get update
-          sudo apt-get install -y "$RUNNER_TEMP"/desktop/*_amd64.deb webkit2gtk-driver xvfb
+          # The .deb is a local file the cache cannot hold; its dependencies are normally on the runner already, so refresh the
+          # package index only if installing it fails.
+          sudo apt-get install -y "$RUNNER_TEMP"/desktop/*_amd64.deb || { sudo apt-get update && sudo apt-get install -y "$RUNNER_TEMP"/desktop/*_amd64.deb; }
           echo "E2E_DESKTOP_BIN=/usr/bin/splitcortex-desktop-node" >> "$GITHUB_ENV"
       - name: Cache tauri-driver
         id: driver
