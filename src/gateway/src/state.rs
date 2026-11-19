@@ -17,6 +17,8 @@ pub struct AppState {
     pub cache: SharedCache,
     pub registry: Registry,
     pub usage: Arc<Usage>,
+    /// Audit events (security and lifecycle, never per request), flushed to `audit_logs`.
+    pub audit: Arc<crate::audit::Audit>,
     pub signing_key: SigningKey,
     /// The key announced to devices during a rotation (see docs/gateway.md).
     pub next_key: Option<SigningKey>,

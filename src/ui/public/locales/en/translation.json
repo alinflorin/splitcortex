@@ -444,7 +444,8 @@
     "usage": "Usage",
     "settings": "Settings",
     "models": "Models",
-    "apiKeys": "API keys"
+    "apiKeys": "API keys",
+    "audit": "Audit log"
   },
   "nodes": {
     "status": {
@@ -697,5 +698,70 @@
     "deleteTitle": "Delete your account?",
     "deleteMessage": "This removes you from all your organisations and cannot be undone. Your sign-in itself is not affected: you can sign in again and start fresh. You cannot delete your account while you are the only owner of an organisation.",
     "deleted": "Account deleted"
+  },
+  "audit": {
+    "title": "Audit log",
+    "subtitle": "Who changed what in this organisation, and what the gateway refused. Kept for 90 days.",
+    "category": "Category",
+    "outcome": "Outcome",
+    "empty": "Nothing recorded for these filters.",
+    "loadMore": "Load more",
+    "gateway": "Gateway",
+    "categories": {
+      "all": "All",
+      "organisation": "Organisation",
+      "member": "Members",
+      "pool": "Pools",
+      "node": "Nodes",
+      "model": "Models",
+      "api_key": "API keys",
+      "enrollment": "Enrollment",
+      "benchmark": "Benchmarks",
+      "limit": "Limits"
+    },
+    "outcomes": {
+      "all": "All",
+      "success": "Success",
+      "denied": "Denied",
+      "failed": "Failed"
+    },
+    "actors": {
+      "user": "User",
+      "api_key": "API key",
+      "node": "Node",
+      "system": "System"
+    },
+    "actions": {
+      "organisation.create": "Organisation created",
+      "organisation.update": "Organisation updated",
+      "member.add": "Member added",
+      "member.update": "Member role changed",
+      "member.remove": "Member removed",
+      "pool.create": "Pool created",
+      "pool.update": "Pool updated",
+      "pool.delete": "Pool deleted",
+      "pool.model_assign": "Model assigned to pool",
+      "pool.model_unassign": "Model removed from pool",
+      "node.update": "Node updated",
+      "node.delete": "Node removed",
+      "node.enroll": "Node enrolled",
+      "node.connected": "Node connected",
+      "node.disconnected": "Node disconnected",
+      "node.connect_rejected": "Node connection refused",
+      "model.create": "Model added from a link",
+      "model.upload_start": "Model upload started",
+      "model.upload_complete": "Model upload completed",
+      "model.retry": "Model download retried",
+      "model.delete": "Model deleted",
+      "api_key.create": "API key created",
+      "api_key.update": "API key updated",
+      "api_key.delete": "API key revoked or deleted",
+      "api_key.rejected": "Revoked or expired API key used",
+      "limit.exceeded": "Rate limit reached",
+      "enrollment.create": "Enrollment code created",
+      "enrollment.delete": "Enrollment code cancelled",
+      "benchmark.run": "Benchmark started",
+      "benchmark.delete": "Benchmark deleted"
+    }
   }
 }

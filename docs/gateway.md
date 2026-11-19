@@ -63,6 +63,10 @@ Control plane creates a `benchmarks` row + a `pending` `benchmark_results` row p
 - **Prometheus/OTel deferred.** If added: never key or org as a metric label, never prompts/completions in spans.
 - **Not built yet**: config-staleness fail-closed, tokenizer-based counting, `node_status` model progress, shared per-minute limit across instances.
 
+## Audit events
+
+`audit.rs` writes the gateway's events to `audit_logs` (the control plane writes the rest, see docs/control-plane.md): `node.connected`, `node.disconnected`, `node.connect_rejected` (not approved / bad signature; only for known node ids), `api_key.rejected` (revoked or expired key), `limit.exceeded`. **Never one row per request.** Events are buffered (5000, oldest dropped with a warning) and flushed every 5 s in one transaction straight to Postgres; unlike usage this is **not fail-closed**, audit never blocks serving. Repeats of the same (organisation, action, entity) within 60 s are folded: the next row carries `metadata.repeats`. Unknown key hashes and unknown node ids have no organisation and are not recorded; neither is drain (instance-wide). No IP yet (the gateway does not read forwarded headers). Rows of a deleted organisation are skipped.
+
 ## Verified
 
 Unit tests plus a scripted run against real Postgres (migrations applied): wrong key rejected, gateway proof valid, assignment pushed, non-stream and SSE chat, unknown model 404, usage row written, revoked node's socket closed. Since then the owner has run nodes on real hardware (details not recorded). Not run in a cluster.

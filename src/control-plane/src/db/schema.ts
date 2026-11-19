@@ -5,6 +5,7 @@ import {
   bigserial,
   boolean,
   index,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -367,3 +368,38 @@ export const usageFlushes = pgTable('usage_flushes', {
   batchId: uuid('batch_id').primaryKey(),
   createdAt: createdAt(),
 });
+
+/**
+ * Audit trail, visible to organisation admins. Written by the control plane (every API mutation, see
+ * plugins/audit.ts) and by the gateway (node and key security events, never per request). `org_id` is mandatory:
+ * every query is tenant-scoped. `actor_id` and `entity_id` are text because actors are emails, key ids or node ids.
+ * `metadata` never holds prompts, completions or key material. Pruned after 90 days by the `control-plane-audit-prune`
+ * CronJob.
+ */
+export const auditLogs = pgTable(
+  'audit_logs',
+  {
+    id: id(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+    /** `control_plane` or `gateway`. */
+    source: text('source').notNull(),
+    /** `user`, `api_key`, `node` or `system`. */
+    actorType: text('actor_type').notNull(),
+    actorId: text('actor_id'),
+    /** Dotted verb, e.g. `pool.create`, `member.role_change`, `node.connect_rejected`. */
+    action: text('action').notNull(),
+    entityType: text('entity_type'),
+    entityId: text('entity_id'),
+    /** `success`, `denied` or `failed`. */
+    outcome: text('outcome').notNull(),
+    ip: text('ip'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  },
+  (t) => [
+    index('audit_logs_org_time_idx').on(t.orgId, t.occurredAt.desc()),
+    index('audit_logs_time_idx').on(t.occurredAt),
+  ],
+);

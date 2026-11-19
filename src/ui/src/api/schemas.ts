@@ -78,6 +78,25 @@ export const usageSchema = z.object({
 });
 export type Usage = z.infer<typeof usageSchema>;
 
+export const auditEntrySchema = z.object({
+  id: z.string(),
+  occurredAt: z.string(),
+  source: z.enum(['control_plane', 'gateway']),
+  actorType: z.enum(['user', 'api_key', 'node', 'system']),
+  actorId: z.string().nullable(),
+  action: z.string(),
+  entityType: z.string().nullable(),
+  entityId: z.string().nullable(),
+  outcome: z.enum(['success', 'denied', 'failed']),
+  ip: z.string().nullable(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
+});
+export type AuditEntry = z.infer<typeof auditEntrySchema>;
+export const auditPageSchema = z.object({
+  items: z.array(auditEntrySchema),
+  nextCursor: z.string().nullable(),
+});
+
 // Form schemas (request bodies).
 export const slugSchema = z
   .string()

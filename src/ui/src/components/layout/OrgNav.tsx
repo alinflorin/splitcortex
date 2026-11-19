@@ -12,6 +12,7 @@ import {
   ArrowLeftRegular,
   KeyRegular,
   DataTrendingRegular,
+  HistoryRegular,
   BrainCircuitRegular,
   DeviceMeetingRoomRegular,
   PeopleRegular,
@@ -55,6 +56,9 @@ export function OrgNav({ orgId, go }: OrgNavProps) {
       : []),
     { to: `${base}/members`, key: 'members', Icon: PeopleRegular },
     { to: `${base}/usage`, key: 'usage', Icon: DataTrendingRegular },
+    ...(current && isAdmin(current.role)
+      ? [{ to: `${base}/audit`, key: 'audit', Icon: HistoryRegular }]
+      : []),
     ...(current && isAdmin(current.role)
       ? [{ to: `${base}/settings`, key: 'settings', Icon: SettingsRegular }]
       : []),

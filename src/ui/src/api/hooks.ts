@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { z } from 'zod';
@@ -7,6 +7,7 @@ import type { Method } from './client';
 import {
   apiKeyRequest,
   apiKeySchema,
+  auditPageSchema,
   benchmarkSchema,
   createdApiKeySchema,
   createdEnrollmentSchema,
@@ -227,6 +228,31 @@ export function useUsage(orgId: string, params: UsageParams) {
     enabled: req.ready,
     queryKey: keys.usage(orgId, qs),
     queryFn: () => req('GET', `/organisations/${orgId}/usage?${qs}`, usageSchema),
+  });
+}
+
+export interface AuditParams {
+  /** Exact action, or a prefix ending in a dot (`pool.`). */
+  action?: string;
+  outcome?: 'success' | 'denied' | 'failed';
+}
+
+/** Audit log pages, newest first (admins only; the server answers 403 otherwise). */
+export function useAuditLogs(orgId: string, params: AuditParams, enabled = true) {
+  const req = useRequest();
+  return useInfiniteQuery({
+    enabled: req.ready && enabled,
+    queryKey: ['organisations', orgId, 'audit', params] as const,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => {
+      const qs = new URLSearchParams(
+        Object.entries({ ...params, cursor: pageParam, limit: '30' }).filter(
+          (e): e is [string, string] => e[1] !== undefined,
+        ),
+      ).toString();
+      return req('GET', `/organisations/${orgId}/audit-logs?${qs}`, auditPageSchema);
+    },
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
 }
 

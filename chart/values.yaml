@@ -290,6 +290,12 @@ controlPlane:
     schedule: "17 3 * * *"   # daily
     maxAgeHours: 24
     command: [node, dist/storage/sweep-cli.js]   # Tilt overrides it to use tsx
+  # CronJob deleting audit log rows older than retentionDays (src/db/audit-prune.ts).
+  auditPrune:
+    enabled: true
+    schedule: "43 3 * * *"   # daily
+    retentionDays: 90
+    command: [node, dist/db/audit-prune-cli.js]   # Tilt overrides it to use tsx
   ingress:
     enabled: true
     className: traefik   # keep equal to ingress.className

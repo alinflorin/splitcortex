@@ -10,10 +10,12 @@ import {
 } from 'fastify-type-provider-zod';
 import { sql } from 'drizzle-orm';
 import type { Db } from './db/client';
+import audit from './plugins/audit';
 import auth, { type VerifyToken } from './plugins/auth';
 import i18n from './plugins/i18n';
 import nodeAuth from './plugins/node-auth';
 import { apiKeyRoutes } from './routes/api-keys';
+import { auditRoutes } from './routes/audit';
 import { benchmarkRoutes } from './routes/benchmarks';
 import { enrollmentRoutes, type GatewayIdentity } from './routes/enrollment';
 import { memberRoutes } from './routes/members';
@@ -100,6 +102,7 @@ export async function buildApp({
   await app.register(i18n);
   await app.register(auth, { verify });
   await app.register(nodeAuth, { db });
+  await app.register(audit, { db });
 
   // Probes (not exposed through the ingress).
   app.get('/healthz', { schema: { hide: true } }, async () => ({ status: 'ok' }));
@@ -118,6 +121,7 @@ export async function buildApp({
       await api.register(modelRoutes, { db, storage });
       await api.register(nodeModelRoutes, { db, storage });
       await api.register(usageRoutes, { db });
+      await api.register(auditRoutes, { db });
       await api.register(apiKeyRoutes, { db });
       await api.register(benchmarkRoutes, { db });
       await api.register(enrollmentRoutes, { db, gateway });

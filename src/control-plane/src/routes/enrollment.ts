@@ -17,6 +17,7 @@ import {
   type EnrollmentDto,
 } from '../dto';
 import { requireOrgRole } from '../access';
+import { recordAudit } from '../db/audit';
 import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db } from '../db/client';
 import { enrollments, nodes, organisations, pools } from '../db/schema';
@@ -323,6 +324,16 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
           })
           .returning({ id: nodes.id });
         await tx.delete(enrollments).where(eq(enrollments.id, taken.id));
+        await recordAudit(tx, {
+          orgId: taken.orgId,
+          actorType: 'node',
+          actorId: node!.id,
+          action: 'node.enroll',
+          entityType: 'node',
+          entityId: node!.id,
+          ip: req.ip,
+          metadata: { poolId: taken.poolId, approved, platform: req2.platform },
+        });
         const seq = await recordConfigChange(tx, {
           entityType: 'node',
           entityId: node!.id,

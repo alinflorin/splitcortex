@@ -444,7 +444,8 @@
     "usage": "Utilizare",
     "settings": "Setări",
     "models": "Modele",
-    "apiKeys": "Chei API"
+    "apiKeys": "Chei API",
+    "audit": "Jurnal de audit"
   },
   "nodes": {
     "status": {
@@ -697,5 +698,70 @@
     "deleteTitle": "Ștergi contul?",
     "deleteMessage": "Ești eliminat din toate organizațiile și acțiunea nu poate fi anulată. Autentificarea în sine nu este afectată: te poți autentifica din nou și o iei de la zero. Nu poți șterge contul cât timp ești singurul proprietar al unei organizații.",
     "deleted": "Cont șters"
+  },
+  "audit": {
+    "title": "Jurnal de audit",
+    "subtitle": "Cine ce a schimbat în această organizație și ce a refuzat gateway-ul. Se păstrează 90 de zile.",
+    "category": "Categorie",
+    "outcome": "Rezultat",
+    "empty": "Nimic înregistrat pentru aceste filtre.",
+    "loadMore": "Încarcă mai multe",
+    "gateway": "Gateway",
+    "categories": {
+      "all": "Toate",
+      "organisation": "Organizație",
+      "member": "Membri",
+      "pool": "Pool-uri",
+      "node": "Noduri",
+      "model": "Modele",
+      "api_key": "Chei API",
+      "enrollment": "Înrolare",
+      "benchmark": "Benchmark-uri",
+      "limit": "Limite"
+    },
+    "outcomes": {
+      "all": "Toate",
+      "success": "Reușit",
+      "denied": "Refuzat",
+      "failed": "Eșuat"
+    },
+    "actors": {
+      "user": "Utilizator",
+      "api_key": "Cheie API",
+      "node": "Nod",
+      "system": "Sistem"
+    },
+    "actions": {
+      "organisation.create": "Organizație creată",
+      "organisation.update": "Organizație modificată",
+      "member.add": "Membru adăugat",
+      "member.update": "Rol de membru modificat",
+      "member.remove": "Membru eliminat",
+      "pool.create": "Pool creat",
+      "pool.update": "Pool modificat",
+      "pool.delete": "Pool șters",
+      "pool.model_assign": "Model atribuit unui pool",
+      "pool.model_unassign": "Model scos dintr-un pool",
+      "node.update": "Nod modificat",
+      "node.delete": "Nod eliminat",
+      "node.enroll": "Nod înrolat",
+      "node.connected": "Nod conectat",
+      "node.disconnected": "Nod deconectat",
+      "node.connect_rejected": "Conexiune de nod refuzată",
+      "model.create": "Model adăugat dintr-un link",
+      "model.upload_start": "Încărcare de model începută",
+      "model.upload_complete": "Încărcare de model finalizată",
+      "model.retry": "Descărcare de model reîncercată",
+      "model.delete": "Model șters",
+      "api_key.create": "Cheie API creată",
+      "api_key.update": "Cheie API modificată",
+      "api_key.delete": "Cheie API revocată sau ștearsă",
+      "api_key.rejected": "Cheie API revocată sau expirată folosită",
+      "limit.exceeded": "Limită de rată atinsă",
+      "enrollment.create": "Cod de înrolare creat",
+      "enrollment.delete": "Cod de înrolare anulat",
+      "benchmark.run": "Benchmark pornit",
+      "benchmark.delete": "Benchmark șters"
+    }
   }
 }

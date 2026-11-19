@@ -112,6 +112,20 @@ pub async fn localize(request: axum::extract::Request, next: axum::middleware::N
     }
 }
 
+/// Audit event about an API key (one row per key and minute at most, see `audit.rs`; never per request).
+fn key_event(app: &AppState, key: &KeyRec, action: &'static str, metadata: serde_json::Value) {
+    app.audit.record(crate::audit::Event {
+        org: key.org_id,
+        actor_type: "api_key",
+        actor_id: Some(key.id.to_string()),
+        action,
+        entity_type: "api_key",
+        entity_id: Some(key.id.to_string()),
+        outcome: "denied",
+        metadata,
+    });
+}
+
 fn unauthorized() -> ApiError {
     ApiError::new(
         StatusCode::UNAUTHORIZED,
@@ -158,7 +172,15 @@ async fn authenticate(app: &Arc<AppState>, headers: &HeaderMap) -> Result<KeyRec
             }
         }
     };
-    if key.revoked || key.expires_at.is_some_and(|e| e <= chrono::Utc::now()) {
+    let expired = key.expires_at.is_some_and(|e| e <= chrono::Utc::now());
+    if key.revoked || expired {
+        // The key is known, so the organisation is too (unknown keys have none and are not audited).
+        key_event(
+            app,
+            &key,
+            "api_key.rejected",
+            json!({ "reason": if key.revoked { "revoked" } else { "expired" } }),
+        );
         return Err(unauthorized());
     }
     touch(app, key.id);
@@ -647,6 +669,7 @@ pub async fn chat_core(
         ] {
             app.limiter.refresh_day(&app.db, subject, &limits).await;
             if let Err(r) = app.limiter.check(subject, &limits, now) {
+                key_event(&app, &key, "limit.exceeded", json!({ "what": r.what }));
                 return Err(ApiError::too_many(r.what, r.retry_after_secs));
             }
         }

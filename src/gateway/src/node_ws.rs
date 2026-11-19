@@ -11,6 +11,7 @@ use ed25519_dalek::{Signature, Signer, Verifier};
 use futures_util::{SinkExt, StreamExt};
 use prost::Message as _;
 use rand::RngCore;
+use serde_json::json;
 use tokio::sync::mpsc;
 use tracing::{debug, info};
 use uuid::Uuid;
@@ -39,6 +40,25 @@ fn signed(label: &[u8], parts: &[&[u8]]) -> Vec<u8> {
         m.extend_from_slice(p);
     }
     m
+}
+
+fn node_event(
+    app: &AppState,
+    rec: &crate::cache::NodeRec,
+    action: &'static str,
+    outcome: &'static str,
+    metadata: serde_json::Value,
+) {
+    app.audit.record(crate::audit::Event {
+        org: rec.org_id,
+        actor_type: "node",
+        actor_id: Some(rec.id.to_string()),
+        action,
+        entity_type: "node",
+        entity_id: Some(rec.id.to_string()),
+        outcome,
+        metadata,
+    });
 }
 
 fn env(body: Body) -> Envelope {
@@ -107,12 +127,23 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
         .get(&node_id)
         .cloned()
         .ok_or("auth failed")?;
+    // Unknown ids belong to no organisation and are not audited; a known node that is refused is.
+    let reject = |reason: &'static str| {
+        node_event(
+            &app,
+            &rec,
+            "node.connect_rejected",
+            "denied",
+            json!({ "reason": reason }),
+        );
+        "auth failed"
+    };
     if !rec.approved {
-        return Err("auth failed");
+        return Err(reject("not_approved"));
     }
-    let sig = Signature::from_slice(&auth.signature).map_err(|_| "auth failed")?;
+    let sig = Signature::from_slice(&auth.signature).map_err(|_| reject("bad_signature"))?;
     let msg = signed(NODE_HELLO, &[&server_nonce, &hello.nonce, hello.node_id.as_bytes()]);
-    rec.public_key.verify(&msg, &sig).map_err(|_| "auth failed")?;
+    rec.public_key.verify(&msg, &sig).map_err(|_| reject("bad_signature"))?;
 
     // Authenticated. Identity (org, pool) comes from the registered record.
     let (out_tx, mut out_rx) = mpsc::channel::<Outbound>(64);
@@ -146,6 +177,13 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
         });
     }
     set_connected(&app, node_id, true).await;
+    node_event(
+        &app,
+        &rec,
+        "node.connected",
+        "success",
+        json!({ "poolId": rec.pool_id }),
+    );
     info!(node = %node_id, "node connected");
 
     let (mut sink, mut stream) = socket.split();
@@ -220,6 +258,13 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
     if removed {
         set_connected(&app, node_id, false).await;
     }
+    node_event(
+        &app,
+        &rec,
+        "node.disconnected",
+        "success",
+        json!({ "poolId": rec.pool_id }),
+    );
     info!(node = %node_id, "node disconnected");
     result
 }

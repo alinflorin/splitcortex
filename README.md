@@ -12,6 +12,7 @@ SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry
 - **API gateway**: the platform is the single public entry point. It authenticates requests, load-balances them across the nodes in a pool, and manages model distribution.
 - **Device nodes**: endpoint devices keep a persistent WebSocket connection (protobuf messages) to the gateway over TLS, with no message broker. The gateway pushes work down this connection, so devices do not need to be publicly reachable.
 - **Usage tracking and limits**: token usage is metered per key, pool and organisation, with configurable limits.
+- **Audit log**: who changed what in an organisation, and what the gateway refused (nodes, revoked keys, limits), kept 90 days and visible to organisation admins only.
 - **Dashboards and config pages**: usage, node health, pool state, and settings in the web UI.
 
 ## Architecture (high level)

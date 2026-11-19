@@ -42,6 +42,7 @@ export const en = {
   'errors.deviceKeyRegistered': 'This device key is already registered',
   'errors.nodeNotFound': 'Node not found',
   'errors.fromBeforeTo': '`from` must be before `to`',
+  'errors.invalidCursor': 'Invalid cursor',
   'errors.rangeLimit': 'Range is limited to {{days}} days',
 } as const;
 
@@ -86,6 +87,7 @@ export const ro: Record<MessageKey, string> = {
   'errors.deviceKeyRegistered': 'Această cheie de dispozitiv este deja înregistrată',
   'errors.nodeNotFound': 'Nodul nu a fost găsit',
   'errors.fromBeforeTo': '`from` trebuie să fie înainte de `to`',
+  'errors.invalidCursor': 'Cursor invalid',
   'errors.rangeLimit': 'Intervalul este limitat la {{days}} zile',
 };
 
