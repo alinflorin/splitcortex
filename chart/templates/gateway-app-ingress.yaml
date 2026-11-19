@@ -20,11 +20,11 @@ spec:
   ingressClassName: {{ .Values.gateway.appIngress.className }}
   {{- with .Values.gateway.appIngress.tls }}
   tls:
-    {{- toYaml . | nindent 4 }}
+    {{- tpl (toYaml .) $ | nindent 4 }}
   {{- end }}
   rules:
     {{- range .Values.gateway.appIngress.hosts }}
-    - host: {{ .host | quote }}
+    - host: {{ tpl .host $ | quote }}
       http:
         paths:
           {{- range .paths }}

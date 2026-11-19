@@ -15,11 +15,11 @@ spec:
   ingressClassName: {{ .Values.webNode.ingress.className }}
   {{- with .Values.webNode.ingress.tls }}
   tls:
-    {{- toYaml . | nindent 4 }}
+    {{- tpl (toYaml .) $ | nindent 4 }}
   {{- end }}
   rules:
     {{- range .Values.webNode.ingress.hosts }}
-    - host: {{ .host | quote }}
+    - host: {{ tpl .host $ | quote }}
       http:
         paths:
           {{- range .paths }}

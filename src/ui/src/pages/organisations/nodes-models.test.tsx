@@ -189,6 +189,7 @@ describe('node view', () => {
       servingType: 'replicated' as const,
       balancingType: 'weighted_p2c' as const,
       onlineNodes: 0,
+      totalNodes: 0,
       createdAt: '2026-01-01T00:00:00.000Z',
     };
     await renderWithApi(<PoolNodes pool={pool} />);
@@ -279,6 +280,7 @@ describe('device enrollment', () => {
     servingType: 'replicated' as const,
     balancingType: 'weighted_p2c' as const,
     onlineNodes: 0,
+    totalNodes: 0,
     createdAt: '2026-01-01T00:00:00.000Z',
   };
   const created = {

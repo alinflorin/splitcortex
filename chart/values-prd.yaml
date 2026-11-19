@@ -1,3 +1,6 @@
+global:
+  domain: prd.splitcortex.com
+
 # Enables the `letsencrypt` ClusterIssuer (Let's Encrypt production).
 # Placeholder substituted at deploy time (`envsubst '$LETSENCRYPT_EMAIL'`, from a CI variable); never commit the real value.
 letsencryptEmail: "${LETSENCRYPT_EMAIL}"
@@ -9,17 +12,7 @@ dex:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
-    hosts:
-      - host: dex.prd.splitcortex.com
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: dex-tls
-        hosts:
-          - dex.prd.splitcortex.com
   config:
-    issuer: https://dex.prd.splitcortex.com
     # Google client credentials: placeholders substituted at deploy time (GitHub environment secrets
     # GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET); never commit the real values.
     connectors:
@@ -29,7 +22,7 @@ dex:
         config:
           clientID: "${GOOGLE_CLIENT_ID}"
           clientSecret: "${GOOGLE_CLIENT_SECRET}"
-          redirectURI: https://dex.prd.splitcortex.com/callback
+          redirectURI: "https://dex.{{ .Values.global.domain }}/callback"
     web:
       http: 0.0.0.0:5556
     staticClients:
@@ -37,8 +30,8 @@ dex:
         name: SplitCortex Web
         public: true
         redirectURIs:
-          - https://app.prd.splitcortex.com/
-          - https://app.prd.splitcortex.com/api/docs/static/oauth2-redirect.html
+          - "https://app.{{ .Values.global.domain }}/"
+          - "https://app.{{ .Values.global.domain }}/api/docs/static/oauth2-redirect.html"
 
 ui:
   image:
@@ -46,15 +39,6 @@ ui:
   ingress:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt
-    hosts:
-      - host: app.prd.splitcortex.com
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: ui-tls
-        hosts:
-          - app.prd.splitcortex.com
 
 webNode:
   image:
@@ -62,15 +46,6 @@ webNode:
   ingress:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt
-    hosts:
-      - host: web-node.prd.splitcortex.com
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: web-node-tls
-        hosts:
-          - web-node.prd.splitcortex.com
 
 gateway:
   image:
@@ -78,48 +53,10 @@ gateway:
   ingress:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt
-    hosts:
-      - host: gateway.prd.splitcortex.com
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: gateway-tls
-        hosts:
-          - gateway.prd.splitcortex.com
-  appIngress:
-    hosts:
-      - host: app.prd.splitcortex.com
-        paths:
-          - path: /v1
-            pathType: Prefix
-    tls:
-      - secretName: ui-tls
-        hosts:
-          - app.prd.splitcortex.com
 
 controlPlane:
-  gateway:
-    url: wss://gateway.prd.splitcortex.com/node
   image:
     repository: ghcr.io/alinflorin/splitcortex-control-plane
-  ingress:
-    hosts:
-      - host: app.prd.splitcortex.com
-        paths:
-          - path: /api
-            pathType: Prefix
-      - host: web-node.prd.splitcortex.com
-        paths:
-          - path: /api
-            pathType: Prefix
-    tls:
-      - secretName: ui-tls
-        hosts:
-          - app.prd.splitcortex.com
-      - secretName: web-node-tls
-        hosts:
-          - web-node.prd.splitcortex.com
 
 dev:
   coredns:

@@ -351,8 +351,7 @@
   "pools": {
     "live": "Cel puțin un nod este online",
     "noLive": "Niciun nod online",
-    "onlineCount_one": "{{count}} nod online",
-    "onlineCount_other": "{{count}} noduri online",
+    "onlineCount": "{{online}} / {{total}} noduri online",
     "title": "Pool-uri",
     "new": "Pool nou",
     "edit": "Editează pool-ul",

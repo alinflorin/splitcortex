@@ -59,6 +59,7 @@ export const poolSchema = z.object({
   servingType: servingTypeSchema,
   balancingType: balancingTypeSchema,
   onlineNodes: z.number(),
+  totalNodes: z.number(),
   createdAt: z.string(),
 });
 export type Pool = z.infer<typeof poolSchema>;

@@ -1,0 +1,14 @@
+{{- if .Values.dex.enabled }}
+{{- /* Dex's own chart writes `config` verbatim; rendering it here lets it use {{ .Values.domain }} (tpl). Name must equal dex.configSecret.name. */}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.dex.configSecret.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dex
+type: Opaque
+data:
+  config.yaml: {{ tpl (toYaml .Values.dex.config) . | b64enc | quote }}
+{{- end }}

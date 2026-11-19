@@ -74,7 +74,7 @@ app.kubernetes.io/component: {{ .component }}
 - name: TRUSTED_PROXY_HOPS
   value: {{ .Values.controlPlane.trustedProxyHops | quote }}
 - name: OIDC_ISSUER
-  value: {{ .Values.dex.config.issuer | quote }}
+  value: {{ tpl .Values.dex.config.issuer . | quote }}
 - name: OIDC_AUDIENCE
   value: {{ .Values.controlPlane.oidc.audience | quote }}
 {{- $jwks := .Values.controlPlane.oidc.jwksUrl }}
@@ -88,7 +88,7 @@ app.kubernetes.io/component: {{ .component }}
 {{- if .Values.controlPlane.gateway.url }}
 {{- /* Gateway handed to devices at enrollment (public values only). The key comes from the Secret the identity Job created. */}}
 - name: GATEWAY_WSS_URL
-  value: {{ .Values.controlPlane.gateway.url | quote }}
+  value: {{ tpl .Values.controlPlane.gateway.url . | quote }}
 {{- if .Values.gateway.enabled }}
 - name: GATEWAY_PUBLIC_KEY
   valueFrom:

@@ -16,14 +16,29 @@ import { apiKeyPools, nodeStatus, nodes, pools } from '../db/schema';
 import { isUniqueViolation } from '../errors';
 import { LIVE_STALENESS_MS } from './nodes';
 
-const toDto = (p: typeof pools.$inferSelect, online: Map<string, number> = new Map()) => ({
+interface PoolCounts {
+  online: Map<string, number>;
+  total: Map<string, number>;
+}
+
+const toDto = (
+  p: typeof pools.$inferSelect,
+  counts: PoolCounts = { online: new Map(), total: new Map() },
+) => ({
   ...p,
-  onlineNodes: online.get(p.id) ?? 0,
+  onlineNodes: counts.online.get(p.id) ?? 0,
+  totalNodes: counts.total.get(p.id) ?? 0,
   createdAt: p.createdAt.toISOString(),
 });
 
-/** Online node count per pool of an organisation (same rule as a node's `online` status). */
-async function onlineByPool(db: Db, orgId: string) {
+/** Online and total (approved) node counts per pool of an organisation (online = same rule as a node's `online` status). */
+async function nodeCountsByPool(db: Db, orgId: string): Promise<PoolCounts> {
+  const approved = await db
+    .select({ poolId: nodes.poolId })
+    .from(nodes)
+    .where(and(eq(nodes.orgId, orgId), eq(nodes.approved, true)));
+  const total = new Map<string, number>();
+  for (const r of approved) total.set(r.poolId, (total.get(r.poolId) ?? 0) + 1);
   const rows = await db
     .select({ poolId: nodes.poolId })
     .from(nodes)
@@ -36,9 +51,9 @@ async function onlineByPool(db: Db, orgId: string) {
         gt(nodeStatus.updatedAt, new Date(Date.now() - LIVE_STALENESS_MS)),
       ),
     );
-  const counts = new Map<string, number>();
-  for (const r of rows) counts.set(r.poolId, (counts.get(r.poolId) ?? 0) + 1);
-  return counts;
+  const online = new Map<string, number>();
+  for (const r of rows) online.set(r.poolId, (online.get(r.poolId) ?? 0) + 1);
+  return { online, total };
 }
 
 export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db }) => {
@@ -56,7 +71,7 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
     },
     async (req) => {
       await requireOrgRole(app, db, req, req.params.orgId);
-      const online = await onlineByPool(db, req.params.orgId);
+      const online = await nodeCountsByPool(db, req.params.orgId);
       return (await db.select().from(pools).where(eq(pools.orgId, req.params.orgId))).map((p) =>
         toDto(p, online),
       );
@@ -127,7 +142,7 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
         .from(pools)
         .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)));
       if (!pool) throw app.httpErrors.notFound('errors.poolNotFound');
-      return toDto(pool, await onlineByPool(db, orgId));
+      return toDto(pool, await nodeCountsByPool(db, orgId));
     },
   );
 
@@ -166,7 +181,7 @@ export const poolRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
         });
         if (!result) throw app.httpErrors.notFound('errors.poolNotFound');
         await notifyConfigChange(db, result.seq);
-        return toDto(result.pool, await onlineByPool(db, orgId));
+        return toDto(result.pool, await nodeCountsByPool(db, orgId));
       } catch (err) {
         if (isUniqueViolation(err)) throw app.httpErrors.conflict('errors.poolNameTaken');
         throw err;

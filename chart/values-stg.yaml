@@ -1,3 +1,6 @@
+global:
+  domain: stg.splitcortex.alinflorinciu.qoffice.ro
+
 # Enables the `letsencrypt` ClusterIssuer (Let's Encrypt production).
 # Placeholder substituted at deploy time (`envsubst '$LETSENCRYPT_EMAIL'`, from a CI variable); never commit the real value.
 letsencryptEmail: "${LETSENCRYPT_EMAIL}"
@@ -11,17 +14,7 @@ dex:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
-    hosts:
-      - host: dex.stg.splitcortex.alinflorinciu.qoffice.ro
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: dex-tls
-        hosts:
-          - dex.stg.splitcortex.alinflorinciu.qoffice.ro
   config:
-    issuer: https://dex.stg.splitcortex.alinflorinciu.qoffice.ro
     connectors:
       - type: google
         id: google
@@ -29,7 +22,7 @@ dex:
         config:
           clientID: "${GOOGLE_CLIENT_ID}"
           clientSecret: "${GOOGLE_CLIENT_SECRET}"
-          redirectURI: https://dex.stg.splitcortex.alinflorinciu.qoffice.ro/callback
+          redirectURI: "https://dex.{{ .Values.global.domain }}/callback"
     # The user the end-to-end tests (e2e/) sign in with: GitHub `stg` environment secrets E2E_EMAIL and E2E_PASSWORD;
     # deploy.yaml bcrypt-hashes the password into E2E_PASSWORD_HASH. Placeholders, never commit real values.
     staticPasswords:
@@ -44,8 +37,8 @@ dex:
         name: SplitCortex Web
         public: true
         redirectURIs:
-          - https://app.stg.splitcortex.alinflorinciu.qoffice.ro/
-          - https://app.stg.splitcortex.alinflorinciu.qoffice.ro/api/docs/static/oauth2-redirect.html
+          - "https://app.{{ .Values.global.domain }}/"
+          - "https://app.{{ .Values.global.domain }}/api/docs/static/oauth2-redirect.html"
 
 ui:
   image:
@@ -53,15 +46,6 @@ ui:
   ingress:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt
-    hosts:
-      - host: app.stg.splitcortex.alinflorinciu.qoffice.ro
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: ui-tls
-        hosts:
-          - app.stg.splitcortex.alinflorinciu.qoffice.ro
 
 webNode:
   image:
@@ -69,15 +53,6 @@ webNode:
   ingress:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt
-    hosts:
-      - host: web-node.stg.splitcortex.alinflorinciu.qoffice.ro
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: web-node-tls
-        hosts:
-          - web-node.stg.splitcortex.alinflorinciu.qoffice.ro
 
 gateway:
   image:
@@ -85,48 +60,10 @@ gateway:
   ingress:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt
-    hosts:
-      - host: gateway.stg.splitcortex.alinflorinciu.qoffice.ro
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: gateway-tls
-        hosts:
-          - gateway.stg.splitcortex.alinflorinciu.qoffice.ro
-  appIngress:
-    hosts:
-      - host: app.stg.splitcortex.alinflorinciu.qoffice.ro
-        paths:
-          - path: /v1
-            pathType: Prefix
-    tls:
-      - secretName: ui-tls
-        hosts:
-          - app.stg.splitcortex.alinflorinciu.qoffice.ro
 
 controlPlane:
-  gateway:
-    url: wss://gateway.stg.splitcortex.alinflorinciu.qoffice.ro/node
   image:
     repository: ghcr.io/alinflorin/splitcortex-control-plane
-  ingress:
-    hosts:
-      - host: app.stg.splitcortex.alinflorinciu.qoffice.ro
-        paths:
-          - path: /api
-            pathType: Prefix
-      - host: web-node.stg.splitcortex.alinflorinciu.qoffice.ro
-        paths:
-          - path: /api
-            pathType: Prefix
-    tls:
-      - secretName: ui-tls
-        hosts:
-          - app.stg.splitcortex.alinflorinciu.qoffice.ro
-      - secretName: web-node-tls
-        hosts:
-          - web-node.stg.splitcortex.alinflorinciu.qoffice.ro
 
 dev:
   coredns:

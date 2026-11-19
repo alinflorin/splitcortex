@@ -59,8 +59,17 @@ postgres:
   storage:
     requestedSize: 1Gi
 
+# Base domain of every public host: dex.<domain>, app.<domain>, web-node.<domain>, gateway.<domain>. Host and URL values
+# below (and in values-stg/prd) are rendered with `tpl`, so `{{ .Values.global.domain }}` follows this one setting.
+global:
+  domain: splitcortex.127.0.0.1.nip.io
+
 dex:
   enabled: true
+  # The config Secret is rendered by templates/dex-config.yaml (so `{{ .Values.global.domain }}` works in `config`).
+  configSecret:
+    create: false
+    name: dex-config
   fullnameOverride: dex   # Service `dex` (in-cluster JWKS URL of the control plane)
   image:
     tag: latest
@@ -75,14 +84,14 @@ dex:
       # <release namespace>-rate-limit-general@kubernetescrd (namespace `splitcortex`)
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
     hosts:
-      - host: dex.splitcortex.127.0.0.1.nip.io
+      - host: "dex.{{ .Values.global.domain }}"
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: dex-tls
         hosts:
-          - dex.splitcortex.127.0.0.1.nip.io
+          - "dex.{{ .Values.global.domain }}"
   # Custom login theme (templates/dex-theme.yaml, files in chart/files/dex-theme) mounted next to Dex's built-in themes.
   volumes:
     - name: theme
@@ -97,7 +106,7 @@ dex:
       subPath: header.html
   config:
     # Public URL of Dex (must match what clients/browsers reach); override per environment.
-    issuer: https://dex.splitcortex.127.0.0.1.nip.io
+    issuer: "https://dex.{{ .Values.global.domain }}"
     frontend:
       # Without `dir` Dex serves its embedded assets and ignores the mounted theme.
       dir: /srv/dex/web
@@ -135,9 +144,9 @@ dex:
         name: SplitCortex Web
         public: true
         redirectURIs:
-          - https://app.splitcortex.127.0.0.1.nip.io/
-          - http://app.splitcortex.127.0.0.1.nip.io:5173/
-          - https://app.splitcortex.127.0.0.1.nip.io/api/docs/static/oauth2-redirect.html
+          - "https://app.{{ .Values.global.domain }}/"
+          - "http://app.{{ .Values.global.domain }}:5173/"
+          - "https://app.{{ .Values.global.domain }}/api/docs/static/oauth2-redirect.html"
     enablePasswordDB: true
     oauth2:
       # No "Grant access" screen: our own first-party clients are trusted.
@@ -173,14 +182,14 @@ ui:
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
     # The UI derives the Dex URL from this host (`app.` -> `dex.`) and must be listed in Dex's staticClients.
     hosts:
-      - host: app.splitcortex.127.0.0.1.nip.io
+      - host: "app.{{ .Values.global.domain }}"
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: ui-tls
         hosts:
-          - app.splitcortex.127.0.0.1.nip.io
+          - "app.{{ .Values.global.domain }}"
 
 # Web node (src/web-node): static SPA served by Caddy on port 8080, a browser that serves inference like a phone node. It
 # is its own host (`web-node.<domain>`) and ALSO routes `/api` to the control plane (see controlPlane.ingress), so the
@@ -205,14 +214,14 @@ webNode:
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
     # The web app derives this host from its own (`app.` -> `web-node.`, ui/src/lib/webNode.ts).
     hosts:
-      - host: web-node.splitcortex.127.0.0.1.nip.io
+      - host: "web-node.{{ .Values.global.domain }}"
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: web-node-tls
         hosts:
-          - web-node.splitcortex.127.0.0.1.nip.io
+          - "web-node.{{ .Values.global.domain }}"
 
 # Garage: single-node S3-compatible object storage for model files (subchart `garage` 2.5.0 from https://charts.derwitt.dev, a thin
 # wrapper around upstream Garage; `dxflrs/garage` is multi-arch, the chart default is amd64-only). It is internal only: no ingress,
@@ -279,7 +288,7 @@ controlPlane:
     # The wss URL nodes connect to. The public key is not configured: the control plane reads it from the Secret
     # `gateway.identity.publicSecret` (`publicKey` here only applies when the gateway is disabled).
     publicKey: ""
-    url: "wss://gateway.splitcortex.127.0.0.1.nip.io/node"
+    url: "wss://gateway.{{ .Values.global.domain }}/node"
   migrate:
     enabled: true
     command: [node, dist/db/migrate.js]
@@ -306,21 +315,21 @@ controlPlane:
     # Same host as the web app (same origin, no CORS), and the same on the web node's host (its browser enrolls and
     # downloads models through `/api` there). The TLS Secrets are issued via the UI's and the web node's Ingresses.
     hosts:
-      - host: app.splitcortex.127.0.0.1.nip.io
+      - host: "app.{{ .Values.global.domain }}"
         paths:
           - path: /api
             pathType: Prefix
-      - host: web-node.splitcortex.127.0.0.1.nip.io
+      - host: "web-node.{{ .Values.global.domain }}"
         paths:
           - path: /api
             pathType: Prefix
     tls:
       - secretName: ui-tls
         hosts:
-          - app.splitcortex.127.0.0.1.nip.io
+          - "app.{{ .Values.global.domain }}"
       - secretName: web-node-tls
         hosts:
-          - web-node.splitcortex.127.0.0.1.nip.io
+          - "web-node.{{ .Values.global.domain }}"
 
 # Gateway (src/gateway, Rust): the OpenAI-format edge (`/v1/*`) and the node WebSocket (`/node`). Any number of
 # replicas: each holds the sockets of the nodes connected to it and forwards a request to the instance that holds a
@@ -375,14 +384,14 @@ gateway:
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-gateway@kubernetescrd
     hosts:
-      - host: gateway.splitcortex.127.0.0.1.nip.io
+      - host: "gateway.{{ .Values.global.domain }}"
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: gateway-tls
         hosts:
-          - gateway.splitcortex.127.0.0.1.nip.io
+          - "gateway.{{ .Values.global.domain }}"
   # `/node` (device WebSocket) on the gateway host(s) with its own per-IP rate limit (templates/gateway-node-ingress.yaml;
   # hosts/TLS from `ingress` above). Needs `rateLimit.enabled`; set `enabled: false` otherwise.
   nodeIngress:
@@ -401,14 +410,14 @@ gateway:
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-gateway@kubernetescrd
     hosts:
-      - host: app.splitcortex.127.0.0.1.nip.io
+      - host: "app.{{ .Values.global.domain }}"
         paths:
           - path: /v1
             pathType: Prefix
     tls:
       - secretName: ui-tls
         hosts:
-          - app.splitcortex.127.0.0.1.nip.io
+          - "app.{{ .Values.global.domain }}"
 
 # Traefik rate limits (templates/rate-limits.yaml). Not attached to an entryPoint: reference them from each route.
 rateLimit:
@@ -443,4 +452,4 @@ dev:
     # Service the hosts are rewritten to. Default: traefik.<namespace>.svc.cluster.local
     target: ""
     hosts:
-      - dex.splitcortex.127.0.0.1.nip.io
+      - "dex.{{ .Values.global.domain }}"

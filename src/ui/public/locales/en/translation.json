@@ -351,8 +351,7 @@
   "pools": {
     "live": "At least one node is online",
     "noLive": "No node online",
-    "onlineCount_one": "{{count}} node online",
-    "onlineCount_other": "{{count}} nodes online",
+    "onlineCount": "{{online}} / {{total}} nodes online",
     "title": "Pools",
     "new": "New pool",
     "edit": "Edit pool",

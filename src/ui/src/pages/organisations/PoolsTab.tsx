@@ -92,7 +92,10 @@ export function PoolsTab() {
                           )}
                         />
                         <Text size={200}>
-                          {t('pools.onlineCount', { count: pool.onlineNodes })}
+                          {t('pools.onlineCount', {
+                            online: pool.onlineNodes,
+                            total: pool.totalNodes,
+                          })}
                         </Text>
                       </span>
                       <Badge appearance="tint" color={pool.requireApproval ? 'warning' : 'subtle'}>

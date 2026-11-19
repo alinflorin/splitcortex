@@ -16,6 +16,6 @@ data:
   splitcortex.override: |
     {{- $target := default (printf "traefik.%s.svc.cluster.local" .Release.Namespace) .Values.dev.coredns.target }}
     {{- range .Values.dev.coredns.hosts }}
-    rewrite name exact {{ . }} {{ $target }}
+    rewrite name exact {{ tpl . $ }} {{ $target }}
     {{- end }}
 {{- end }}
