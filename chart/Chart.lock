@@ -1,7 +1,7 @@
 dependencies:
 - name: traefik
   repository: https://traefik.github.io/charts
-  version: 42.4.0
+  version: 42.4.1
 - name: cert-manager
   repository: https://charts.jetstack.io
   version: v1.21.3
@@ -14,5 +14,5 @@ dependencies:
 - name: garage
   repository: https://charts.derwitt.dev
   version: 2.5.0
-digest: sha256:86ed0684fe0a8d6824ad73b10a3c9f692cf28e223b87ee941c40528da0bc6380
-generated: "2026-11-14T09:34:11.857271166+02:00"
+digest: sha256:fc19cb1513294e1547dc52da005e7a5592752c09721bd41596d0ec5fa650d44a
+generated: "2026-11-19T10:00:09.87110544Z"

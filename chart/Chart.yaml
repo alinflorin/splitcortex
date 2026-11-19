@@ -7,7 +7,7 @@ appVersion: "0.1.0"
 
 dependencies:
   - name: traefik
-    version: 42.4.0
+    version: 42.4.1
     repository: https://traefik.github.io/charts
     condition: traefik.enabled
   - name: cert-manager
