@@ -1,7 +1,7 @@
 # Release tags of the current version. Pushing a change to this file on main runs
 # .github/workflows/create-tags.yaml, which creates the tags listed here that do not exist yet
 # (one per line; platform, mobile, desktop and CLI streams). Remove a line to skip that stream.
-v9.0.0
-mobile-node-v9.0.0
-desktop-node-v9.0.0
-cli-node-v9.0.0
+v10.0.0
+mobile-node-v10.0.0
+desktop-node-v10.0.0
+cli-node-v10.0.0

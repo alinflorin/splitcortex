@@ -287,16 +287,9 @@ jobs:
           cache-dependency-path: e2e/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
 
-      # Cached .debs; execute_install_scripts runs the post-install scripts (library symlinks, ldconfig). If a run ever fails to
-      # find webkit libraries, bump `version` (the action saves whatever it installed, even after a failed download).
-      - name: Install the WebDriver and Xvfb (cached)
-        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
-        with:
-          packages: webkit2gtk-driver xvfb
-          execute_install_scripts: true
-          version: 1
-      # tauri-driver needs WebKitWebDriver on the PATH. The cached restore does not always leave it there (the alternatives
-      # symlink is made by a post-install script), so find it, and install the package normally if it is not on disk at all.
+      - name: Install the WebDriver and Xvfb
+        run: sudo apt-get update && sudo apt-get install -y webkit2gtk-driver xvfb
+      # tauri-driver needs WebKitWebDriver on the PATH: find it, and install the package if it is not on disk at all.
       - name: Put WebKitWebDriver on the PATH
         run: |
           find_driver() { command -v WebKitWebDriver || find /usr/lib /usr/libexec -name WebKitWebDriver -type f 2>/dev/null | head -1; }

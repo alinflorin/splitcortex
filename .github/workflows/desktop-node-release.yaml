@@ -73,15 +73,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # Cached .debs. execute_install_scripts runs the packages' post-install scripts (ldconfig, symlinks): without it the
-      # -dev libraries (gdk, pango, webkit) were not found at link time.
+      # Plain apt-get: the cached-apt action restored nothing from a partial cache entry and the -dev libraries (gdk, pango,
+      # webkit) were then missing at link time.
       - name: Install Linux dependencies
         if: startsWith(matrix.platform, 'ubuntu')
-        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
-        with:
-          packages: libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-          execute_install_scripts: true
-          version: 2
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
         with:
