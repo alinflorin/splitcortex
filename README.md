@@ -1,95 +1,174 @@
 # SplitCortex
 
-SplitCortex is a SaaS platform that turns idle mobile compute (phones, Raspberry Pis, other small devices) into inference serving nodes. Users bring their devices, group them into pools, and serve models through a single managed API.
+SplitCortex is a SaaS platform that turns idle compute (phones, Raspberry Pis, laptops, even browser tabs) into inference serving nodes. Customers enroll their own devices into pools and serve a model through one managed, OpenAI-compatible API.
 
-> Status: built end to end (control plane, gateway, web app, phone, desktop, CLI and web nodes) and run by the owner on real laptops, browsers and Android devices. Measured speeds and per-OS results are not recorded yet.
+> Status: built end to end (control plane, gateway, web app and the phone, desktop, CLI and web nodes) and run by the owner on real laptops, browsers and Android devices. Measured speeds and per-OS results are not recorded yet.
 
-## What it does
-
-- **Accounts and organisations**: users register, create organisations, and manage memberships and roles.
-- **Inference pools**: an organisation groups its devices into pools. Each pool serves a set of models.
-- **API keys**: per-organisation key management for clients calling the inference API. A key covers the whole organisation or chosen pools; the secret is shown once and only its hash is stored.
-- **API gateway**: the platform is the single public entry point. It authenticates requests, load-balances them across the nodes in a pool, and manages model distribution.
-- **Device nodes**: endpoint devices keep a persistent WebSocket connection (protobuf messages) to the gateway over TLS, with no message broker. The gateway pushes work down this connection, so devices do not need to be publicly reachable.
-- **Usage tracking and limits**: token usage is metered per key, pool and organisation, with configurable limits.
-- **Audit log**: who changed what in an organisation, and what the gateway refused (nodes, revoked keys, limits), kept 90 days and visible to organisation admins only.
-- **Dashboards and config pages**: usage, node health, pool state, and settings in the web UI.
-
-## Architecture (high level)
+## How it works
 
 ```
- clients ──HTTPS──▶  gateway, Rust (auth, limits, metering, load balancing, model mgmt)
-                          │
-                          │  persistent WebSocket (protobuf) over TLS
-                          ▼
-                    device nodes (phone / RPi / ...)
-                          └─ inference engine: LiteRT-LM
+ clients ──HTTPS + SSE (OpenAI format)──▶ gateway ──WebSocket + protobuf (wss)──▶ device nodes
+                                             │                                   (phone / Pi / laptop / browser)
+                                             ▼                                   └─ engine: LiteRT-LM
+                       control plane ◀──▶ Postgres        web app ──▶ control plane
 ```
 
-- Nodes connect outbound to the gateway, so NAT and mobile networks are not a problem.
-- **Routing**: an API key covers the whole organisation or a chosen set of pools. The gateway authenticates the key, checks limits, resolves the pool from the requested model (among the pools the key may use), then picks a healthy node in that pool, favouring less-loaded and faster devices. If a node fails before producing output the request is retried once on another node.
-- **Node and server identity**: each node generates its own key pair and registers its public key when it enrolls. Enrollment is started in the web app, which shows a short one-time code (and a QR); the device user types or scans it in the mobile app, optionally pointing it at a different enrollment URL. Enrollment happens between the device and the control plane over HTTPS; the control plane hands the device the gateway address and public key, and the device then connects to the gateway. The server has its own key pair, which nodes trust from enrollment onwards. The two sides authenticate each other with these keys. The short code is exchanged through a password-authenticated key exchange (CPace), so a typo-sized code cannot be attacked offline and a fake server learns nothing. Enrollment is implemented in the control plane, the web app (an Add device dialog on the pool page) and the mobile app (type the code or scan the QR); the device then connects to the gateway with a mutual proof of possession (it verifies the gateway against the pinned key before it proves itself).
-- **One model per pool, replicated**: a pool serves a single model and every device in it holds a full copy; assigning another model replaces it, and devices swap it live (download, verify, load) while the gateway routes only to devices that report the model ready. Devices download them straight from the control plane (resumable, authenticated by the device's own key), not through the gateway.
-- **Engine**: LiteRT-LM is the only supported inference engine for now.
+- You create an **organisation**, add **pools** and enroll **devices** into them. A pool serves exactly one model, and every device in it holds a full copy.
+- Devices connect **outbound** to the gateway, so NAT and mobile networks are not a problem. Enrollment is a short one-time code (or QR) created in the web app and typed or scanned on the device.
+- Clients call the gateway with an **API key** (`/v1/chat/completions`, `/v1/models`), only changing base URL and key. The gateway checks limits, picks a healthy node in the pool, and meters tokens.
+- The web app shows usage, node health, models, API keys, limits, benchmarks and an audit log, and has a Playground to chat with a pool.
 
-## Business model (decided)
-
-SplitCortex is a **bring-your-own-devices SaaS**: customers enroll devices they own into their organisation's pools and serve models through a managed OpenAI-format API. Compute is supplied by the customer, so our costs are the control plane and the gateway. Pricing is per device or per pool, with a free tier (not set yet). Likely users: teams with idle or edge device fleets, privacy-sensitive teams, hobbyists with phones and Raspberry Pis.
-
-Considered and not chosen:
-
-- **Selling inference from our own devices (e.g. through OpenRouter).** Phone-class devices run small models at tens of tokens per second; at the market price of small hosted models that earns cents per device per day, before electricity, against datacenter GPUs. (Rough estimate, to be checked with real measurements.)
-- **Public marketplace** (contributors get paid, consumers pay, we take a commission). Two-sided cold start, payouts with KYC and tax, fraud and output-honesty checks, and above all privacy: customer prompts would run on strangers' devices. Contributor earnings would also be tiny. Not built.
-
-Possible later step, only if demand appears: an invite-only mode where trusted members contribute devices to one organisation's pool, with metering and payouts handled by us. Open item: measure tokens/sec per watt and failure rates on real devices, then talk to people who own device fleets.
-
-## Roadmap / open research
-
-- **Sharding large models across multiple devices.** Models that do not fit on a single device cannot be served today. Sharding over the internet is not viable (every token crosses every stage, each hop adds a network round trip through the gateway, and any dropped phone kills the request), and LiteRT-LM's public API has no layer-range execution or activation export. The plan is a **local cluster mode**: an opt-in group of devices on the same LAN or switch (a rack of phones or Pis, sub-millisecond RTT) serving one model as a pipeline of layer-range stages, presented to the gateway as a single logical node. It stays on Google's runtime (no second engine): per-stage model conversion, then a custom decode loop (KV cache, sampling) directly on LiteRT, below LiteRT-LM's engine API (or a LiteRT-LM fork), plus direct node-to-node links inside the site (the gateway link stays outbound). Findings so far (from reading the LiteRT-LM sources, not yet confirmed by running anything): the public `Engine`/`Session` API has no layer-range or hidden-state hooks, but the internal `LlmExecutor` interface is a plausible seam. The LiteRT compiled-model executor keeps the KV cache as explicit input/output tensor buffers of the graph signatures, and prefill and decode already run as separate signatures (prefill can take embeddings), so a pipeline stage looks like a new executor over per-stage graphs. Inspecting a real file (Qwen3-0.6B `.litertlm`, via `litert-lm-peek` and the TFLite interpreter) confirmed: one monolithic TFLite graph with separate `prefill_128`/`prefill_1024`/`decode` signatures (tokens, positions and mask in, logits out; embedding lookup and LM head inside the graph), the KV cache as explicit per-layer `kv_cache_k_N`/`kv_cache_v_N` inputs and outputs (56 for 28 layers), weights in a separate section, and tensor names scoped by decoder layer (`Qwen3DecoderLayer_N`). The exporter (`litert-torch export_hf`) wraps the PyTorch model in an exportable module, so a layer-range stage is most likely a PyTorch-level change there rather than flatbuffer surgery (exporter source not yet read, nothing exported yet). Open points: whether the exporter can emit layer-range graphs with hidden-state inputs and outputs, model-specific state (sliding-window caches, per-layer embeddings), and that NPU builds are precompiled and not splittable. **Spike result (offline proof, tiny random Qwen3, 4 layers, fp32):** two stage models (layers 0-1 and 2-3) were exported with the stock `litert-torch export_hf` flow by saving per-stage checkpoints (first stage: final norm and LM head replaced by identity so it outputs hidden states; second stage: `--externalize_embedder` so it takes hidden states as embeddings). Running the stages back to back through the `decode` signatures reproduced the unsplit model's logits exactly (max difference 0 against the unsplit export, 3e-7 against HF eager, 24/24 tokens), each stage holding only its own layers' KV cache, with 256 bytes of hidden state per token handed over (hidden size times 4 bytes; about 4 KB for Qwen3-0.6B). Not yet shown: prefill (the exporter's prefill emits no per-position hidden states, so it needs a small wrapper change), a real-size or quantised model, sliding-window/per-layer-embedding architectures, and execution inside LiteRT-LM's own executor (the test used the plain LiteRT interpreter). Next steps: stage-aware prefill, a real model, then a LiteRT-LM stage executor. Original first step was a time-boxed spike: check what LiteRT exposes (partial graphs, intermediate tensors, KV cache control), convert a small model into two layer-range stages, and run them on two devices on one LAN, measuring per-token latency. Until then, larger models are handled by device capability reporting, per-model minimum requirements and quantisation, not sharding.
-- Additional inference engines beyond LiteRT-LM.
-
-## Tech stack
-
-- **Frontend** (`src/ui`): Vite, React (with React Compiler), TypeScript, Fluent UI with light/dark Teams themes, react-hook-form, zod, React Router, react-i18next (English and Romanian), self-hosted Inter font (no CDNs), signing in through Dex (OIDC).
-- **Desktop node** (`src/desktop-node`): the endpoint as a desktop app for Linux (x64, arm64), macOS (Apple silicon) and Windows (x64), built with Tauri 2 and the web app's look and feel. It enrolls with the same short code and serves like a phone node, running models natively through Google's official LiteRT-LM C API (CPU or GPU, chosen automatically unless set), and keeps serving from the system tray after the window is closed. It updates itself from signed GitHub releases (tag `desktop-node-vX.Y.Z`, its own release stream). Intel Macs are not supported because Google publishes no LiteRT-LM library for them. The engine has been loaded but not yet run against a real model, and the installers are not OS-code-signed yet. Details in `docs/desktop-node.md`.
-- **CLI node** (`src/cli-node`): the same endpoint as a headless command line program in Rust, for servers and computers without a screen: Linux (x64, arm64), macOS (Apple silicon) and Windows (x64). It is installed with one command (`curl … | sh`, or `irm … | iex` on Windows; the web app's _Command line_ card shows them), enrolls with the same short code (`splitcortex-node join`), serves (`run`), can run as a background service (`service install`) and updates itself (`update`) from GitHub releases (tag `cli-node-vX.Y.Z`, its own stream). It is a separate program from the desktop node (the engine binding is duplicated on purpose). Same engine and platform limits as the desktop node (no Intel Macs; the engine has been loaded but not yet run against a real model). Details in `docs/cli-node.md`.
-- **Web node** (`src/web-node`): the endpoint as a web page. A static web app with the same stack as the web app, served at `web-node.<domain>`. A browser tab enrolls with the same short code and then serves like a phone node: it connects to the gateway over wss, downloads the pool's model from the control plane into the browser's private file system and runs it with Google's LiteRT-LM JavaScript API (WebAssembly + WebGPU). It behaves like the other nodes: the user creates a code with **Add device** in the web app and types it in or scans its QR with the device's camera. The web app's "Run a node" section (home and pool screens) shows the mobile app, the desktop app and the web node side by side, with download links to each app's own GitHub release stream, and the web node with an open-in-new-tab and a share button. It only serves while the tab is open (no background service in a browser) and has not been run against a real model in a browser yet.
-- **Endpoint app**: React Native with Expo and TypeScript, run on physical devices via local dev builds (no EAS). A native module wraps LiteRT-LM, so Expo Go is not supported. It shares the web app's look and feel by reusing the Fluent design tokens (same light/dark themes, Inter font, English/Romanian), with native components built on top since Fluent UI React itself is web-only. Lives in `src/mobile-node`; run `pnpm install` there, then a local dev build with `expo run:android` / `expo run:ios`. CI runs typecheck, tests and an Android debug build (APK as a downloadable artifact); tagging `mobile-node-vX.Y.Z` builds a signed release APK (version taken from the tag) and attaches it to a GitHub release of that tag. The app has its own release stream, independent of the server. Android is the always-on platform; an iOS node would only serve while the app is open in the foreground (iOS suspends background apps), and LiteRT-LM's Swift API is still early preview, so iOS is not built or tested yet.
-- **Control plane** (`src/control-plane`): TypeScript with Fastify, zod-validated routes with a generated OpenAPI spec and Swagger UI (`/api/docs`), PostgreSQL through Drizzle ORM with SQL migrations. DTOs are zod schemas in the project; the frontend copies what it needs.
-- **Gateway** (`src/gateway`, built; per-key and per-organisation rate limits, connection resume, several instances, benchmarks, gateway key rotation): Rust, for performance on the hot path (OpenAI-format HTTP/SSE edge, node WebSocket connections, auth, limits, metering, load balancing). Always-on service, no serverless. Accepts text plus image and audio input (OpenAI content parts) for multimodal models, routed only to nodes whose loaded model takes them. It shares the node protobuf schema and the data store with the control plane, not the zod schemas.
-- The gateway caches configuration in memory and follows a database change log written by the control plane (no Redis). If the database is unreachable the gateway keeps serving the last known config, and may reject new requests with `503` once that config is older than a configurable maximum age. The database is PostgreSQL; web-app sign-in uses Dex.
-- The gateway counts usage itself and flushes it to the database in batches. If a flush fails, counters stay in memory and are retried with backoff in an idempotent, de-duplicated batch (no lost or double-counted usage), and they are flushed on shutdown. If the database stays unreachable until the buffer is full or its oldest data passes a configurable age (default about 10 minutes), the gateway fails closed with `503` rather than serve unmetered traffic; self-hosted deployments can opt to drop the oldest data instead.
+The business model is bring-your-own-devices SaaS: customers supply the compute, we run the control plane and gateway. No marketplace or payouts (reasoning in [Business model](#business-model)).
 
 ## Repository layout
 
-- `chart/`: Helm chart skeleton (`Chart.yaml`, helpers, empty `values.yaml` for local dev and `values-stg.yaml` / `values-prd.yaml` overrides, and a git-ignored `values-local.yaml` for personal overrides). It bundles the Traefik ingress controller (`traefik.enabled`) cert-manager (`cert-manager.enabled`) PostgreSQL (`postgres.enabled`, with randomly generated credentials kept in a Secret), a single-node Garage S3 store for model files (`garage.enabled`, internal only, bootstrapped by a Helm hook Job) and the Dex identity provider (`dex.enabled`, served at `dex.splitcortex.127.0.0.1.nip.io` locally and `dex.stg.splitcortex.alinflorinciu.qoffice.ro` / `dex.prd.splitcortex.com` in staging and production, password DB enabled, 15 minute access tokens, 3 month refresh tokens, initial local user in `values-local.yaml`) as optional dependencies. It defines a self-signed `root-ca-issuer` ClusterIssuer everywhere and a Let's Encrypt (production) `letsencrypt` ClusterIssuer in staging and production. It also defines Traefik rate-limit middlewares: a general per-IP limit for the web app, control plane and Dex, and a much higher per-API-key ceiling for the gateway so heavy inference traffic is not throttled. Traefik redirects all HTTP traffic to HTTPS. Traefik and cert-manager can each be turned off to use an external ingress controller or cert-manager (see CLAUDE.md for the values). For local k3s development an optional CoreDNS override makes the `nip.io` hostnames resolve to Traefik from inside pods too (`dev.coredns.enabled`, off in staging and production). Workload templates are added as the services land (UI and control plane so far).
+| Folder              | What it is                                                                             | Docs                                           |
+| ------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `src/ui`            | Web app (Vite, React, Fluent UI)                                                       | [docs/ui.md](docs/ui.md)                       |
+| `src/control-plane` | API: accounts, orgs, pools, keys, enrollment, models (Fastify, Postgres)               | [docs/control-plane.md](docs/control-plane.md) |
+| `src/gateway`       | OpenAI edge plus node WebSocket (Rust); owns the node protobuf in `proto/`             | [docs/gateway.md](docs/gateway.md)             |
+| `src/mobile-node`   | Android phone node (React Native, Expo)                                                | [docs/node-app.md](docs/node-app.md)           |
+| `src/web-node`      | Browser node (static web app, WebGPU)                                                  | [docs/web-node.md](docs/web-node.md)           |
+| `src/desktop-node`  | Desktop node (Tauri 2: Linux, macOS arm64, Windows)                                    | [docs/desktop-node.md](docs/desktop-node.md)   |
+| `src/cli-node`      | Headless node (Rust, installed with one command)                                       | [docs/cli-node.md](docs/cli-node.md)           |
+| `chart/`            | Helm chart for everything (Traefik, cert-manager, Dex, Postgres, Garage, our services) | [docs/layout.md](docs/layout.md)               |
+| `e2e/`              | Playwright end-to-end tests against a deployed stack                                   | [docs/e2e.md](docs/e2e.md)                     |
+| `scripts/`          | Dev helpers (Android emulator, wiki sync)                                              |                                                |
 
-- `.github/workflows/`: CI/CD. The chart is linted and validated on every change and published as an OCI artifact to GHCR when a `vX.Y.Z` tag is pushed. Service images (the UI, the web node, the control plane and the gateway) are built from a reusable workflow template as multi-arch images (amd64 and arm64 built in parallel on native runners, then merged into one manifest) with the GitHub Actions cache: PRs build only, pushes to `main` and manual runs push `<branch>`/`sha-*` tags to GHCR, and a `vX.Y.Z` tag runs the server release workflow: it publishes the chart and all images as `X.Y.Z` in parallel (chart version, app version and image tags are always identical), then deploys that version to stg automatically. Production is promoted manually by running the deploy workflow with the same version, so the exact build tested on stg is what ships. The mobile app is released separately with `mobile-node-vX.Y.Z` tags and the desktop app with `desktop-node-vX.Y.Z` tags. Releases are tagged by hand (no rc tags, no release automation).
+[CLAUDE.md](CLAUDE.md) holds the project rules and decisions; [docs/](docs/) holds the per-area detail. Read the doc of an area before changing it.
 
-- `src/ui/`: the web app (responsive layout: sidebar always visible on large screens, hideable on mobile, top bar (with the logo on mobile) and a single avatar menu holding the theme (System by default, Light, Dark) and language (detected from the browser, English fallback) choices and sign in/out; Home and About are public; reusable `useConfirm()` confirmation dialog and `useToast()` toasts; organisations with pools (each with its own screen), members and a usage view, all as responsive cards, plus a node view with live status and an organisation Models page for Hugging Face downloads and uploads; inside an organisation the sidebar shows only that organisation's pages, with a back button; Home and the pool devices section point to the node app downloads: mobile, desktop and web node cards with Fluent buttons: the APK and desktop buttons open the matching GitHub Releases stream, the Google Play and App Store buttons are inert until the listings exist). Run with `pnpm dev` inside that folder, or via Tilt: it is built into a Caddy-based image (`src/ui/Dockerfile`) and deployed by the chart (`ui.*` values, ingress enabled by default).
+## Development setup
 
-- `src/control-plane/`: the control plane API (organisations, memberships, pools (serving and balancing type), nodes, models with object storage (Garage; a CronJob sweeps abandoned uploads, devices download models from it through the API) and a usage query so far, with the `usage_records` metering tables the gateway writes; served at `/api` on the web app host, Swagger UI at `/api/docs`) with its zod DTOs. Database migrations are generated with `pnpm db:generate` and applied by a Helm hook Job on install and upgrade (and by a Job before the API starts under Tilt).
+Everything runs on a local Kubernetes cluster driven by [Tilt](https://tilt.dev), so you get the same stack as staging (TLS, ingress, Dex login, Postgres, object storage). The `nip.io` hostnames resolve to `127.0.0.1`, so no `/etc/hosts` edits are needed.
 
-- `src/gateway/`: the Rust gateway (OpenAI-format edge with SSE, node WebSocket with the pinned-key handshake, config cache fed by the change log, routing and balancing, usage metering), the node protocol (`proto/`, the single source for the gateway and the node app), its Dockerfiles, and unit tests. Chart templates `gateway-*.yaml`, a CI image workflow and a Tilt resource are in place; its identity key pair is created once by a Helm hook Job and stored in two Secrets (see `docs/gateway.md`).
-- `src/desktop-node/`: the desktop node (see above): a Tauri app (`src-tauri` Rust crate plus the web side), no container and no chart entry; CI `desktop-node.yaml`, releases `desktop-node-release.yaml`. Details in `docs/desktop-node.md`.
-- `src/cli-node/`: the command line node (see above): a Rust binary with install scripts, no container and no chart entry; CI `cli-node.yaml`, releases `cli-node-release.yaml`. Details in `docs/cli-node.md`.
-- `src/web-node/`: the web node (see above): `Dockerfile` (Caddy, with the LiteRT-LM WASM runtime self-hosted under `/litertlm/`), chart templates `web-node-*.yaml` (`webNode.*` values; its host also routes `/api` to the control plane, so there is no CORS), a CI image workflow and a Tilt resource. Details in `docs/web-node.md`.
-- `src/mobile-node/`: the endpoint app. Besides enrollment it now connects to the gateway, downloads and swaps the pool's model, runs it through a LiteRT-LM adapter, and shows status, logs, restart and the start settings (start at boot, connect and load the model on start, both default on). On Android a foreground service with a headless JS task keeps it serving with the screen off and starts it at boot (when enabled), and it reports CPU, memory, battery and temperature to the gateway. The compute backend (CPU or GPU, default: whichever measures faster on that device) and the context window can be set in the app or overridden per device from the web app. The engine and the service are compiled but not yet run on a device.
+### Prerequisites
 
-- `e2e/`: end-to-end tests, one Playwright project against a deployed stack (local by default, staging in the nightly `e2e.yaml` workflow): the web app and the web node in a browser (separate suites), the CLI node binary, the desktop app through `tauri-driver` and the Android app through Maestro. Details in `docs/e2e.md`.
+Required for the server side:
 
-Other directories will be added as the codebase takes shape.
+- **Docker** and a local registry at `localhost:5000`
+- **k3s** (kubectl context named `default`), configured to use that registry: add it as a mirror in `/etc/rancher/k3s/registries.yaml`
+- **Helm 3** and **Tilt**
+- **Node.js 26** and **pnpm** (the version pinned in each `package.json`'s `packageManager`; `corepack enable` works)
+- **Rust** (stable, via `rustup`) for the gateway and the CLI node
 
-## Domains
+Only if you work on those parts:
 
-| Service   | local                                        | stg                                            | prd                                 |
-| --------- | -------------------------------------------- | ---------------------------------------------- | ----------------------------------- |
-| Dex (IdP) | `dex.splitcortex.127.0.0.1.nip.io`           | `dex.stg.splitcortex.alinflorinciu.qoffice.ro` | `dex.prd.splitcortex.com`           |
-| Web app   | `app.splitcortex.127.0.0.1.nip.io` (planned) | `app.stg.splitcortex.alinflorinciu.qoffice.ro` | `app.prd.splitcortex.com` (assumed) |
+- Mobile node: JDK, Android SDK, a real Android device or emulator (`scripts/start-emulator.sh`); no Expo Go, local dev builds only
+- Desktop node: Rust plus the [Tauri system dependencies](https://v2.tauri.app/start/prerequisites/)
+- E2E tests: Playwright browsers (`pnpm exec playwright install`)
 
-## Getting started
+### Run the stack
 
-Not yet available.
+```sh
+tilt up            # at the repo root
+```
+
+Tilt installs the infrastructure chart first (Traefik, cert-manager, Postgres, Garage, Dex), then builds and live-reloads each service from a dev image. The first gateway build takes a few minutes.
+
+| Service     | Local URL                                              |
+| ----------- | ------------------------------------------------------ |
+| Web app     | https://app.splitcortex.127.0.0.1.nip.io               |
+| Web node    | https://web-node.splitcortex.127.0.0.1.nip.io          |
+| API docs    | https://app.splitcortex.127.0.0.1.nip.io/api/docs      |
+| Gateway     | https://gateway.splitcortex.127.0.0.1.nip.io/v1/models |
+| Dex (login) | https://dex.splitcortex.127.0.0.1.nip.io               |
+
+TLS uses a throwaway local CA, so the browser warns once (trust or accept it).
+
+**Local login:** create `chart/values-local.yaml` (git-ignored) with your own Dex user. A bcrypt hash of the password goes in:
+
+```yaml
+dex:
+  config:
+    staticPasswords:
+      - email: you@example.com
+        hash: "<bcrypt hash, e.g. htpasswd -bnBC 10 '' 'password' | tr -d ':\n'>"
+        username: you
+        userID: 6f1d3a52-7a54-4c0e-9b4e-2f0a1c3b5d11
+```
+
+The same file is the place for any other personal chart override. All hostnames come from one value, `global.domain` (see [docs/layout.md](docs/layout.md)).
+
+### Working on one project
+
+Each of `src/ui`, `src/web-node`, `src/desktop-node`, `src/control-plane` and `src/mobile-node` is its own pnpm project:
+
+```sh
+pnpm install
+pnpm dev          # standalone dev server (ui :5173, web-node :5174); or just use Tilt
+pnpm typecheck
+pnpm test
+pnpm format       # run before committing
+```
+
+Open the standalone UI as `http://app.splitcortex.127.0.0.1.nip.io:5173` so the Dex redirect matches.
+
+Control plane database: `pnpm db:generate` after changing the schema (plain SQL migrations, never edit applied ones); migrations run automatically under Tilt. Tests use an in-memory Postgres (PGlite), so no database is needed.
+
+Gateway and CLI node (Rust):
+
+```sh
+cargo fmt
+cargo clippy --all-targets -- -D warnings
+cargo test
+```
+
+The CLI node also needs `python3 scripts/fetch-litert.py` once before `cargo build`.
+
+Chart changes: `helm lint chart --strict` and `helm template splitcortex chart`.
+
+### Things to know before you change code
+
+- The node protobuf lives in `src/gateway/proto`; the phone, web and desktop nodes commit a generated copy (`pnpm gen:proto`).
+- The control plane's zod DTOs are not shared with the gateway or the UI; the UI copies what it needs by hand.
+- The desktop and CLI nodes are deliberately separate implementations: a fix in one usually belongs in the other.
+- API error messages exist in English and Romanian; add both.
+- No CDNs (fonts and icons are self-hosted) and no CORS on the gateway or the node-facing hosts.
+- Builds are slow: verify with typecheck, tests and `helm lint`/`helm template` rather than building images by hand.
+
+### End-to-end tests
+
+```sh
+cd e2e && pnpm install
+pnpm dev          # asks for the Dex login, runs against the local stack, shows the browser
+```
+
+Other stacks: set `E2E_APP_URL`. Details and secrets in [docs/e2e.md](docs/e2e.md).
+
+## CI and releases
+
+GitHub Actions lint, test and build every project. Releases are tag driven and each stream is independent:
+
+| Tag                   | Releases                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| `vX.Y.Z`              | chart + web app + control plane + gateway; deploys to stg, prd is promoted by hand |
+| `mobile-node-vX.Y.Z`  | signed Android APK                                                                 |
+| `desktop-node-vX.Y.Z` | desktop installers and updater                                                     |
+| `cli-node-vX.Y.Z`     | CLI binaries                                                                       |
+
+Tags are created from `VERSIONS.txt` by a workflow. See [docs/commands-and-ci.md](docs/commands-and-ci.md).
+
+## Environments
+
+| Service   | local                                   | stg                                                 | prd                                      |
+| --------- | --------------------------------------- | --------------------------------------------------- | ---------------------------------------- |
+| Dex (IdP) | `dex.splitcortex.127.0.0.1.nip.io`      | `dex.stg.splitcortex.alinflorinciu.qoffice.ro`      | `dex.prd.splitcortex.com`                |
+| Web app   | `app.splitcortex.127.0.0.1.nip.io`      | `app.stg.splitcortex.alinflorinciu.qoffice.ro`      | `app.prd.splitcortex.com` (assumed)      |
+| Web node  | `web-node.splitcortex.127.0.0.1.nip.io` | `web-node.stg.splitcortex.alinflorinciu.qoffice.ro` | `web-node.prd.splitcortex.com` (assumed) |
+
+The control plane is served at `/api` on the web app host. Staging and production need DNS pointing at the Traefik load balancer.
+
+## Business model
+
+Bring-your-own-devices SaaS: customers enroll devices they own, we run the control plane and the gateway. Pricing is per device or pool with a free tier (not set yet).
+
+Considered and not chosen: selling inference from our own devices (phone-class devices earn cents per day at market prices) and a public contributor/consumer marketplace (cold start, payouts and KYC, fraud, and customer prompts running on strangers' devices). Do not build marketplace, payout or commission features. If demand appears, the next step would be an invite-only mode where trusted members contribute devices to one organisation's pool.
+
+## Roadmap
+
+- **Larger models via local cluster mode**: an opt-in group of devices on the same LAN serving one model as a pipeline, shown to the gateway as one logical node. Sharding over the internet is not viable. An offline spike on a tiny model reproduced an unsplit model's logits exactly; nothing is built. Research notes: [docs/sharding-research.md](docs/sharding-research.md).
+- More inference engines beyond LiteRT-LM (the only one for now).
+- Measure tokens/sec per watt and failure rates on real devices.
 
 ## License
 
