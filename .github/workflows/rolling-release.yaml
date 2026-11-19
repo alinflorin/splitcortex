@@ -1,0 +1,54 @@
+# Rolling "<stream>-latest" release (cli-node-latest, mobile-node-latest, desktop-node-latest): a copy of the newest
+# versioned release of that stream under a fixed tag, so the web app can link to one stable page per stream
+# (GitHub's release search lists by date and cannot filter a stream, and "latest" belongs to the server release).
+# Called by the three node release workflows after the versioned release is complete. In-place update: new assets are
+# uploaded first, stale ones removed after, so download links never break. Marked prerelease so it is never "latest";
+# install.sh / install.ps1 / `update` only look at cli-node-v<number> tags and ignore it.
+name: Rolling release
+
+on:
+  workflow_call:
+    inputs:
+      stream:
+        description: "mobile-node, desktop-node or cli-node"
+        required: true
+        type: string
+      tag:
+        description: "Versioned tag to copy, e.g. cli-node-v11.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  rolling:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: rolling-${{ inputs.stream }}
+      cancel-in-progress: false
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          STREAM: ${{ inputs.stream }}
+          SRC: ${{ inputs.tag }}
+          SHA: ${{ github.sha }}
+        run: |
+          ROLLING="$STREAM-latest"
+          VERSION="${SRC#"$STREAM"-v}"
+          mkdir assets
+          gh release download "$SRC" --dir assets
+          notes="Always the newest $STREAM build: **$VERSION** ([release notes](https://github.com/$GH_REPO/releases/tag/$SRC)). Rewritten by every $STREAM release; do not delete."
+          if gh release view "$ROLLING" >/dev/null 2>&1; then
+            gh release edit "$ROLLING" --title "$STREAM latest ($VERSION)" --notes "$notes" --prerelease --latest=false
+          else
+            gh release create "$ROLLING" --title "$STREAM latest ($VERSION)" --notes "$notes" --prerelease --latest=false --target "$SHA"
+          fi
+          gh release upload "$ROLLING" assets/* --clobber
+          # Drop assets of the previous version that this one no longer has (file names carry the version).
+          for old in $(gh release view "$ROLLING" --json assets --jq '.assets[].name'); do
+            [ -e "assets/$old" ] || gh release delete-asset "$ROLLING" "$old" --yes
+          done

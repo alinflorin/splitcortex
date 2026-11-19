@@ -16,10 +16,10 @@ import { getWebNodeUrl } from '../lib/webNode';
 import { useToast } from './feedback/useToast';
 
 const RELEASES = 'https://github.com/alinflorin/splitcortex/releases';
-/** Each app has its own release stream (tags `mobile-node-v*` and `desktop-node-v*`), so link to just that one. */
-export const MOBILE_RELEASES_URL = `${RELEASES}?q=mobile-node&expanded=true`;
-export const DESKTOP_RELEASES_URL = `${RELEASES}?q=desktop-node&expanded=true`;
-export const CLI_RELEASES_URL = `${RELEASES}?q=cli-node&expanded=true`;
+/** Each app has its own rolling release (`<stream>-latest`, kept current by .github/workflows/rolling-release.yaml). */
+export const MOBILE_RELEASES_URL = `${RELEASES}/tag/mobile-node-latest`;
+export const DESKTOP_RELEASES_URL = `${RELEASES}/tag/desktop-node-latest`;
+export const CLI_RELEASES_URL = `${RELEASES}/tag/cli-node-latest`;
 /** The install scripts live in the repository (`src/cli-node`) and are fetched straight from GitHub. */
 const CLI_RAW = 'https://raw.githubusercontent.com/alinflorin/splitcortex/main/src/cli-node';
 export const CLI_INSTALL_SH = `curl -fsSL ${CLI_RAW}/install.sh | sh`;

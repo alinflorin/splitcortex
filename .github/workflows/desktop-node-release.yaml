@@ -142,3 +142,12 @@ jobs:
           # The rolling release the app's updater endpoint points at (never "latest", see the top of this file).
           gh release view desktop-node-updater >/dev/null 2>&1 || gh release create desktop-node-updater --title "Desktop node updater feed" --notes "latest.json for the desktop app's auto-updater. Rewritten by every desktop-node release; do not delete." --prerelease --latest=false --target "$GITHUB_SHA"
           gh release upload desktop-node-updater latest.json --clobber
+
+  rolling:
+    needs: [create-release, build, updater-json]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/rolling-release.yaml
+    with:
+      stream: desktop-node
+      tag: ${{ inputs.version && format('desktop-node-v{0}', inputs.version) || github.ref_name }}

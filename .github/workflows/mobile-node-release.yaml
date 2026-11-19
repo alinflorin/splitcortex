@@ -53,3 +53,12 @@ jobs:
           # Not "latest": that badge belongs to the server release.
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "mobile-node ${TAG#mobile-node-v}" --generate-notes --verify-tag --latest=false
           gh release upload "$TAG" splitcortex-mobile-node-*.apk --clobber
+
+  rolling:
+    needs: github-release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/rolling-release.yaml
+    with:
+      stream: mobile-node
+      tag: ${{ github.ref_name }}
