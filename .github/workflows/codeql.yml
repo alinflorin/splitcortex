@@ -116,9 +116,10 @@ jobs:
           config-file: ./.github/codeql/codeql-config.yml
 
       # --no-daemon and --no-build-cache so every Kotlin file is compiled under the tracer.
+      # x86_64 only (as mobile-node.yaml's CI build): the extractor reads Kotlin, so the other ABIs' C++ would be wasted time.
       - name: Build
         working-directory: src/mobile-node/android
-        run: ./gradlew assembleDebug --no-daemon --no-build-cache
+        run: ./gradlew assembleDebug --no-daemon --no-build-cache -PreactNativeArchitectures=x86_64
 
       # paths-ignore is not applied to compiled languages, so the build's results include the Expo
       # packages in node_modules. Analyze without uploading, drop those results, then upload.
