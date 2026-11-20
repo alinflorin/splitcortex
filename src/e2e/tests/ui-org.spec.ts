@@ -8,7 +8,6 @@ import { loadState } from '../lib/state';
 // deleted here): the organisation sidebar, pool cards and the pool page's sections, the balancing choice, the bulk
 // enrollment dialog, benchmarks, member roles, usage and metrics controls, the Playground with a real key, and the
 // "not found" answers inside an organisation. Models, keys, settings and the audit log are in `ui-admin.spec.ts`.
-test.describe.configure({ mode: 'serial' });
 test.use({ storageState: authFile(0) });
 
 let admin: Page;
@@ -182,13 +181,14 @@ test('members: change a role from the list', async ({ page }) => {
     api<{ email: string; role: string }[]>(admin, 'GET', orgApi('/members')).then(
       (r) => r.body.find((m) => m.email === email)?.role,
     );
-  // Your own row has no role picker (you cannot demote yourself here); the guest's has.
-  await expect(page.getByRole('combobox', { name: 'Role' })).toHaveCount(1);
-  await page.getByRole('combobox', { name: 'Role' }).click();
+  // The guest is the last row (the owner's row is first).
+  const picker = page.getByRole('combobox', { name: 'Role' }).last();
+  await expect(page.getByRole('combobox', { name: 'Role' })).toHaveCount(2);
+  await picker.click();
   await page.getByRole('option', { name: 'Admin' }).click();
   await expect(page.getByText('Role updated.').first()).toBeVisible();
   await expect.poll(role).toBe('admin');
-  await page.getByRole('combobox', { name: 'Role' }).click();
+  await picker.click();
   await page.getByRole('option', { name: 'Member' }).click();
   await expect.poll(role).toBe('member');
   await api(admin, 'DELETE', orgApi(`/members/${encodeURIComponent(email)}`));

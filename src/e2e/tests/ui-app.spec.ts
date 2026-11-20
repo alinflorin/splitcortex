@@ -6,7 +6,6 @@ import { authFile, baseUrl, dexUrl, users } from '../lib/env';
 // The web app outside an organisation: the signed-out visitor, Home, About, the sidebar, the account menu (theme,
 // language, sign out), account settings, creating an organisation through the form, the phone-sized layout, the
 // copy buttons. Everything an organisation contains is in `ui.spec.ts`, `ui-admin.spec.ts` and `ui-org.spec.ts`.
-test.describe.configure({ mode: 'serial' });
 
 const me = () => users()[0]!;
 const created: string[] = [];
@@ -89,7 +88,7 @@ test.describe('signed in', () => {
     await expect(tab.getByRole('heading', { level: 1, name: 'Playground' })).toBeVisible();
     await tab.close();
     await page.goto(baseUrl());
-    await page.getByRole('button', { name: 'Open my organisations' }).click();
+    await page.getByRole('button', { name: 'Open my organisations' }).first().click();
     await page.waitForURL(`${baseUrl()}/organisations`);
   });
 
