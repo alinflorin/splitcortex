@@ -14,6 +14,7 @@
     "signIn": "Sign in",
     "signOut": "Sign out",
     "redirecting": "Redirecting to sign in…",
+    "renewing": "Restoring your session…",
     "error": "Sign-in failed",
     "retry": "Try again",
     "account": "Account"

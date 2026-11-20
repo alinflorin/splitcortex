@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, MessageBar, MessageBarBody, Spinner } from '@fluentui/react-components';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation } from 'react-router-dom';
@@ -10,6 +10,7 @@ export function PrivateRoute() {
   const location = useLocation();
   const { t } = useTranslation();
   const redirecting = useRef(false);
+  const [renewFailed, setRenewFailed] = useState(false);
 
   const { isLoading, isAuthenticated, activeNavigator, error, signinRedirect, signinSilent, user } =
     auth;
@@ -19,7 +20,10 @@ export function PrivateRoute() {
   useEffect(() => {
     if (isLoading || isAuthenticated || activeNavigator || error || redirecting.current) return;
     redirecting.current = true;
-    const toDex = () => void signinRedirect({ state: { returnTo } });
+    const toDex = () => {
+      setRenewFailed(true);
+      void signinRedirect({ state: { returnTo } });
+    };
     if (!hasRefreshToken) {
       toDex();
       return;
@@ -62,5 +66,13 @@ export function PrivateRoute() {
     );
   }
 
-  return <Spinner labelPosition="below" label={t('auth.redirecting')} style={{ marginTop: 96 }} />;
+  const renewing = activeNavigator === 'signinSilent' || (hasRefreshToken && !renewFailed);
+
+  return (
+    <Spinner
+      labelPosition="below"
+      label={t(renewing ? 'auth.renewing' : 'auth.redirecting')}
+      style={{ marginTop: 96 }}
+    />
+  );
 }

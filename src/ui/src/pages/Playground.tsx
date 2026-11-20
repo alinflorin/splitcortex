@@ -3,6 +3,7 @@ import {
   Caption1,
   Field,
   Input,
+  Label,
   MessageBar,
   MessageBarBody,
   Select,
@@ -107,13 +108,13 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalM,
     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
   },
+  keyForm: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXXS },
   keyRow: {
     display: 'flex',
     gap: tokens.spacingHorizontalS,
     alignItems: 'flex-start',
     flexWrap: 'wrap',
   },
-  keyButton: { marginTop: '22px' },
   grow: { flexGrow: 1, minWidth: '220px' },
   thread: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
   turn: {
@@ -415,29 +416,32 @@ export function Playground() {
       <PageHeader title={t('playground.title')} subtitle={t('playground.subtitle')} />
 
       <section className={styles.card}>
-        <form onSubmit={(e) => void connect(e)} className={styles.keyRow}>
-          <Controller
-            name="key"
-            control={form.control}
-            render={({ field }) => (
-              <Field
-                label={t('playground.key')}
-                hint={t('playground.keyHint')}
-                className={styles.grow}
-                validationMessage={errors.key?.message && t(errors.key.message)}
-              >
-                <Input {...field} type="password" autoComplete="off" disabled={busy} />
-              </Field>
-            )}
-          />
-          <Button
-            type="submit"
-            appearance="primary"
-            className={styles.keyButton}
-            disabled={connecting || busy}
-          >
-            {t(models ? 'playground.reconnect' : 'playground.connect')}
-          </Button>
+        <form onSubmit={(e) => void connect(e)} className={styles.keyForm}>
+          <Label htmlFor="playground-key">{t('playground.key')}</Label>
+          <div className={styles.keyRow}>
+            <Controller
+              name="key"
+              control={form.control}
+              render={({ field }) => (
+                <Field
+                  hint={t('playground.keyHint')}
+                  className={styles.grow}
+                  validationMessage={errors.key?.message && t(errors.key.message)}
+                >
+                  <Input
+                    {...field}
+                    id="playground-key"
+                    type="password"
+                    autoComplete="off"
+                    disabled={busy}
+                  />
+                </Field>
+              )}
+            />
+            <Button type="submit" appearance="primary" disabled={connecting || busy}>
+              {t(models ? 'playground.reconnect' : 'playground.connect')}
+            </Button>
+          </div>
         </form>
 
         {models && models.length === 0 && (
