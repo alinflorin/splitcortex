@@ -6,6 +6,17 @@ import { mobileNodeApk } from '../releases';
 const PACKAGE = 'com.splitcortex.node';
 let installed = false;
 
+// A headless emulator (often restored from a snapshot) can have its screen off or locked, which renders black and
+// leaves uiautomator with nothing to read: keep it awake and dismiss the keyguard.
+async function wake() {
+  const sh = (...a: string[]) => adb('shell', ...a).catch(() => undefined);
+  await sh('svc', 'power', 'stayon', 'true');
+  await sh('settings', 'put', 'system', 'screen_off_timeout', '2147483647');
+  await sh('input', 'keyevent', 'KEYCODE_WAKEUP');
+  await sh('wm', 'dismiss-keyguard');
+  await sh('input', 'keyevent', '82');
+}
+
 // The released APK (latest, or E2E_MOBILE_VERSION) on an emulator/device reachable through adb: opened with the
 // enrollment deep link (the same one the QR carries), then driven through its own screens.
 export const android: NodeDriver = {
@@ -18,6 +29,7 @@ export const android: NodeDriver = {
     }
     // Local hosts resolve to 127.0.0.1, which on the emulator is itself: send port 443 back to this machine.
     if (isLocal()) await adb('reverse', 'tcp:443', 'tcp:443');
+    await wake();
     await adb('shell', 'am', 'force-stop', PACKAGE);
     await adb('shell', 'pm', 'clear', PACKAGE);
     await adb('shell', 'pm', 'grant', PACKAGE, 'android.permission.POST_NOTIFICATIONS').catch(
