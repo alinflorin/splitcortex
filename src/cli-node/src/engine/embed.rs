@@ -1,7 +1,7 @@
 //! Embeddings: the second capability of the engine, next to chat. A pool whose model has kind "embedding" is loaded into
 //! LiteRT-LM's embedding engine (never the chat engine). This file is the model-independent part: the task prefixes,
 //! the Matryoshka truncation with renormalisation, and the batch handling, all behind the `Embedder` trait so they are
-//! tested with a fake. Port of `src/desktop-node/src/engine/embedding.ts`: a fix in one must be made in the other.
+//! tested with a fake. Port of the web node's `src/engine/embedding.ts`: keep them equal.
 //! Texts and vectors are never logged.
 
 /// Why an embedding request failed: the input is the problem (the gateway may show it to the client), or the engine.

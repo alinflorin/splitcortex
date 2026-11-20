@@ -2,7 +2,7 @@
 
 SplitCortex is a SaaS platform that turns idle compute (phones, Raspberry Pis, laptops, even browser tabs) into inference serving nodes. Customers enroll their own devices into pools and serve a model through one managed, OpenAI-compatible API.
 
-> Status: built end to end (control plane, gateway, web app and the phone, desktop, CLI and web nodes) and run by the owner on real laptops, browsers and Android devices. Measured speeds and per-OS results are not recorded yet.
+> Status: built end to end (control plane, gateway, web app and the phone, CLI and web nodes) and run by the owner on real laptops, browsers and Android devices. Measured speeds and per-OS results are not recorded yet.
 
 ## How it works
 
@@ -29,7 +29,6 @@ The business model is bring-your-own-devices SaaS: customers supply the compute,
 | `src/gateway`       | OpenAI edge plus node WebSocket (Rust); owns the node protobuf in `proto/`             | [docs/gateway.md](docs/gateway.md)             |
 | `src/mobile-node`   | Android phone node (React Native, Expo)                                                | [docs/node-app.md](docs/node-app.md)           |
 | `src/web-node`      | Browser node (static web app, WebGPU)                                                  | [docs/web-node.md](docs/web-node.md)           |
-| `src/desktop-node`  | Desktop node (Tauri 2: Linux, macOS arm64, Windows)                                    | [docs/desktop-node.md](docs/desktop-node.md)   |
 | `src/cli-node`      | Headless node (Rust, installed with one command)                                       | [docs/cli-node.md](docs/cli-node.md)           |
 | `chart/`            | Helm chart for everything (Traefik, cert-manager, Dex, Postgres, Garage, our services) | [docs/layout.md](docs/layout.md)               |
 | `scripts/`          | Dev helpers (Android emulator, wiki sync)                                              |                                                |
@@ -53,7 +52,6 @@ Required for the server side:
 Only if you work on those parts:
 
 - Mobile node: JDK, Android SDK, a real Android device or emulator (`scripts/start-emulator.sh`); no Expo Go, local dev builds only
-- Desktop node: Rust plus the [Tauri system dependencies](https://v2.tauri.app/start/prerequisites/)
 
 ### Run the stack
 
@@ -89,7 +87,7 @@ The same file is the place for any other personal chart override. All hostnames 
 
 ### Working on one project
 
-Each of `src/ui`, `src/web-node`, `src/desktop-node`, `src/control-plane` and `src/mobile-node` is its own pnpm project:
+Each of `src/ui`, `src/web-node`, `src/control-plane` and `src/mobile-node` is its own pnpm project:
 
 ```sh
 pnpm install
@@ -117,9 +115,9 @@ Chart changes: `helm lint chart --strict` and `helm template splitcortex chart`.
 
 ### Things to know before you change code
 
-- The node protobuf lives in `src/gateway/proto`; the phone, web and desktop nodes commit a generated copy (`pnpm gen:proto`).
+- The node protobuf lives in `src/gateway/proto`; the phone and web nodes commit a generated copy (`pnpm gen:proto`).
 - The control plane's zod DTOs are not shared with the gateway or the UI; the UI copies what it needs by hand.
-- The desktop and CLI nodes are deliberately separate implementations: a fix in one usually belongs in the other.
+- The CLI node is a separate Rust implementation of the web node's protocol, enrollment and runtime logic: a fix in one usually belongs in the other.
 - API error messages exist in English and Romanian; add both.
 - No CDNs (fonts and icons are self-hosted) and no CORS on the gateway or the node-facing hosts.
 - Builds are slow: verify with typecheck, tests and `helm lint`/`helm template` rather than building images by hand.
@@ -132,7 +130,6 @@ GitHub Actions lint, test and build every project. Releases are tag driven and e
 | --------------------- | ---------------------------------------------------------------------------------- |
 | `vX.Y.Z`              | chart + web app + control plane + gateway; deploys to stg, prd is promoted by hand |
 | `mobile-node-vX.Y.Z`  | signed Android APK                                                                 |
-| `desktop-node-vX.Y.Z` | desktop installers and updater                                                     |
 | `cli-node-vX.Y.Z`     | CLI binaries                                                                       |
 
 Tags are created from `VERSIONS.txt` by a workflow. See [docs/commands-and-ci.md](docs/commands-and-ci.md).

@@ -1,5 +1,5 @@
 # Command line node release, tag cli-node-vX.Y.Z (its own stream, independent of the server vX.Y.Z, the mobile
-# mobile-node-vX.Y.Z and the desktop desktop-node-vX.Y.Z tags): builds the binary for every platform, packs it with the
+# mobile-node-vX.Y.Z tags): builds the binary for every platform, packs it with the
 # LiteRT-LM library next to it (splitcortex-node-<target>.tar.gz, .zip on Windows, plus a .sha256 file) and attaches the
 # archives to a GitHub release named after the tag. install.sh / install.ps1 (in src/cli-node) and `splitcortex-node
 # update` find the newest cli-node-v* release; it is never marked "latest" (that badge belongs to the server release).

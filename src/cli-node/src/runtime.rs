@@ -1,5 +1,5 @@
 //! The node's service: owns the gateway connection, the model on disk and the engine, and serves inference requests one
-//! at a time. Port of `src/desktop-node/src/runtime/NodeRuntime.ts`. Requests and answers are never logged, only counts.
+//! at a time. Port of the web node's `src/runtime/NodeRuntime.ts`. Requests and answers are never logged, only counts.
 
 use crate::connection::{ConnState, Connection, Event, Options, TrustedKeys};
 use crate::crypto::{b64, unb64};

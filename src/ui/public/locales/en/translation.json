@@ -40,11 +40,6 @@
       "play": "Google Play",
       "ios": "App Store"
     },
-    "desktop": {
-      "title": "Desktop app",
-      "body": "Serve from a Linux, macOS (Apple silicon) or Windows computer. It runs in the system tray and updates itself.",
-      "download": "Download for desktop"
-    },
     "cli": {
       "title": "Command line",
       "body": "Run a node on a server or any computer without a screen. Install it with one command, then join with a code from Add device.",
@@ -273,10 +268,6 @@
         "mobile": {
           "title": "Android phone",
           "body": "A background service keeps serving with the screen off, and starts on boot."
-        },
-        "desktop": {
-          "title": "Desktop app",
-          "body": "Linux, macOS (Apple silicon) and Windows. Lives in the tray and updates itself."
         },
         "cli": {
           "title": "Command line",

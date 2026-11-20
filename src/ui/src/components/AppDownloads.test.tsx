@@ -7,17 +7,15 @@ import {
   CLI_INSTALL_PS1,
   CLI_INSTALL_SH,
   CLI_RELEASES_URL,
-  DESKTOP_RELEASES_URL,
   MOBILE_RELEASES_URL,
 } from './AppDownloads';
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('AppDownloads', () => {
-  it('shows the mobile, desktop, command line and web node apps', async () => {
+  it('shows the mobile, command line and web node apps', async () => {
     await renderWithApi(<AppDownloads />);
     expect(screen.getByText('Mobile app')).toBeInTheDocument();
-    expect(screen.getByText('Desktop app')).toBeInTheDocument();
     expect(screen.getByText('Command line')).toBeInTheDocument();
     expect(screen.getByText('Web node')).toBeInTheDocument();
   });
@@ -34,10 +32,6 @@ describe('AppDownloads', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Google Play' }));
     await userEvent.click(screen.getByRole('button', { name: 'App Store' }));
     expect(open).toHaveBeenCalledTimes(1);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Download for desktop' }));
-    expect(open).toHaveBeenCalledWith(DESKTOP_RELEASES_URL, '_blank', 'noopener,noreferrer');
-    expect(DESKTOP_RELEASES_URL).toContain('/tag/desktop-node-latest');
   });
 
   it('opens the web node in a new tab without a code', async () => {

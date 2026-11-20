@@ -1,7 +1,7 @@
-# Rolling "<stream>-latest" release (cli-node-latest, mobile-node-latest, desktop-node-latest): a copy of the newest
+# Rolling "<stream>-latest" release (cli-node-latest, mobile-node-latest): a copy of the newest
 # versioned release of that stream under a fixed tag, so the web app can link to one stable page per stream
 # (GitHub's release search lists by date and cannot filter a stream, and "latest" belongs to the server release).
-# Called by the three node release workflows after the versioned release is complete. In-place update: new assets are
+# Called by the two node release workflows after the versioned release is complete. In-place update: new assets are
 # uploaded first, stale ones removed after, so download links never break. Marked prerelease so it is never "latest";
 # install.sh / install.ps1 / `update` only look at cli-node-v<number> tags and ignore it.
 name: Rolling release
@@ -10,7 +10,7 @@ on:
   workflow_call:
     inputs:
       stream:
-        description: "mobile-node, desktop-node or cli-node"
+        description: "mobile-node or cli-node"
         required: true
         type: string
       tag:

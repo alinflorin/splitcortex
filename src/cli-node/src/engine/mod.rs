@@ -2,8 +2,7 @@
 //! at a time. Prompts and completions pass through here only to be generated and streamed back: nothing is logged or
 //! stored. Blocking calls (run them on a blocking thread).
 //!
-//! The binding is a copy of the desktop node's (`src/desktop-node/src-tauri/src/engine`): the two apps are kept
-//! separate on purpose, so a fix to one must be made in the other. **Not run against a real model yet.**
+//! The binding is this crate's own (the desktop app it came from was removed). **Not run against a real model yet.**
 
 pub mod compute;
 pub mod embed;

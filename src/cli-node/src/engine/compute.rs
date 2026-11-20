@@ -2,7 +2,7 @@
 //! wins, then this node's own setting, then automatic: the backend is measured once per model on this machine (CPU
 //! against GPU, GPU only if clearly faster, never without a GPU driver) and remembered; the context window follows the
 //! machine's RAM. A failed load steps back (GPU to CPU, then the default window) instead of failing.
-//! Port of `src/desktop-node/src/engine/compute.ts`.
+//! Port of `src/web-node/src/engine/compute.ts` (logic originally from the removed desktop node).
 
 use super::embed::{EmbedError, embed_request};
 use super::{Engine, GenerateReq};

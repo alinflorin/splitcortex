@@ -3,7 +3,6 @@ import {
   ArrowDownload20Regular,
   Code24Regular,
   Copy20Regular,
-  Desktop24Regular,
   Globe24Regular,
   Open20Regular,
   Phone24Regular,
@@ -18,7 +17,6 @@ import { useToast } from './feedback/useToast';
 const RELEASES = 'https://github.com/alinflorin/splitcortex/releases';
 /** Each app has its own rolling release (`<stream>-latest`, kept current by .github/workflows/rolling-release.yaml). */
 export const MOBILE_RELEASES_URL = `${RELEASES}/tag/mobile-node-latest`;
-export const DESKTOP_RELEASES_URL = `${RELEASES}/tag/desktop-node-latest`;
 export const CLI_RELEASES_URL = `${RELEASES}/tag/cli-node-latest`;
 /** The install scripts live in the repository (`src/cli-node`) and are fetched straight from GitHub. */
 const CLI_RAW = 'https://raw.githubusercontent.com/alinflorin/splitcortex/main/src/cli-node';
@@ -97,7 +95,7 @@ function AppCard({
 }
 
 /**
- * Where to run a node: the phone app, the desktop app and the web node. They all behave the same way (enroll with a
+ * Where to run a node: the phone app, the command line node and the web node. They all behave the same way (enroll with a
  * code from "Add device"); the web node is only a link here, never opened with a code filled in.
  */
 export function AppDownloads({ bare = false }: { bare?: boolean }) {
@@ -161,19 +159,6 @@ export function AppDownloads({ bare = false }: { bare?: boolean }) {
           </Button>
           <Button icon={<ShoppingBag20Regular />} disabledFocusable>
             {t('apps.mobile.ios')}
-          </Button>
-        </AppCard>
-        <AppCard
-          icon={<Desktop24Regular />}
-          title={t('apps.desktop.title')}
-          body={t('apps.desktop.body')}
-        >
-          <Button
-            appearance="primary"
-            icon={<ArrowDownload20Regular />}
-            onClick={() => open(DESKTOP_RELEASES_URL)}
-          >
-            {t('apps.desktop.download')}
           </Button>
         </AppCard>
         <AppCard

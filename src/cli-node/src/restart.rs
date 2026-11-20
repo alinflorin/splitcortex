@@ -1,7 +1,7 @@
 //! Remote restart (`Restart { grace_seconds }`, gateway to node). The state machine that decides when the node may
 //! restart, and the relaunch itself. The runtime drives it: it stops taking requests (answers "restarting"), lets the
 //! running ones finish for up to the grace period (then cancels them), closes the gateway connection cleanly, and starts
-//! the process again. Port of the same logic in the desktop node; keep them equal.
+//! the process again. Same logic as the web node's remote restart.
 
 use std::time::{Duration, Instant};
 

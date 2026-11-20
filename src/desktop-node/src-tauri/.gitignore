@@ -1,6 +1,0 @@
-/target/
-/gen/
-# fetched by scripts/fetch-litert.mjs
-/resources/litert/*
-!/resources/litert/.gitkeep
-/resources/.cache/

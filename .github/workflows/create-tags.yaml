@@ -2,7 +2,6 @@
 # tags arrive in one push). Each tag starts its own release workflow:
 #   vX.Y.Z               release.yaml (chart, images, GitHub release, stg deploy; includes the web app and web node)
 #   mobile-node-vX.Y.Z   mobile-node-release.yaml
-#   desktop-node-vX.Y.Z  desktop-node-release.yaml
 #   cli-node-vX.Y.Z      cli-node-release.yaml
 #
 # Two ways in:
@@ -34,10 +33,6 @@ on:
         description: "Mobile node: mobile-node-vX.Y.Z"
         type: boolean
         default: true
-      desktop:
-        description: "Desktop node: desktop-node-vX.Y.Z"
-        type: boolean
-        default: true
       cli:
         description: "CLI node: cli-node-vX.Y.Z"
         type: boolean
@@ -63,7 +58,6 @@ jobs:
           VERSION: ${{ inputs.version }}
           PLATFORM: ${{ inputs.platform }}
           MOBILE: ${{ inputs.mobile }}
-          DESKTOP: ${{ inputs.desktop }}
           CLI: ${{ inputs.cli }}
           HAS_TOKEN: ${{ secrets.GH_TOKEN != '' }}
         run: |
@@ -81,7 +75,6 @@ jobs:
             fi
             [ "$PLATFORM" = "true" ] && wanted+=("v$VERSION")
             [ "$MOBILE" = "true" ] && wanted+=("mobile-node-v$VERSION")
-            [ "$DESKTOP" = "true" ] && wanted+=("desktop-node-v$VERSION")
             [ "$CLI" = "true" ] && wanted+=("cli-node-v$VERSION")
           else
             # One tag per line; blank lines and # comments are ignored.
@@ -93,7 +86,7 @@ jobs:
           fi
 
           for tag in "${wanted[@]}"; do
-            if ! [[ "$tag" =~ ^(mobile-node-|desktop-node-|cli-node-)?v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            if ! [[ "$tag" =~ ^(mobile-node-|cli-node-)?v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               echo "::error::Not a release tag: $tag"
               exit 1
             fi

@@ -27,9 +27,9 @@ jobs:
         include:
           # workflows under .github/workflows
           - language: actions
-          # ui, web-node, desktop-node (web side), control-plane, mobile-node
+          # ui, web-node, control-plane, mobile-node
           - language: javascript-typescript
-          # gateway, cli-node, desktop-node/src-tauri
+          # gateway, cli-node
           - language: rust
           # scripts/fetch-litert.py
           - language: python

@@ -1,5 +1,5 @@
-//! Device side of the enrollment protocol. Must match src/control-plane/src/enrollment/crypto.ts (and the web side's
-//! copy, src/desktop-node/src/enrollment/crypto.ts) byte for byte: CPace ristretto255/SHA-512 (draft-20, as
+//! Device side of the enrollment protocol. Must match src/control-plane/src/enrollment/crypto.ts (and the web node's
+//! copy, src/web-node/src/enrollment/crypto.ts) byte for byte: CPace ristretto255/SHA-512 (draft-20, as
 //! `@cipherman/pake-js` implements it), HKDF-SHA256, ChaCha20-Poly1305, Ed25519.
 
 use base64::Engine as _;

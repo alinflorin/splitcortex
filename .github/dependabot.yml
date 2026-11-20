@@ -26,7 +26,6 @@ updates:
     directories:
       - /src/ui
       - /src/web-node
-      - /src/desktop-node
       - /src/control-plane
     schedule:
       interval: weekly
@@ -79,7 +78,6 @@ updates:
     directories:
       - /src/gateway
       - /src/cli-node
-      - /src/desktop-node/src-tauri
     schedule:
       interval: weekly
       day: tuesday

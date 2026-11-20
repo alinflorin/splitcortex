@@ -2,7 +2,6 @@ import { Button, Text, makeStyles, tokens } from '@fluentui/react-components';
 import {
   ArrowRight24Regular,
   Code24Regular,
-  Desktop24Regular,
   Eye24Regular,
   Globe24Regular,
   Key24Regular,
@@ -205,7 +204,6 @@ export function About() {
 
   const nodes = [
     { key: 'mobile', icon: <Phone24Regular /> },
-    { key: 'desktop', icon: <Desktop24Regular /> },
     { key: 'cli', icon: <Code24Regular /> },
     { key: 'web', icon: <Globe24Regular /> },
   ] as const;

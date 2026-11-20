@@ -5,7 +5,7 @@ ships it next to the binary (loaded at run time, see src/engine). Usage:
   python3 scripts/fetch-litert.py [rust-target-triple] [--required]
 Without a triple it uses the host's. A target Google publishes no library for (macOS x86_64) gets nothing: the binary
 builds, but the engine reports that it is unavailable. --required fails on such a target instead.
-Same pin as src/desktop-node/scripts/fetch-litert.mjs; bump both together."""
+LiteRT-LM v0.19.1 C API zip, pinned by SHA-256."""
 import hashlib
 import io
 import re

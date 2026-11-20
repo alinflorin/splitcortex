@@ -1,7 +1,7 @@
 //! Keeps the model the gateway assigned to this node's pool on disk: downloads it from the control plane in signed ranges
 //! (resumable: a restart continues from what is stored), verifies the SHA-256, replaces the previous model (its file is
 //! deleted first to free the space) and loads it into the engine. Never talks to Hugging Face or to object storage, and
-//! never through the gateway. Port of `src/desktop-node/src/models/manager.ts`.
+//! never through the gateway. Port of `src/web-node/src/models/manager.ts`.
 
 use crate::engine::compute::ComputeEngine;
 use crate::handshake::node_authorization;
