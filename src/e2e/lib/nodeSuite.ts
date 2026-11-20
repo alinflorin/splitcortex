@@ -325,8 +325,12 @@ async function checkOperations(
     mark('operations: benchmark');
     // Benchmark: the pool's devices are measured one at a time; the result is listed.
     await page.goto(`${baseUrl()}${org}/pools/${poolId}`);
-    await page.getByRole('button', { name: 'Run benchmark' }).click();
-    await expect(page.getByText('Benchmark started.').first()).toBeVisible();
+    // The page re-renders while the device reports (a phone does it often), which can detach the button between
+    // Playwright's checks: retry the click together with its confirmation.
+    await expect(async () => {
+      await page.getByRole('button', { name: 'Run benchmark' }).click({ timeout: 5_000 });
+      await expect(page.getByText('Benchmark started.').first()).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 60_000 });
     // One device in the pool: no "Pool throughput" total (it needs two results), just the device's own row.
     await expect(page.getByText('Done', { exact: true }).first()).toBeVisible({
       timeout: 5 * 60_000,
