@@ -21,6 +21,9 @@ local_resource(
     cmd=("grep -E '^\\s+repository:' chart/Chart.yaml | awk '{print $2}' | sort -u | while read -r url; do " +
          "helm repo add \"$(echo \"$url\" | sed -E 's#https?://##; s#[^A-Za-z0-9]+#-#g; s#-$##')\" \"$url\" --force-update >/dev/null; done && " +
          'helm dependency build chart && helm upgrade -i --wait --timeout 5m --set ui.enabled=false --set webNode.enabled=false --set controlPlane.enabled=false --set gateway.enabled=false ' +
+         # Dev-only: the Vite dev server serves hundreds of unbundled modules per page load, which the default per-IP
+         # limit (50/s, burst 100) answers with 429 (a blank page, and flaky e2e runs).
+         '--set rateLimit.general.average=1000 --set rateLimit.general.burst=2000 ' +
          '--create-namespace -n %s %s splitcortex chart' % (NAMESPACE, values_args)),
     deps=['chart/Chart.yaml', 'chart/Chart.lock', 'chart/values.yaml', 'chart/templates'] + helm_values,
     labels=['infra'],

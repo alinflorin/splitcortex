@@ -56,6 +56,13 @@ describe('embedTexts', () => {
       [0, 0],
     ]);
   });
+  it('refuses more dimensions than the model makes, accepts exactly as many', async () => {
+    const vectors = [[1, 0, 0]];
+    expect((await embedTexts(fake(vectors), ['a'], '', 3)).vectors).toEqual(vectors);
+    await expect(embedTexts(fake(vectors), ['a'], '', 4)).rejects.toBeInstanceOf(
+      EmbeddingInputError,
+    );
+  });
   it('rejects no inputs and blank inputs', async () => {
     await expect(embedTexts(fake(), [], '', 0)).rejects.toBeInstanceOf(EmbeddingInputError);
     await expect(embedTexts(fake(), ['a', '  '], '', 0)).rejects.toBeInstanceOf(

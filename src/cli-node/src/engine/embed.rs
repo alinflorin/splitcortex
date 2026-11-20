@@ -93,6 +93,13 @@ pub fn embed_request(
             "The engine produced invalid (NaN) vectors",
         ));
     }
+    // More dimensions than the model makes is the client's mistake (a `400`, not retried on another node).
+    let full = out.first().map_or(0, Vec::len);
+    if dimensions as usize > full && full > 0 {
+        return Err(EmbedError::bad_input(format!(
+            "The model makes {full} dimensions, {dimensions} were asked for"
+        )));
+    }
     Ok(out
         .into_iter()
         .map(|v| truncate_and_normalise(v, dimensions as usize))
@@ -197,6 +204,14 @@ mod tests {
             "bad_input"
         );
         assert!(f.seen.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn more_dimensions_than_the_model_makes_is_a_bad_input() {
+        let f = fake(4);
+        assert_eq!(embed_request(&f, &strings(&["a"]), "", 4).unwrap().len(), 1);
+        let e = embed_request(&f, &strings(&["a"]), "", 5).unwrap_err();
+        assert_eq!(e.code, "bad_input");
     }
 
     #[test]

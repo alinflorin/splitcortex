@@ -71,5 +71,11 @@ export async function embedTexts(
   // Never hand out NaN or infinity (the gateway would serialise them as null).
   if (vectors.some((v) => !v.every(Number.isFinite)))
     throw new Error('The engine produced invalid (NaN) vectors');
+  // More dimensions than the model makes is the client's mistake, as on every other node type.
+  const full = vectors[0]?.length ?? 0;
+  if (full > 0 && dimensions > full)
+    throw new EmbeddingInputError(
+      `The model makes ${full} dimensions, ${dimensions} were asked for`,
+    );
   return { vectors: vectors.map((v) => applyDimensions(v, dimensions)), promptTokens };
 }

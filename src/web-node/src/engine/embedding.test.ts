@@ -47,6 +47,14 @@ describe('dimensions', () => {
 });
 
 describe('runEmbedding', () => {
+  it('refuses more dimensions than the model makes', async () => {
+    const e = fake([[1, 0, 0]], 1);
+    await expect(
+      runEmbedding(e, { inputs: ['a'], task: '', dimensions: 4 }),
+    ).rejects.toBeInstanceOf(EmbeddingRequestError);
+    const ok = await runEmbedding(e, { inputs: ['a'], task: '', dimensions: 3 });
+    expect(ok.vectors).toEqual([[1, 0, 0]]);
+  });
   it('prefixes, embeds in one batch, shrinks and keeps the order and token count', async () => {
     const e = fake(
       [

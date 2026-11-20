@@ -45,7 +45,15 @@ const sum = (m: Metrics, f: (p: Metrics['pools'][number]) => number) =>
   m.pools.reduce((n, p) => n + f(p), 0);
 
 test('traffic shows up as pool metrics with latency', async () => {
-  for (let i = 0; i < 3; i++) expect((await chat(node.secret, { max_tokens: 4 })).status).toBe(200);
+  // Long enough for the speed sample the gateway keeps (at least 8 tokens and 250 ms of generation), which the
+  // per-node test below depends on.
+  for (let i = 0; i < 3; i++) {
+    const r = await chat(node.secret, {
+      max_tokens: 64,
+      messages: [{ role: 'user', content: 'Count from 1 to 60, separated by commas.' }],
+    });
+    expect(r.status).toBe(200);
+  }
   const m = await waitFor(
     'the gateway to write the pool metrics',
     async () => {
