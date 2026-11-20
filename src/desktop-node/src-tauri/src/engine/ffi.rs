@@ -17,6 +17,8 @@ pub const LOG_SILENT: c_int = 1000;
 pub const INPUT_TEXT: c_int = 0;
 /// `kLiteRtLmInputOverflowStrategyError`: an input longer than the model's longest signature is an error.
 pub const OVERFLOW_ERROR: c_int = 2;
+pub const STATUS_INVALID_ARGUMENT: Status = 3;
+pub const STATUS_OUT_OF_RANGE: Status = 11;
 
 pub type StreamCallback = unsafe extern "C" fn(data: *mut c_void, chunk: *const c_void);
 

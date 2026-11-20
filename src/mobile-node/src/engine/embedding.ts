@@ -13,6 +13,10 @@ const PREFIX: Record<Exclude<EmbeddingTask, ''>, string> = {
   similarity: 'task: sentence similarity | query: ',
 };
 
+/** What the engines say when an input is over the window (the overflow strategy is "error"). */
+const INPUT_TOO_LONG =
+  /signature length|exceed|too long|overflow|out of range|longer than|OUT_OF_RANGE|bad_input:/i;
+
 /** A request the node refuses (code goes to `InferenceError.code`). */
 export class EmbeddingRequestError extends Error {
   constructor(
@@ -68,7 +72,15 @@ export async function embedAll(embedder: Embedder, job: EmbeddingJob): Promise<n
       `The model makes ${full} dimensions, ${job.dimensions} were asked for`,
     );
   const task = job.task;
-  const vectors = await embedder.embed(job.inputs.map((s) => prefixed(task, s)));
+  let vectors;
+  try {
+    vectors = await embedder.embed(job.inputs.map((s) => prefixed(task, s)));
+  } catch (e) {
+    // An input over the model's window is the client's mistake, as on every other node type.
+    if (INPUT_TOO_LONG.test(String(e)))
+      throw new EmbeddingRequestError('bad_request', 'An input is longer than the model accepts');
+    throw e;
+  }
   if (vectors.length !== job.inputs.length) throw new Error('The engine returned a wrong count');
   return vectors.map((v) =>
     job.dimensions > 0 && job.dimensions < v.length

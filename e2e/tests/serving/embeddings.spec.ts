@@ -17,7 +17,7 @@ import {
 
 // Embedding models: `kind`, `POST /v1/embeddings` and what the gateway decides from the model alone (part 1, with the
 // usual tiny chat model and a placeholder embedding pool), then the real vectors of a real embedding model (part 2,
-// only when E2E_EMBEDDING_MODEL_URL points to a Hugging Face .litertlm embedding model, for example EmbeddingGemma).
+// with EmbeddingGemma by default; E2E_EMBEDDING_MODEL_URL points them to another Hugging Face .litertlm embedding model).
 test.skip(!existsSync(bin) && !process.env.CI, `no CLI binary at ${bin} (set E2E_CLI_BIN)`);
 
 interface ApiErrorBody {
@@ -120,7 +120,7 @@ test.describe('what the gateway decides from the model kind', () => {
 test.describe('real embeddings', () => {
   test.skip(
     !embeddingModelUrl,
-    'set E2E_EMBEDDING_MODEL_URL to a Hugging Face link to a .litertlm embedding model (for example EmbeddingGemma) to run the real embedding tests',
+    'no embedding model link (E2E_EMBEDDING_MODEL_URL is empty and the default is gone)',
   );
   test.describe.configure({ mode: 'serial', timeout: 600_000 });
 

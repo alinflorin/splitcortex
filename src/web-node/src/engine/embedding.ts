@@ -13,6 +13,11 @@ const PREFIXES: Record<string, string> = {
   similarity: 'task: sentence similarity | query: ',
 };
 
+/** What the engines say when an input is over the window (the overflow strategy is "error"). */
+const INPUT_TOO_LONG =
+  /signature length|exceed|too long|overflow|out of range|longer than|OUT_OF_RANGE|bad_input:/i;
+const TOO_LONG = 'An input is longer than the model accepts';
+
 /** The request is wrong (not the engine): becomes an `InferenceError` with code `bad_request`. */
 export class EmbeddingRequestError extends Error {}
 
@@ -41,7 +46,14 @@ export interface EmbedRequest {
 /** Answers one embedding request with the loaded embedder: same order as the inputs. */
 export async function runEmbedding(embedder: Embedder, req: EmbedRequest) {
   const texts = prepareInputs(req.inputs, req.task);
-  const out = await embedder.embed(texts);
+  let out;
+  try {
+    out = await embedder.embed(texts);
+  } catch (e) {
+    // An input over the model's window is the client's mistake, as on every other node type.
+    if (INPUT_TOO_LONG.test(String(e))) throw new EmbeddingRequestError(TOO_LONG);
+    throw e;
+  }
   if (out.vectors.length !== texts.length)
     throw new Error('The engine returned a wrong vector count');
   return {

@@ -52,8 +52,14 @@ export const embed = (key: string, body: Record<string, unknown> = {}) =>
 /** The name the embedding model gets in the throwaway org of `startEmbeddingNode`. */
 export const EMBED_MODEL = 'e2e-embedding';
 
-/** A Hugging Face link to a real `.litertlm` embedding model (for example EmbeddingGemma); the real embedding tests skip without it. */
-export const embeddingModelUrl = process.env.E2E_EMBEDDING_MODEL_URL;
+/**
+ * A Hugging Face link to a real `.litertlm` embedding model: EmbeddingGemma 300M by default (a community conversion,
+ * not an official litert-community file; the control plane mirrors it, so it must stay reachable without a token).
+ * `E2E_EMBEDDING_MODEL_URL` overrides it.
+ */
+export const embeddingModelUrl =
+  process.env.E2E_EMBEDDING_MODEL_URL ||
+  'https://huggingface.co/kasimtmc/embeddinggemma-litertlm/resolve/main/embeddinggemma_300m.litertlm';
 
 /**
  * Enrolls a CLI node in the pool of `ws` and runs it. `probe` is one cheap request that succeeds once the gateway

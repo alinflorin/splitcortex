@@ -345,7 +345,7 @@ describe('NodeRuntime', () => {
       mockOnBody?.({ case: 'embeddingRequest', value: { ...req, task: 'weird' } });
       await vi.advanceTimersByTimeAsync(0);
       expect(answers()[0]?.value).toMatchObject({ code: 'bad_request' });
-      vi.mocked(embedder.embed).mockRejectedValueOnce(new Error('overflow'));
+      vi.mocked(embedder.embed).mockRejectedValueOnce(new Error('GPU lost'));
       mockOnBody?.({ case: 'embeddingRequest', value: { ...req, requestId: 'q2' } });
       await vi.advanceTimersByTimeAsync(0);
       expect(answers().at(-1)?.value).toMatchObject({ code: 'engine_error', requestId: 'q2' });

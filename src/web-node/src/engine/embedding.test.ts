@@ -70,3 +70,28 @@ describe('runEmbedding', () => {
     await expect(runEmbedding(e, { inputs: ['a'], task: '', dimensions: 0 })).rejects.toThrow();
   });
 });
+
+describe('input over the model window', () => {
+  it('is a bad request, not an engine failure; other engine errors stay engine errors', async () => {
+    const over = {
+      ...fake([[1, 0]]),
+      embed: async () => {
+        throw new Error(
+          'Requested target capacity (2048) exceeds maximum available signature length (512).',
+        );
+      },
+    };
+    await expect(
+      runEmbedding(over, { inputs: ['a'], task: '', dimensions: 0 }),
+    ).rejects.toBeInstanceOf(EmbeddingRequestError);
+    const broken = {
+      ...fake([[1, 0]]),
+      embed: async () => {
+        throw new Error('GPU lost');
+      },
+    };
+    await expect(
+      runEmbedding(broken, { inputs: ['a'], task: '', dimensions: 0 }),
+    ).rejects.not.toBeInstanceOf(EmbeddingRequestError);
+  });
+});

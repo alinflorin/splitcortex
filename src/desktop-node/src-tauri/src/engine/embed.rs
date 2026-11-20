@@ -122,7 +122,15 @@ fn run_embedding(
             &mut responses,
         );
         if st != 0 {
-            return Err(api.error("embedding", st));
+            // Over-long or invalid input is the client's mistake (the CLI node maps these two statuses the same way).
+            let message = api.error("embedding", st);
+            return Err(
+                if st == ffi::STATUS_INVALID_ARGUMENT || st == ffi::STATUS_OUT_OF_RANGE {
+                    format!("bad_input: {message}")
+                } else {
+                    message
+                },
+            );
         }
         let mut n = 0usize;
         let st = (api.emb_responses_size)(responses, &mut n);

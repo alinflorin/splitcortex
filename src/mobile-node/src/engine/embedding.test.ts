@@ -78,3 +78,26 @@ describe('embedAll', () => {
     await expect(embedAll(e, { inputs: ['a'], task: '', dimensions: 0 })).rejects.toThrow('boom');
   });
 });
+
+describe('input over the model window', () => {
+  it('is a bad request, not an engine failure; other engine errors stay engine errors', async () => {
+    const over: Embedder = {
+      ...fake().e,
+      embed: async () => {
+        throw new Error('input exceeds the maximum length');
+      },
+    };
+    await expect(embedAll(over, { inputs: ['a'], task: '', dimensions: 0 })).rejects.toBeInstanceOf(
+      EmbeddingRequestError,
+    );
+    const broken: Embedder = {
+      ...fake().e,
+      embed: async () => {
+        throw new Error('GPU lost');
+      },
+    };
+    await expect(
+      embedAll(broken, { inputs: ['a'], task: '', dimensions: 0 }),
+    ).rejects.not.toBeInstanceOf(EmbeddingRequestError);
+  });
+});

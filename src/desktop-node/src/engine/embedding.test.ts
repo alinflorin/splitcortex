@@ -68,3 +68,22 @@ describe('embedTexts', () => {
     await expect(embedTexts(e, ['a'], '', 0)).rejects.toThrow(/different number/);
   });
 });
+
+describe('input over the model window', () => {
+  it('is an input error, not an engine failure; other engine errors stay engine errors', async () => {
+    const over = {
+      ...fake(),
+      embed: vi.fn(async () => {
+        throw 'bad_input: embedding: input is out of range';
+      }),
+    };
+    await expect(embedTexts(over, ['a'], '', 0)).rejects.toBeInstanceOf(EmbeddingInputError);
+    const broken = {
+      ...fake(),
+      embed: vi.fn(async () => {
+        throw new Error('GPU lost');
+      }),
+    };
+    await expect(embedTexts(broken, ['a'], '', 0)).rejects.not.toBeInstanceOf(EmbeddingInputError);
+  });
+});

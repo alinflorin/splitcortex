@@ -19,6 +19,10 @@ export type ModelKind = 'chat' | 'embedding';
 export const kindOf = (kind: string | undefined): ModelKind =>
   kind === 'embedding' ? 'embedding' : 'chat';
 
+/** What the engines say when an input is over the window (the overflow strategy is "error"; the native side tags it). */
+const INPUT_TOO_LONG =
+  /signature length|exceed|too long|overflow|out of range|longer than|OUT_OF_RANGE|bad_input:/i;
+
 /** A request the node cannot answer because of what was asked (not an engine failure). */
 export class EmbeddingInputError extends Error {}
 
@@ -52,7 +56,16 @@ export async function embedTexts(
   if (inputs.length === 0) throw new EmbeddingInputError('The request has no inputs');
   if (inputs.some((t) => t.trim() === '')) throw new EmbeddingInputError('An input is empty');
   const prepared = inputs.map((t) => prefixInput(task, t));
-  const { vectors, promptTokens } = await embedder.embed(prepared);
+  let result;
+  try {
+    result = await embedder.embed(prepared);
+  } catch (e) {
+    // An input over the model's window is the client's mistake, as on every other node type.
+    if (INPUT_TOO_LONG.test(String(e)))
+      throw new EmbeddingInputError('An input is longer than the model accepts');
+    throw e;
+  }
+  const { vectors, promptTokens } = result;
   if (vectors.length !== inputs.length)
     throw new Error('The engine returned a different number of vectors than inputs');
   return { vectors: vectors.map((v) => applyDimensions(v, dimensions)), promptTokens };

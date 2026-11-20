@@ -245,6 +245,7 @@ export class NodeRuntime {
           fileName: a.fileName,
           sizeBytes: Number(a.sizeBytes),
           sha256: a.sha256,
+          kind: a.kind,
         });
         break;
       }

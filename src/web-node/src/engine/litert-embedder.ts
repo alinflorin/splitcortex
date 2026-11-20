@@ -29,8 +29,10 @@ export interface LiteEmbeddingModule {
   InputOverflowStrategy: { ERROR: number };
 }
 
-/** Longest input in tokens (the library's default is 1024; EmbeddingGemma accepts up to 2048). */
-const MAX_INPUT = 2048;
+/** The longest window (tokens) we ask for; the engine's own limit for the model wins when it is lower. */
+const WANTED_INPUT = 8192;
+/** Below this a window is useless: give up and report the engine's error. */
+const MIN_INPUT = 32;
 
 const importLite = (): Promise<LiteEmbeddingModule> =>
   import('@litert-lm/core') as unknown as Promise<LiteEmbeddingModule>;
@@ -63,15 +65,27 @@ export class LiteRtEmbedder implements Embedder {
     await mod.loadLiteRtLm(`${location.origin}${WASM_PATH}`);
     const model = await this.o.openModel(name);
     const gpu = await this.o.gpuAvailable();
-    const settings = { model, maxInputLength: MAX_INPUT };
+    // No model size is assumed: ask for the largest window we would ever want and let the file say what it has.
+    const create = async (backend: number) => {
+      let maxInputLength = WANTED_INPUT;
+      for (;;) {
+        try {
+          return await mod.EmbeddingEngine.create({ model, backend, maxInputLength });
+        } catch (e) {
+          // "Requested target capacity (X) exceeds maximum available signature length (N)": use N, else halve.
+          if (!/signature length/i.test(String(e))) throw e;
+          const max = Number(/signature length \((\d+)\)/i.exec(String(e))?.[1]);
+          const next = max > 0 && max < maxInputLength ? max : Math.floor(maxInputLength / 2);
+          if (next < MIN_INPUT) throw e;
+          maxInputLength = next;
+        }
+      }
+    };
     try {
-      this.lite = await mod.EmbeddingEngine.create({
-        ...settings,
-        backend: gpu ? mod.Backend.GPU : mod.Backend.CPU,
-      });
+      this.lite = await create(gpu ? mod.Backend.GPU : mod.Backend.CPU);
     } catch (e) {
       if (!gpu) throw e;
-      this.lite = await mod.EmbeddingEngine.create({ ...settings, backend: mod.Backend.CPU });
+      this.lite = await create(mod.Backend.CPU);
     }
     try {
       // The vector length is not a property of the engine: ask the model once.
