@@ -23,6 +23,7 @@ export interface LiteEmbeddingModule {
       model: Blob;
       backend?: number;
       maxInputLength?: number;
+      minInputLength?: number;
     }): Promise<LiteEmbeddingEngine>;
   };
   Backend: { CPU: number; GPU: number };
@@ -31,6 +32,8 @@ export interface LiteEmbeddingModule {
 
 /** The longest window (tokens) we ask for; the engine's own limit for the model wins when it is lower. */
 const WANTED_INPUT = 8192;
+/** The shortest signature prepared next to the longest (see `create` in `load`). */
+const MIN_SIGNATURE = 64;
 /** Below this a window is useless: give up and report the engine's error. */
 const MIN_INPUT = 32;
 
@@ -48,6 +51,8 @@ export class LiteRtEmbedder implements Embedder {
   private lite: LiteEmbeddingEngine | null = null;
   private mod: LiteEmbeddingModule | null = null;
   private dim = 0;
+  /** The longest input (tokens) the loaded engine was built for; the engine itself does not enforce it. */
+  private window = 0;
 
   constructor(private readonly o: LiteRtEmbedderOptions) {}
 
@@ -70,7 +75,21 @@ export class LiteRtEmbedder implements Embedder {
       let maxInputLength = WANTED_INPUT;
       for (;;) {
         try {
-          return await mod.EmbeddingEngine.create({ model, backend, maxInputLength });
+          // The engine pads every input up to the shortest prepared signature: with only the longest one (the
+          // default, min = max) a short text is 99% padding and EmbeddingGemma then yields NaN. A few shorter
+          // signatures give short texts a tight graph.
+          const minInputLength = Math.max(
+            1,
+            Math.min(MIN_SIGNATURE, Math.floor(maxInputLength / 2)),
+          );
+          const engine = await mod.EmbeddingEngine.create({
+            model,
+            backend,
+            maxInputLength,
+            minInputLength,
+          });
+          this.window = maxInputLength;
+          return engine;
         } catch (e) {
           // "Requested target capacity (X) exceeds maximum available signature length (N)": use N, else halve.
           if (!/signature length/i.test(String(e))) throw e;
@@ -125,6 +144,7 @@ export class LiteRtEmbedder implements Embedder {
     const lite = this.lite;
     this.lite = null;
     this.dim = 0;
+    this.window = 0;
     await lite?.delete().catch(() => undefined);
   }
 
@@ -132,8 +152,13 @@ export class LiteRtEmbedder implements Embedder {
     const lite = this.lite;
     const mod = this.mod;
     if (!lite || !mod) throw new Error('No embedding model is loaded');
-    // Input longer than the model's window is an error, never silently cut.
     const out = await lite.computeEmbeddingBatch(texts, this.options(mod));
+    // The WASM engine embeds an over-long input anyway (in chunks) instead of failing like the native one: it is an
+    // error here too, never a silently different vector.
+    if (this.window > 0 && out.some((r) => r.inputLength > this.window))
+      throw new Error(
+        `An input is longer than the model accepts (${this.window} tokens): exceeds the window`,
+      );
     // Never hand out NaN (the gateway would serialise it as null).
     if (out.some((r) => !r.embedding.every(Number.isFinite)))
       throw new Error('The engine produced invalid (NaN) vectors');
