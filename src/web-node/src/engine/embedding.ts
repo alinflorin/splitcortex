@@ -56,6 +56,9 @@ export async function runEmbedding(embedder: Embedder, req: EmbedRequest) {
   }
   if (out.vectors.length !== texts.length)
     throw new Error('The engine returned a wrong vector count');
+  // Never hand out NaN or infinity (the gateway would serialise them as null).
+  if (out.vectors.some((v) => !v.every(Number.isFinite)))
+    throw new Error('The engine produced invalid (NaN) vectors');
   return {
     vectors: out.vectors.map((v) => shrink(v, req.dimensions)),
     promptTokens: out.promptTokens,

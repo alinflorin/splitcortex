@@ -68,5 +68,8 @@ export async function embedTexts(
   const { vectors, promptTokens } = result;
   if (vectors.length !== inputs.length)
     throw new Error('The engine returned a different number of vectors than inputs');
+  // Never hand out NaN or infinity (the gateway would serialise them as null).
+  if (vectors.some((v) => !v.every(Number.isFinite)))
+    throw new Error('The engine produced invalid (NaN) vectors');
   return { vectors: vectors.map((v) => applyDimensions(v, dimensions)), promptTokens };
 }

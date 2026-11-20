@@ -82,6 +82,9 @@ export async function embedAll(embedder: Embedder, job: EmbeddingJob): Promise<n
     throw e;
   }
   if (vectors.length !== job.inputs.length) throw new Error('The engine returned a wrong count');
+  // Never hand out NaN or infinity (the gateway would serialise them as null).
+  if (vectors.some((v) => Array.from(v).some((x) => !Number.isFinite(x))))
+    throw new Error('The engine produced invalid (NaN) vectors');
   return vectors.map((v) =>
     job.dimensions > 0 && job.dimensions < v.length
       ? truncateNormalize(v, job.dimensions)

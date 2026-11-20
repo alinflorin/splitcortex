@@ -557,8 +557,9 @@ impl Run {
             let gen = self.ttft.and_then(|t| {
                 let took = self.started.elapsed().checked_sub(t)?;
                 (self.tokens_out >= MIN_SPEED_SAMPLE_TOKENS && took >= MIN_SPEED_SAMPLE_TIME)
-                    // the first token ends the wait, so it is not part of the generation time
-                    .then_some((self.tokens_out - 1, took))
+                    // the first token ends the wait, so it is not part of the generation time (lazy: embeddings
+                    // have no tokens out, and the subtraction must not run for them)
+                    .then(|| (self.tokens_out - 1, took))
             });
             self.node
                 .perf

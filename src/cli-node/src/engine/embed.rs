@@ -87,6 +87,12 @@ pub fn embed_request(
             "The engine returned a different number of embeddings than inputs",
         ));
     }
+    // Never hand out NaN or infinity (the gateway would serialise them as null).
+    if out.iter().any(|v| v.iter().any(|x| !x.is_finite())) {
+        return Err(EmbedError::engine(
+            "The engine produced invalid (NaN) vectors",
+        ));
+    }
     Ok(out
         .into_iter()
         .map(|v| truncate_and_normalise(v, dimensions as usize))
@@ -203,6 +209,18 @@ mod tests {
         }
         assert_eq!(
             embed_request(&Broken, &strings(&["a"]), "", 0)
+                .unwrap_err()
+                .code,
+            "engine_error"
+        );
+        struct Nan;
+        impl Embedder for Nan {
+            fn embed_batch(&self, _: &[String]) -> Result<Vec<Vec<f32>>, EmbedError> {
+                Ok(vec![vec![1.0, f32::NAN]])
+            }
+        }
+        assert_eq!(
+            embed_request(&Nan, &strings(&["a"]), "", 0)
                 .unwrap_err()
                 .code,
             "engine_error"

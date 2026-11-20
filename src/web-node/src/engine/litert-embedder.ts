@@ -81,21 +81,40 @@ export class LiteRtEmbedder implements Embedder {
         }
       }
     };
+    // Creates the engine and asks the model once: that gives the vector length (not a property of the engine) and
+    // shows whether the backend computes sane numbers (EmbeddingGemma yields NaN on some WebGPU setups).
+    const start = async (backend: number) => {
+      const lite = await create(backend);
+      try {
+        const [probe] = await lite.computeEmbeddingBatch(['dimension probe'], this.options(mod));
+        const v = probe?.embedding ?? [];
+        return { lite, dim: v.length, finite: v.every(Number.isFinite) };
+      } catch (e) {
+        await lite.delete().catch(() => undefined);
+        throw e;
+      }
+    };
+    let started;
     try {
-      this.lite = await create(gpu ? mod.Backend.GPU : mod.Backend.CPU);
+      started = await start(gpu ? mod.Backend.GPU : mod.Backend.CPU);
     } catch (e) {
       if (!gpu) throw e;
-      this.lite = await create(mod.Backend.CPU);
+      started = await start(mod.Backend.CPU);
     }
-    try {
-      // The vector length is not a property of the engine: ask the model once.
-      const [probe] = await this.lite.computeEmbeddingBatch(['dimension probe'], this.options(mod));
-      this.dim = probe?.embedding.length ?? 0;
-      if (this.dim === 0) throw new Error('The embedding model returned an empty vector');
-    } catch (e) {
-      await this.unload();
-      throw e;
+    if (gpu && started.dim > 0 && !started.finite) {
+      await started.lite.delete().catch(() => undefined);
+      started = await start(mod.Backend.CPU); // the GPU gave NaN: the CPU is slower but right
     }
+    if (started.dim === 0) {
+      await started.lite.delete().catch(() => undefined);
+      throw new Error('The embedding model returned an empty vector');
+    }
+    if (!started.finite) {
+      await started.lite.delete().catch(() => undefined);
+      throw new Error('The embedding model produces invalid (NaN) vectors on this device');
+    }
+    this.lite = started.lite;
+    this.dim = started.dim;
   }
 
   private options(mod: LiteEmbeddingModule) {
@@ -115,6 +134,9 @@ export class LiteRtEmbedder implements Embedder {
     if (!lite || !mod) throw new Error('No embedding model is loaded');
     // Input longer than the model's window is an error, never silently cut.
     const out = await lite.computeEmbeddingBatch(texts, this.options(mod));
+    // Never hand out NaN (the gateway would serialise it as null).
+    if (out.some((r) => !r.embedding.every(Number.isFinite)))
+      throw new Error('The engine produced invalid (NaN) vectors');
     return {
       vectors: out.map((r) => r.embedding),
       promptTokens: out.reduce((n, r) => n + (r.inputLength || 0), 0),

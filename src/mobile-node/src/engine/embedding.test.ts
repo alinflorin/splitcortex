@@ -101,3 +101,12 @@ describe('input over the model window', () => {
     ).rejects.not.toBeInstanceOf(EmbeddingRequestError);
   });
 });
+
+describe('invalid vectors', () => {
+  it('never returns NaN: it is an engine failure', async () => {
+    const nan: Embedder = { ...fake().e, embed: async () => [new Float32Array([1, NaN, 0, 0])] };
+    const e = await embedAll(nan, { inputs: ['a'], task: '', dimensions: 0 }).catch((x) => x);
+    expect(e).toBeInstanceOf(Error);
+    expect(e).not.toBeInstanceOf(EmbeddingRequestError);
+  });
+});

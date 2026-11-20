@@ -87,3 +87,12 @@ describe('input over the model window', () => {
     await expect(embedTexts(broken, ['a'], '', 0)).rejects.not.toBeInstanceOf(EmbeddingInputError);
   });
 });
+
+describe('invalid vectors', () => {
+  it('never returns NaN: it is an engine failure', async () => {
+    const nan = { ...fake(), embed: vi.fn(async () => ({ vectors: [[1, NaN]], promptTokens: 0 })) };
+    const e = await embedTexts(nan, ['a'], '', 0).catch((x) => x);
+    expect(e).toBeInstanceOf(Error);
+    expect(e).not.toBeInstanceOf(EmbeddingInputError);
+  });
+});
