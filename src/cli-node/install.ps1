@@ -52,8 +52,8 @@ if (($userPath -split ';') -notcontains $InstallDir) {
   Write-Host "Added $InstallDir to your PATH (open a new terminal to use it by name)."
 }
 
-# The web app address `join` enrolls against; Enter keeps the default, SPLITCORTEX_URL skips the question.
-$DefaultUrl = 'https://app.prd.splitcortex.com'
+# The web app address `join` enrolls against; Enter keeps the default; SPLITCORTEX_URL skips the question.
+$DefaultUrl = 'https://splitcortex.com'
 $AppUrl = $env:SPLITCORTEX_URL
 if (-not $AppUrl) {
   $AppUrl = $DefaultUrl

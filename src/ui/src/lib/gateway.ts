@@ -1,10 +1,10 @@
 /**
- * The gateway lives next to the web app: `app.<domain>` -> `gateway.<domain>` (https).
+ * The gateway lives next to the web app: `<domain>` -> `gateway.<domain>` (https).
  * `VITE_GATEWAY_URL` overrides it (e.g. when the UI runs on plain `localhost`).
  */
 export function getGatewayBaseUrl(location: Pick<Location, 'hostname'> = window.location): string {
   const override = import.meta.env.VITE_GATEWAY_URL as string | undefined;
-  const origin = override || `https://${location.hostname.replace(/^app\./, 'gateway.')}`;
+  const origin = override || `https://gateway.${location.hostname}`;
   return `${origin.replace(/\/+$/, '')}/v1`;
 }
 

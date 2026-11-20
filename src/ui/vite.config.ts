@@ -30,7 +30,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    // Allow the local dev hostnames (app.local.splitcortex.com).
+    // Allow the local dev hostnames (local.splitcortex.com; the leading dot also allows the bare domain).
     allowedHosts: ['.local.splitcortex.com', 'localhost'],
   },
   test: {

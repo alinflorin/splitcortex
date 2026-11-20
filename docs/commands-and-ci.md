@@ -10,7 +10,7 @@ Summary in [CLAUDE.md](../CLAUDE.md).
 
 ## Per-project commands
 
-- **ui** (`src/ui`): `pnpm install`, `pnpm dev` (Vite :5173; open as `http://app.local.splitcortex.com:5173` so Dex URL and redirect URI match), `pnpm build` (`tsc -b && vite build`), `typecheck`, `test` / `test:watch`, `format` / `format:check`. Prettier config in root `.prettierrc` (single quotes, semicolons, width 100, trailing commas) + `.prettierignore` + `.editorconfig` (UTF-8, LF, 2 spaces). Run `pnpm format` before committing.
+- **ui** (`src/ui`): `pnpm install`, `pnpm dev` (Vite :5173; open as `http://local.splitcortex.com:5173` so Dex URL and redirect URI match), `pnpm build` (`tsc -b && vite build`), `typecheck`, `test` / `test:watch`, `format` / `format:check`. Prettier config in root `.prettierrc` (single quotes, semicolons, width 100, trailing commas) + `.prettierignore` + `.editorconfig` (UTF-8, LF, 2 spaces). Run `pnpm format` before committing.
 - **web-node**: same as ui (`pnpm dev` on :5174) plus `pnpm gen:proto` (needs `protoc`; commit the result). CI `web-node.yaml`.
 - **control-plane**: `pnpm install`, `dev` (tsx watch, needs `DATABASE_URL`, `OIDC_ISSUER`), `test`, `typecheck`, `build` (tsup), `db:generate` (no DB needed), `db:migrate`, `format`. CI `control-plane.yaml`.
 - **gateway** (Rust; proto in `src/gateway/proto`): `cargo build|test|fmt` (`rustfmt.toml`, width 120), `cargo run -- keygen`, `cargo run` (needs `DATABASE_URL`, `GATEWAY_PRIVATE_KEY`). CI `gateway.yaml` builds the image only (the Dockerfile doesn't run `cargo test`; run it locally).

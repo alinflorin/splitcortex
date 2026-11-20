@@ -37,7 +37,7 @@ The business model is bring-your-own-devices SaaS: customers supply the compute,
 
 ## Development setup
 
-Everything runs on a local Kubernetes cluster driven by [Tilt](https://tilt.dev), so you get the same stack as staging (TLS, ingress, Dex login, Postgres, object storage). The `*.local.splitcortex.com` hostnames resolve to `127.0.0.1` in public DNS (one wildcard `A` record in Cloudflare), so no `/etc/hosts` edits are needed, and the certificates are real Let's Encrypt ones (DNS-01 through Cloudflare), so there is no CA to install in browsers or the Android emulator. Before `tilt up`, put `cloudflareApiToken` (Zone:DNS:Edit on `splitcortex.com`) in the git-ignored `chart/values-local.yaml`.
+Everything runs on a local Kubernetes cluster driven by [Tilt](https://tilt.dev), so you get the same stack as staging (TLS, ingress, Dex login, Postgres, object storage). The `*.local.splitcortex.com` hostnames resolve to `127.0.0.1` in public DNS (a wildcard `A` record plus one for the bare `local.splitcortex.com`, which hosts the web app and which the wildcard does not cover), so no `/etc/hosts` edits are needed, and the certificates are real Let's Encrypt ones (DNS-01 through Cloudflare), so there is no CA to install in browsers or the Android emulator. Before `tilt up`, put `cloudflareApiToken` (Zone:DNS:Edit on `splitcortex.com`) in the git-ignored `chart/values-local.yaml`.
 
 ### Prerequisites
 
@@ -63,9 +63,9 @@ Tilt installs the infrastructure chart first (Traefik, cert-manager, Postgres, G
 
 | Service     | Local URL                                       |
 | ----------- | ----------------------------------------------- |
-| Web app     | https://app.local.splitcortex.com               |
+| Web app     | https://local.splitcortex.com                   |
 | Web node    | https://web-node.local.splitcortex.com          |
-| API docs    | https://app.local.splitcortex.com/api/docs      |
+| API docs    | https://local.splitcortex.com/api/docs          |
 | Gateway     | https://gateway.local.splitcortex.com/v1/models |
 | Dex (login) | https://dex.local.splitcortex.com               |
 
@@ -97,7 +97,7 @@ pnpm test
 pnpm format       # run before committing
 ```
 
-Open the standalone UI as `http://app.local.splitcortex.com:5173` so the Dex redirect matches.
+Open the standalone UI as `http://local.splitcortex.com:5173` so the Dex redirect matches.
 
 Control plane database: `pnpm db:generate` after changing the schema (plain SQL migrations, never edit applied ones); migrations run automatically under Tilt. Tests use an in-memory Postgres (PGlite), so no database is needed.
 
@@ -136,11 +136,11 @@ Tags are created from `VERSIONS.txt` by a workflow. See [docs/commands-and-ci.md
 
 ## Environments
 
-| Service   | local                            | stg                            | prd                                      |
-| --------- | -------------------------------- | ------------------------------ | ---------------------------------------- |
-| Dex (IdP) | `dex.local.splitcortex.com`      | `dex.stg.splitcortex.com`      | `dex.prd.splitcortex.com`                |
-| Web app   | `app.local.splitcortex.com`      | `app.stg.splitcortex.com`      | `app.prd.splitcortex.com` (assumed)      |
-| Web node  | `web-node.local.splitcortex.com` | `web-node.stg.splitcortex.com` | `web-node.prd.splitcortex.com` (assumed) |
+| Service   | local                            | stg                            | prd                                  |
+| --------- | -------------------------------- | ------------------------------ | ------------------------------------ |
+| Dex (IdP) | `dex.local.splitcortex.com`      | `dex.stg.splitcortex.com`      | `dex.splitcortex.com`                |
+| Web app   | `local.splitcortex.com`          | `stg.splitcortex.com`          | `splitcortex.com` (assumed)          |
+| Web node  | `web-node.local.splitcortex.com` | `web-node.stg.splitcortex.com` | `web-node.splitcortex.com` (assumed) |
 
 The control plane is served at `/api` on the web app host. Staging and production need DNS pointing at the Traefik load balancer.
 

@@ -49,7 +49,7 @@ k8s_yaml(local(
     '--show-only templates/ui-ingress.yaml',
     quiet=True,
 ))
-k8s_resource('ui', resource_deps=['chart'], labels=['apps'], links=['https://app.local.splitcortex.com'])
+k8s_resource('ui', resource_deps=['chart'], labels=['apps'], links=['https://local.splitcortex.com'])
 
 # Web node (src/web-node, a browser that serves inference like a phone node). Same shape as the UI: the dev image runs
 # Vite with HMR on 8080 and live_update syncs sources. Its host also routes /api to the control plane (chart values).
@@ -109,7 +109,7 @@ k8s_resource('control-plane-audit-prune', resource_deps=['chart'], labels=['apps
 # Metrics retention CronJob (hourly; trigger it manually from the Tilt UI).
 k8s_resource('control-plane-metrics-prune', resource_deps=['chart'], labels=['apps'], auto_init=False)
 k8s_resource('control-plane', resource_deps=['chart', 'control-plane-migrate', 'garage-bootstrap', 'gateway-identity'], labels=['apps'],
-             links=['https://app.local.splitcortex.com/api/docs'])
+             links=['https://local.splitcortex.com/api/docs'])
 
 # Gateway (src/gateway, Rust). The dev image runs `cargo watch`; src/ and proto/ are synced and it rebuilds + restarts
 # (a first build in the container takes a few minutes). Needs the migrated database, like the control plane.

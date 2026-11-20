@@ -25,8 +25,8 @@ dex:
         name: SplitCortex Web
         public: true
         redirectURIs:
-          - "https://app.{{ .Values.global.domain }}/"
-          - "https://app.{{ .Values.global.domain }}/api/docs/static/oauth2-redirect.html"
+          - "https://{{ .Values.global.domain }}/"
+          - "https://{{ .Values.global.domain }}/api/docs/static/oauth2-redirect.html"
 
 ui:
   image:

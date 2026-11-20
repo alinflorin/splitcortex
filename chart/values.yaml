@@ -63,7 +63,7 @@ postgres:
   storage:
     requestedSize: 1Gi
 
-# Base domain of every public host: dex.<domain>, app.<domain>, web-node.<domain>, gateway.<domain>. Host and URL values
+# Base domain of every public host: <domain> (the web app), dex.<domain>, web-node.<domain>, gateway.<domain>. Host and URL values
 # below (and in values-stg/prd) are rendered with `tpl`, so `{{ .Values.global.domain }}` follows this one setting.
 global:
   domain: local.splitcortex.com
@@ -143,14 +143,14 @@ dex:
         - X-CSRF-Token
     staticClients:
       # Web app (SPA, authorization code + PKCE, no client secret). The UI derives the Dex URL from its own
-      # host (`app.` -> `dex.`), so keep hostnames in sync. Lists are replaced, not merged, per environment.
+      # host (`<domain>` -> `dex.<domain>`), so keep hostnames in sync. Lists are replaced, not merged, per environment.
       - id: splitcortex-ui
         name: SplitCortex Web
         public: true
         redirectURIs:
-          - "https://app.{{ .Values.global.domain }}/"
-          - "http://app.{{ .Values.global.domain }}:5173/"
-          - "https://app.{{ .Values.global.domain }}/api/docs/static/oauth2-redirect.html"
+          - "https://{{ .Values.global.domain }}/"
+          - "http://{{ .Values.global.domain }}:5173/"
+          - "https://{{ .Values.global.domain }}/api/docs/static/oauth2-redirect.html"
     enablePasswordDB: true
     oauth2:
       # No "Grant access" screen: our own first-party clients are trusted.
@@ -184,16 +184,16 @@ ui:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
-    # The UI derives the Dex URL from this host (`app.` -> `dex.`) and must be listed in Dex's staticClients.
+    # The UI derives the Dex URL from this host (`<domain>` -> `dex.<domain>`) and must be listed in Dex's staticClients.
     hosts:
-      - host: "app.{{ .Values.global.domain }}"
+      - host: "{{ .Values.global.domain }}"
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: ui-tls
         hosts:
-          - "app.{{ .Values.global.domain }}"
+          - "{{ .Values.global.domain }}"
 
 # Web node (src/web-node): static SPA served by Caddy on port 8080, a browser that serves inference like a phone node. It
 # is its own host (`web-node.<domain>`) and ALSO routes `/api` to the control plane (see controlPlane.ingress), so the
@@ -216,7 +216,7 @@ webNode:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
-    # The web app derives this host from its own (`app.` -> `web-node.`, ui/src/lib/webNode.ts).
+    # The web app derives this host from its own (`<domain>` -> `web-node.<domain>`, ui/src/lib/webNode.ts).
     hosts:
       - host: "web-node.{{ .Values.global.domain }}"
         paths:
@@ -326,7 +326,7 @@ controlPlane:
     # Same host as the web app (same origin, no CORS), and the same on the web node's host (its browser enrolls and
     # downloads models through `/api` there). The TLS Secrets are issued via the UI's and the web node's Ingresses.
     hosts:
-      - host: "app.{{ .Values.global.domain }}"
+      - host: "{{ .Values.global.domain }}"
         paths:
           - path: /api
             pathType: Prefix
@@ -337,7 +337,7 @@ controlPlane:
     tls:
       - secretName: ui-tls
         hosts:
-          - "app.{{ .Values.global.domain }}"
+          - "{{ .Values.global.domain }}"
       - secretName: web-node-tls
         hosts:
           - "web-node.{{ .Values.global.domain }}"
@@ -421,14 +421,14 @@ gateway:
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-gateway@kubernetescrd
     hosts:
-      - host: "app.{{ .Values.global.domain }}"
+      - host: "{{ .Values.global.domain }}"
         paths:
           - path: /v1
             pathType: Prefix
     tls:
       - secretName: ui-tls
         hosts:
-          - "app.{{ .Values.global.domain }}"
+          - "{{ .Values.global.domain }}"
 
 # Traefik rate limits (templates/rate-limits.yaml). Not attached to an entryPoint: reference them from each route.
 rateLimit:

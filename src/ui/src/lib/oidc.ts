@@ -1,15 +1,15 @@
 import { WebStorageStateStore, type UserManagerSettings } from 'oidc-client-ts';
 
 /**
- * Dex lives next to the web app: `app.<domain>` -> `dex.<domain>` (same scheme-less domain, https).
- *   app.local.splitcortex.com -> https://dex.local.splitcortex.com
- *   app.stg.splitcortex.com          -> https://dex.stg.splitcortex.com
+ * Dex lives next to the web app: `<domain>` -> `dex.<domain>` (the web app is served on the base domain itself).
+ *   local.splitcortex.com -> https://dex.local.splitcortex.com
+ *   stg.splitcortex.com   -> https://dex.stg.splitcortex.com
  * `VITE_OIDC_AUTHORITY` overrides it (e.g. when the UI runs on plain `localhost`).
  */
 export function getDexAuthority(location: Pick<Location, 'hostname'> = window.location): string {
   const override = import.meta.env.VITE_OIDC_AUTHORITY as string | undefined;
   if (override) return override;
-  return `https://${location.hostname.replace(/^app\./, 'dex.')}`;
+  return `https://dex.${location.hostname}`;
 }
 
 /** Public client registered in Dex (`staticClients`, `public: true`): code flow + PKCE, no secret. */

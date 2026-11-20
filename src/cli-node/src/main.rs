@@ -32,13 +32,13 @@ struct Cli {
     command: Command,
 }
 
-const DEFAULT_URL: &str = "https://app.prd.splitcortex.com";
+const DEFAULT_URL: &str = "https://splitcortex.com";
 
 #[derive(Subcommand)]
 enum Command {
     /// Enroll this computer with a code from "Add device" in the web app
     Join {
-        /// The web app's address (default: the one saved by the installer or `config --url`, else https://app.prd.splitcortex.com)
+        /// The web app's address (default: the one saved by the installer or `config --url`, else https://splitcortex.com)
         #[arg(long, env = "SPLITCORTEX_URL")]
         url: Option<String>,
         /// The enrollment code XXXX-XXXXXX (asked for when missing)

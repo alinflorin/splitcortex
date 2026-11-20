@@ -65,7 +65,7 @@ ln -sf "$INSTALL_DIR/splitcortex-node" "$BIN_DIR/splitcortex-node"
 
 # The web app address `join` enrolls against. Asked on the terminal (the script itself comes through a pipe), Enter
 # keeps the default; SPLITCORTEX_URL skips the question.
-DEFAULT_URL="https://app.prd.splitcortex.com"
+DEFAULT_URL="https://splitcortex.com"
 APP_URL="${SPLITCORTEX_URL:-}"
 if [ -z "$APP_URL" ]; then
   APP_URL="$DEFAULT_URL"

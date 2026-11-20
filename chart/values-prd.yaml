@@ -1,5 +1,5 @@
 global:
-  domain: prd.splitcortex.com
+  domain: splitcortex.com
 
 # `letsencrypt` ClusterIssuer (Let's Encrypt production, DNS-01 through Cloudflare; the zone of `global.domain` must be in
 # that Cloudflare account). Placeholder substituted at deploy time (`envsubst`, GitHub secret CLOUDFLARE_TOKEN); never
@@ -25,8 +25,8 @@ dex:
         name: SplitCortex Web
         public: true
         redirectURIs:
-          - "https://app.{{ .Values.global.domain }}/"
-          - "https://app.{{ .Values.global.domain }}/api/docs/static/oauth2-redirect.html"
+          - "https://{{ .Values.global.domain }}/"
+          - "https://{{ .Values.global.domain }}/api/docs/static/oauth2-redirect.html"
 
 ui:
   image:

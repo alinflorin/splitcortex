@@ -66,13 +66,13 @@ SplitCortex: SaaS platform that reuses compute devices (phones, Raspberry Pis, l
 
 ## Domains
 
-| Service  | local                                                      | stg                            | prd                                      |
-| -------- | ---------------------------------------------------------- | ------------------------------ | ---------------------------------------- |
-| Dex      | `dex.local.splitcortex.com`                                | `dex.stg.splitcortex.com`      | `dex.prd.splitcortex.com`                |
-| Web app  | `app.local.splitcortex.com` (Vite standalone `:5173`)      | `app.stg.splitcortex.com`      | `app.prd.splitcortex.com` (assumed)      |
-| Web node | `web-node.local.splitcortex.com` (Vite standalone `:5174`) | `web-node.stg.splitcortex.com` | `web-node.prd.splitcortex.com` (assumed) |
+| Service  | local                                                      | stg                            | prd                                  |
+| -------- | ---------------------------------------------------------- | ------------------------------ | ------------------------------------ |
+| Dex      | `dex.local.splitcortex.com`                                | `dex.stg.splitcortex.com`      | `dex.splitcortex.com`                |
+| Web app  | `local.splitcortex.com` (Vite standalone `:5173`)          | `stg.splitcortex.com`          | `splitcortex.com` (assumed)          |
+| Web node | `web-node.local.splitcortex.com` (Vite standalone `:5174`) | `web-node.stg.splitcortex.com` | `web-node.splitcortex.com` (assumed) |
 
-Control plane at `/api` on the web app and web node hosts (Swagger at `/api/docs`). Staging gateway: `gateway.stg.splitcortex.com` (wss `/node`); prd gateway hostname TBD. Every environment uses the one `letsencrypt` issuer with **DNS-01 through Cloudflare** (no self-signed CA, no HTTP-01, no ACME account email): the local wildcard `*.local.splitcortex.com` A record points to `127.0.0.1` in public DNS, so local certificates are publicly trusted and no CA is installed anywhere. `cloudflareApiToken` (Zone:DNS:Edit) is a required chart value: locally in git-ignored `chart/values-local.yaml`, in stg/prd the placeholder `${CLOUDFLARE_TOKEN}` filled from the GitHub secret `CLOUDFLARE_TOKEN`. stg/prd need the zone in that Cloudflare account and DNS to the Traefik load balancer.
+Control plane at `/api` on the web app and web node hosts (Swagger at `/api/docs`). Staging gateway: `gateway.stg.splitcortex.com` (wss `/node`); prd gateway hostname TBD. Every environment uses the one `letsencrypt` issuer with **DNS-01 through Cloudflare** (no self-signed CA, no HTTP-01, no ACME account email): the **web app is on the base domain itself** (`local.splitcortex.com`, no `app.` label), so besides the wildcard `*.local.splitcortex.com` the bare `local.splitcortex.com` needs its own A record (a wildcard does not cover it); both point to `127.0.0.1` in public DNS, so local certificates are publicly trusted and no CA is installed anywhere. `cloudflareApiToken` (Zone:DNS:Edit) is a required chart value: locally in git-ignored `chart/values-local.yaml`, in stg/prd the placeholder `${CLOUDFLARE_TOKEN}` filled from the GitHub secret `CLOUDFLARE_TOKEN`. stg/prd need the zone in that Cloudflare account and DNS to the Traefik load balancer.
 
 ## Commands
 

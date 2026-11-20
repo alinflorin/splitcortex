@@ -5,22 +5,16 @@ describe('getDexAuthority', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it.each([
-    ['app.local.splitcortex.com', 'https://dex.local.splitcortex.com'],
-    ['app.stg.splitcortex.com', 'https://dex.stg.splitcortex.com'],
-    ['app.prd.splitcortex.com', 'https://dex.prd.splitcortex.com'],
+    ['local.splitcortex.com', 'https://dex.local.splitcortex.com'],
+    ['stg.splitcortex.com', 'https://dex.stg.splitcortex.com'],
+    ['splitcortex.com', 'https://dex.splitcortex.com'],
   ])('maps %s to %s', (hostname, expected) => {
     expect(getDexAuthority({ hostname })).toBe(expected);
   });
 
-  it('only replaces a leading app. label', () => {
-    expect(getDexAuthority({ hostname: 'myapp.example.com' })).toBe('https://myapp.example.com');
-  });
-
   it('prefers VITE_OIDC_AUTHORITY', () => {
     vi.stubEnv('VITE_OIDC_AUTHORITY', 'https://dex.example.test');
-    expect(getDexAuthority({ hostname: 'app.stg.splitcortex.com' })).toBe(
-      'https://dex.example.test',
-    );
+    expect(getDexAuthority({ hostname: 'stg.splitcortex.com' })).toBe('https://dex.example.test');
   });
 });
 

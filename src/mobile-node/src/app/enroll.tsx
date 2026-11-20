@@ -18,7 +18,7 @@ import { useTheme } from '../theme/ThemeContext';
 
 /** Default control plane (BFF) URL; editable on the screen for self-hosted or LAN deployments. */
 export const DEFAULT_ENROLLMENT_URL =
-  process.env.EXPO_PUBLIC_ENROLLMENT_URL ?? 'https://app.prd.splitcortex.com/api';
+  process.env.EXPO_PUBLIC_ENROLLMENT_URL ?? 'https://splitcortex.com/api';
 
 export default function Enroll() {
   const { t } = useTranslation();
