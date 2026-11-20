@@ -97,6 +97,8 @@ export function nodeSuite(kind: PoolKind, drivers: NodeDriver[]) {
           expect(body.data[0]!.embedding.length).toBeGreaterThan(100);
         }
 
+        await checkOperations(page, s.orgId, poolId, nodeId, kind, s.apiKey);
+
         // Revoking disconnects the device; nothing can be served any more.
         const del = await cp(page, 'DELETE', `/organisations/${s.orgId}/nodes/${nodeId}`);
         expect(del.status()).toBe(204);
@@ -189,4 +191,150 @@ async function checkNodePage(page: Page, orgId: string, poolId: string, nodeId: 
   await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
   await expect(page.getByText('Online').first()).toBeVisible();
+}
+
+/** The numbers and controls that only make sense once a device has served: usage, metrics, audit, overrides, benchmark, restart. */
+async function checkOperations(
+  page: Page,
+  orgId: string,
+  poolId: string,
+  nodeId: string,
+  kind: PoolKind,
+  apiKey: string,
+) {
+  const org = `/organisations/${orgId}`;
+  const served = async () => {
+    const models = (await (await openai(page, apiKey, '/models')).json()) as {
+      data: { id: string }[];
+    };
+    const id =
+      models.data.find((m) => m.id.includes(kind === 'chat' ? 'chat' : 'embedding'))?.id ??
+      models.data[0]!.id;
+    const res =
+      kind === 'chat'
+        ? await openai(page, apiKey, '/chat/completions', {
+            model: id,
+            messages: [{ role: 'user', content: 'Say hi.' }],
+            max_tokens: 16,
+          })
+        : await openai(page, apiKey, '/embeddings', { model: id, input: 'hi' });
+    return res.status();
+  };
+  // A request that is served, however long a reload took.
+  const serves = (timeout: number, message: string) =>
+    expect.poll(served, { timeout, intervals: [5_000], message }).toBe(200);
+
+  // Usage: the requests above were counted (the gateway writes in batches, so poll), in the API and on the page.
+  await expect
+    .poll(
+      async () => (await (await cp(page, 'GET', `${org}/usage`)).json()).totals.requests as number,
+      { timeout: 3 * 60_000, intervals: [5_000], message: 'usage never showed the requests' },
+    )
+    .toBeGreaterThan(0);
+  await page.goto(`${baseUrl()}${org}/usage`);
+  await expect(page.getByText('Requests', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('No usage in this period.')).toHaveCount(0);
+  await page.getByRole('combobox', { name: 'Group by' }).click();
+  await page.getByRole('option', { name: 'Pool', exact: true }).click();
+  await expect(page.getByText('No usage in this period.')).toHaveCount(0);
+  await expect(page.getByText('Could not load data')).toHaveCount(0);
+
+  // Metrics: the gateway's per-minute numbers and the device's own telemetry arrive.
+  await expect
+    .poll(
+      async () => {
+        const m = (await (await cp(page, 'GET', `${org}/metrics`)).json()) as {
+          pools: { requests: number }[];
+          nodes: { nodesReporting: number }[];
+        };
+        return [m.pools.some((p) => p.requests > 0), m.nodes.some((n) => n.nodesReporting > 0)];
+      },
+      { timeout: 4 * 60_000, intervals: [10_000], message: 'no metrics were written' },
+    )
+    .toEqual([true, true]);
+  await page.goto(`${baseUrl()}${org}/metrics`);
+  await expect(page.getByText('Request duration')).toBeVisible();
+  await expect(page.getByText('Could not load data')).toHaveCount(0);
+  // On the device page the same charts are scoped to it.
+  await page.goto(`${baseUrl()}${org}/nodes/${nodeId}`);
+  await expect(page.getByText('Metrics', { exact: true }).first()).toBeVisible();
+
+  // The audit log recorded the enrollment (and, further down, the settings change and the restart).
+  const audit = async (action: string) =>
+    (
+      (await (await cp(page, 'GET', `${org}/audit-logs?action=${action}&limit=50`)).json()) as {
+        items: { action: string }[];
+      }
+    ).items.length;
+  expect(await audit('node.enroll')).toBeGreaterThan(0);
+
+  if (kind === 'chat') {
+    // Engine overrides: CPU and a small window. The device reloads the model with them and serves again.
+    await page.goto(`${baseUrl()}${org}/nodes/${nodeId}`);
+    await page.getByLabel('Compute backend').selectOption('cpu');
+    await expect(
+      page.getByText('Saved. The device applies it within seconds.').first(),
+    ).toBeVisible();
+    await page.getByLabel('Maximum context (tokens)').fill('2048');
+    await page.getByLabel('Maximum context (tokens)').press('Enter');
+    await expect.poll(() => audit('node.update'), { timeout: 30_000 }).toBeGreaterThan(0);
+    const node = async () =>
+      (await (await cp(page, 'GET', `${org}/nodes/${nodeId}`)).json()) as {
+        computeBackend: string | null;
+        maxContextTokens: number | null;
+        live: { backend: string | null; maxContextTokens: number | null } | null;
+      };
+    await expect
+      .poll(
+        async () => {
+          const n = await node();
+          return [n.computeBackend, n.maxContextTokens, n.live?.backend, n.live?.maxContextTokens];
+        },
+        {
+          timeout: 5 * 60_000,
+          intervals: [5_000],
+          message: 'the device never applied the override',
+        },
+      )
+      .toEqual(['cpu', 2048, 'cpu', 2048]);
+    await page.reload();
+    await expect(page.getByLabel('Compute backend')).toHaveValue('cpu');
+    await serves(3 * 60_000, 'the device does not serve after the override');
+    // Back to "device decides".
+    await page.getByLabel('Compute backend').selectOption('');
+    await page.getByLabel('Maximum context (tokens)').fill('');
+    await page.getByLabel('Maximum context (tokens)').press('Enter');
+    await expect.poll(async () => (await node()).maxContextTokens, { timeout: 30_000 }).toBeNull();
+    await serves(3 * 60_000, 'the device does not serve after the override was lifted');
+
+    // Benchmark: the pool's devices are measured one at a time; the result is listed.
+    await page.goto(`${baseUrl()}${org}/pools/${poolId}`);
+    await page.getByRole('button', { name: 'Run benchmark' }).click();
+    await expect(page.getByText('Benchmark started.').first()).toBeVisible();
+    await expect(page.getByText('Pool throughput')).toBeVisible({ timeout: 5 * 60_000 });
+    await expect(page.getByText('Tokens/sec').first()).toBeVisible();
+    await expect(page.getByText('First token').first()).toBeVisible();
+    await expect(page.getByText('Failed', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Delete' }).last().click();
+  } else {
+    // An embedding pool has nothing to generate: the benchmark is refused by the server.
+    const res = await cp(page, 'POST', `${org}/pools/${poolId}/benchmarks`);
+    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBeLessThan(500);
+  }
+
+  // Remote restart, from the device page: sent, audited, the device goes away and comes back, and serves.
+  await page.goto(`${baseUrl()}${org}/nodes/${nodeId}`);
+  await page.getByRole('button', { name: 'Restart', exact: true }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Restart', exact: true }).click();
+  await expect(page.getByText('Restart sent.').first()).toBeVisible();
+  await expect.poll(() => audit('node.restart'), { timeout: 30_000 }).toBeGreaterThan(0);
+  await expect
+    .poll(async () => (await poolNodes(page, orgId, poolId)).find((n) => n.id === nodeId)?.status, {
+      timeout: 10 * 60_000,
+      intervals: [5_000],
+      message: 'the device did not come back after the restart',
+    })
+    .toBe('online');
+  await serves(5 * 60_000, 'the device does not serve after the restart');
 }

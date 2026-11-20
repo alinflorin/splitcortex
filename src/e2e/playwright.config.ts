@@ -52,7 +52,7 @@ export default defineConfig({
     {
       name: 'nodes',
       dependencies: ['setup'],
-      testMatch: /nodes\.spec\.ts/,
+      testMatch: /(approval|nodes)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // WebGPU for the web node's engine; software Vulkan (SwiftShader) when the machine has no GPU (CI).
