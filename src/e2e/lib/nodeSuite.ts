@@ -80,7 +80,7 @@ export function nodeSuite(type: NodeType, driver: NodeDriver) {
         // The dialog closes by itself when the device arrives; then the model download and load.
         const nodeId = await onlineNodeId(page, s.orgId, poolId, 30 * 60_000);
 
-        lap('online (model loaded)');
+        lap('online (connected; the model may still be loading)');
         await page.goto(`${baseUrl()}/organisations/${s.orgId}/nodes/${nodeId}`);
         await expect(page.getByText('Online').first()).toBeVisible();
         await checkNodePage(page, s.orgId, poolId, nodeId, kind);
@@ -97,11 +97,25 @@ export function nodeSuite(type: NodeType, driver: NodeDriver) {
         } else {
           const model =
             models.data.find((m) => m.id.includes('embedding'))?.id ?? models.data[0]!.id;
-          const res = await openai(page, s.apiKey, '/embeddings', {
-            model,
-            input: ['hello', 'world'],
-          });
-          expect(res.status()).toBe(200);
+          // "Online" is only the connection: the device may still be downloading and loading the model (a 503 until
+          // then), so ask again until it answers.
+          let res!: Awaited<ReturnType<typeof openai>>;
+          await expect
+            .poll(
+              async () => {
+                res = await openai(page, s.apiKey, '/embeddings', {
+                  model,
+                  input: ['hello', 'world'],
+                });
+                return res.status();
+              },
+              {
+                timeout: 10 * 60_000,
+                intervals: [3_000],
+                message: 'the device never served embeddings',
+              },
+            )
+            .toBe(200);
           const body = (await res.json()) as { data: { embedding: number[] }[] };
           expect(body.data).toHaveLength(2);
           expect(body.data[0]!.embedding.length).toBeGreaterThan(100);
