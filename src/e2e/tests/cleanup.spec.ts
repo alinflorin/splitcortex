@@ -15,11 +15,19 @@ test("remove this run's devices and API key", async ({ browser }) => {
   const context = await browser.newContext({ storageState: authFile(0) });
   const page = await context.newPage();
   await page.goto(baseUrl());
-  for (const poolId of [s.chatPoolId, s.embedPoolId]) {
+  const typed = Object.values(s.nodes).filter((n) => !!n);
+  const pools = [
+    s.chatPoolId,
+    s.embedPoolId,
+    ...typed.flatMap((n) => [n.chatPoolId, n.embedPoolId]),
+  ];
+  for (const poolId of pools) {
     for (const n of await poolNodes(page, s.orgId, poolId)) {
       await cp(page, 'DELETE', `/organisations/${s.orgId}/nodes/${n.id}`);
     }
   }
-  await cp(page, 'DELETE', `/organisations/${s.orgId}/api-keys/${s.apiKeyId}`);
+  for (const keyId of [s.apiKeyId, ...typed.map((n) => n.apiKeyId)]) {
+    await cp(page, 'DELETE', `/organisations/${s.orgId}/api-keys/${keyId}`);
+  }
   await context.close();
 });

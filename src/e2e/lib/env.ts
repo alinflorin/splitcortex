@@ -43,3 +43,21 @@ export function users(): { email: string; password: string }[] {
 
 export const optional = (name: string) => process.env[name]?.trim() || undefined;
 export const authFile = (index: number) => `.auth/user${index + 1}.json`;
+
+/**
+ * The node types under test; each has pools and an API key of its own, so they can run at the same time. CI runs one
+ * type per job with E2E_NODE_TYPES (`none` for the jobs without devices); the default is all of them.
+ */
+export const NODE_TYPES = ['web', 'cli', 'android'] as const;
+export type NodeType = (typeof NODE_TYPES)[number];
+export function nodeTypes(): NodeType[] {
+  const wanted = optional('E2E_NODE_TYPES')
+    ?.split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+  if (!wanted) return [...NODE_TYPES];
+  if (wanted.length === 1 && wanted[0] === 'none') return [];
+  const unknown = wanted.filter((t) => !(NODE_TYPES as readonly string[]).includes(t));
+  if (unknown.length) throw new Error(`E2E_NODE_TYPES: unknown ${unknown.join(', ')}`);
+  return wanted as NodeType[];
+}

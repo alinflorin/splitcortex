@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { cp, poolNodes } from '../lib/api';
+import { api, cp, poolNodes } from '../lib/api';
 import { login } from '../lib/auth';
-import { authFile, baseUrl, CHAT_MODEL, EMBEDDING_MODEL, users } from '../lib/env';
-import { saveState } from '../lib/state';
+import { authFile, baseUrl, CHAT_MODEL, EMBEDDING_MODEL, nodeTypes, users } from '../lib/env';
+import { saveState, type NodePools } from '../lib/state';
 
 // Everything the node specs need, created through the web app like a customer would: organisation, the two fixed
 // models (chat + embeddings, from Hugging Face), a pool for each, and an API key. The organisation, models and pools
@@ -121,8 +121,34 @@ test('find or create the organisation, models, pools; new API key', async ({ bro
   const chatPoolId = await ensurePool(page, orgId, 'e2e-chat', CHAT_MODEL.name);
   const embedPoolId = await ensurePool(page, orgId, 'e2e-embeddings', EMBEDDING_MODEL.name);
 
-  // A failed earlier run may have left devices behind: start from empty pools.
-  for (const poolId of [chatPoolId, embedPoolId]) {
+  // Each node type under test gets a chat and an embeddings pool of its own (same models) and an API key scoped to
+  // them, so the types can run at the same time without answering each other's requests.
+  const nodes: Record<string, NodePools> = {};
+  for (const type of nodeTypes()) {
+    const chat = await ensurePool(page, orgId, `e2e-chat-${type}`, CHAT_MODEL.name);
+    const embed = await ensurePool(page, orgId, `e2e-embeddings-${type}`, EMBEDDING_MODEL.name);
+    const key = await api<{ key: { id: string }; secret: string }>(
+      page,
+      'POST',
+      `/organisations/${orgId}/api-keys`,
+      { name: `e2e-${type}-${Date.now().toString(36)}`, scope: 'pools', poolIds: [chat, embed] },
+    );
+    expect(key.status, `key for ${type}`).toBe(201);
+    nodes[type] = {
+      chatPoolId: chat,
+      embedPoolId: embed,
+      apiKey: key.body.secret,
+      apiKeyId: key.body.key.id,
+    };
+  }
+
+  // A failed earlier run may have left devices behind: start from empty pools (only the ones this run uses).
+  const used = [
+    chatPoolId,
+    embedPoolId,
+    ...Object.values(nodes).flatMap((n) => [n.chatPoolId, n.embedPoolId]),
+  ];
+  for (const poolId of used) {
     for (const n of await poolNodes(page, orgId, poolId)) {
       await cp(page, 'DELETE', `/organisations/${orgId}/nodes/${n.id}`);
     }
@@ -143,6 +169,6 @@ test('find or create the organisation, models, pools; new API key', async ({ bro
     (k) => k.name === keyName,
   )!.id;
 
-  saveState({ orgId, orgName: ORG_NAME, chatPoolId, embedPoolId, apiKey, apiKeyId });
+  saveState({ orgId, orgName: ORG_NAME, chatPoolId, embedPoolId, apiKey, apiKeyId, nodes });
   await context.close();
 });

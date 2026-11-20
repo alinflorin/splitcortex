@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { cp, openai, poolNodes } from './api';
-import { authFile, baseUrl } from './env';
+import { authFile, baseUrl, type NodeType } from './env';
 import { loadState } from './state';
 
 /** One node type under test. `join` enrolls with the code and starts serving; `stop` removes every trace. */
@@ -11,6 +11,9 @@ export interface NodeDriver {
   join(code: string, ctx: { browser: Browser }): Promise<void>;
   stop(): Promise<void>;
 }
+
+/** Wall clock marker for the long steps (shows where a run spends its time). */
+const mark = (what: string) => console.log(`${new Date().toISOString().slice(11, 19)} ${what}`);
 
 type PoolKind = 'chat' | 'embeddings';
 
@@ -39,23 +42,28 @@ async function onlineNodeId(page: Page, orgId: string, poolId: string, timeout: 
 }
 
 /**
- * Per pool (chat, then embeddings) the node types take turns in the same pool: enroll by typing a code, wait until it
- * is online (it loads the pool's model first), use it through the Playground and the OpenAI API, then revoke it and
- * see it disappear before the next one comes. One node at a time, so it answers; a failing node does not skip the next.
+ * One node type, in a pool pair of its own (a chat pool and an embeddings pool, with an API key scoped to just those):
+ * enroll by typing a code, wait until it is online (it loads the pool's model first), use it through the Playground and
+ * the OpenAI API, then revoke it and see it disappear. One node per pool, so it is the one that answers. Other node
+ * types have their own pools and run at the same time (see playwright.config.ts).
  */
-export function nodeSuite(kind: PoolKind, drivers: NodeDriver[]) {
-  test.describe(`${kind} pool`, () => {
+export function nodeSuite(type: NodeType, driver: NodeDriver) {
+  test.describe(`${type} node`, () => {
     test.use({ storageState: authFile(0) });
     test.afterAll(async () => {
-      for (const d of drivers) await d.stop();
+      await driver.stop();
     });
 
-    for (const driver of drivers) {
-      test(`${driver.title}`, async ({ page, browser }) => {
+    for (const kind of ['chat', 'embeddings'] as const) {
+      test(`${kind} pool`, async ({ page, browser }) => {
         test.setTimeout(40 * 60_000);
+        const t0 = Date.now();
+        const lap = (what: string) =>
+          console.log(`[${type}/${kind}] ${((Date.now() - t0) / 1000).toFixed(0)}s ${what}`);
         const why = await driver.unavailable();
         test.skip(!!why, why ?? '');
-        const s = loadState();
+        const run = loadState();
+        const s = { orgId: run.orgId, ...run.nodes[type]! };
         const poolId = kind === 'chat' ? s.chatPoolId : s.embedPoolId;
         await page.goto(baseUrl());
 
@@ -68,9 +76,11 @@ export function nodeSuite(kind: PoolKind, drivers: NodeDriver[]) {
 
         const code = await newEnrollmentCode(page, s.orgId, poolId);
         await driver.join(code, { browser });
+        lap('enrolled');
         // The dialog closes by itself when the device arrives; then the model download and load.
         const nodeId = await onlineNodeId(page, s.orgId, poolId, 30 * 60_000);
 
+        lap('online (model loaded)');
         await page.goto(`${baseUrl()}/organisations/${s.orgId}/nodes/${nodeId}`);
         await expect(page.getByText('Online').first()).toBeVisible();
         await checkNodePage(page, s.orgId, poolId, nodeId);
@@ -97,8 +107,10 @@ export function nodeSuite(kind: PoolKind, drivers: NodeDriver[]) {
           expect(body.data[0]!.embedding.length).toBeGreaterThan(100);
         }
 
+        lap('served (playground, api)');
         await checkOperations(page, s.orgId, poolId, nodeId, kind, s.apiKey);
 
+        lap('operations done');
         // Revoking disconnects the device; nothing can be served any more.
         const del = await cp(page, 'DELETE', `/organisations/${s.orgId}/nodes/${nodeId}`);
         expect(del.status()).toBe(204);
@@ -270,6 +282,7 @@ async function checkOperations(
   expect(await audit('node.enroll')).toBeGreaterThan(0);
 
   if (kind === 'chat') {
+    mark('operations: engine overrides');
     // Engine overrides: CPU and a small window. The device reloads the model with them and serves again.
     await page.goto(`${baseUrl()}${org}/nodes/${nodeId}`);
     await page.getByLabel('Compute backend').selectOption('cpu');
@@ -308,11 +321,15 @@ async function checkOperations(
     await expect.poll(async () => (await node()).maxContextTokens, { timeout: 30_000 }).toBeNull();
     await serves(3 * 60_000, 'the device does not serve after the override was lifted');
 
+    mark('operations: benchmark');
     // Benchmark: the pool's devices are measured one at a time; the result is listed.
     await page.goto(`${baseUrl()}${org}/pools/${poolId}`);
     await page.getByRole('button', { name: 'Run benchmark' }).click();
     await expect(page.getByText('Benchmark started.').first()).toBeVisible();
-    await expect(page.getByText('Pool throughput')).toBeVisible({ timeout: 5 * 60_000 });
+    // One device in the pool: no "Pool throughput" total (it needs two results), just the device's own row.
+    await expect(page.getByText('Done', { exact: true }).first()).toBeVisible({
+      timeout: 5 * 60_000,
+    });
     await expect(page.getByText('Tokens/sec').first()).toBeVisible();
     await expect(page.getByText('First token').first()).toBeVisible();
     await expect(page.getByText('Failed', { exact: true })).toHaveCount(0);

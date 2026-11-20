@@ -1,12 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 import 'dotenv/config';
 
-// Sequential on purpose: one organisation, a chat pool and an embedding pool, one node at a time (web, then CLI, then Android), so a request
-// can only be served by the node under test. `setup` creates the organisation and `cleanup` deletes it again.
+// `setup` first (organisation, models, pools, keys), then the projects below run at the same time, one worker each (files
+// inside a project stay in order). Every node type has pools and an API key of its own, so a request can only be served
+// by the node under test while the other types run next to it. `cleanup` removes the devices and keys at the end.
+// E2E_WORKERS sets the number of workers (default 4); `--project=<name>` runs one project.
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
-  workers: 1,
+  workers: Number(process.env.E2E_WORKERS) || 4,
   forbidOnly: !!process.env.CI,
   retries: 0,
   timeout: 20 * 60_000,
@@ -49,13 +51,14 @@ export default defineConfig({
       testMatch: /tenancy\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
+    // One project per node type: the three run side by side, each in its own pools. The web node needs WebGPU (software
+    // Vulkan, SwiftShader, when the machine has no GPU, as on CI); approval also uses a browser tab as a device.
     {
-      name: 'nodes',
+      name: 'nodes-web',
       dependencies: ['setup'],
-      testMatch: /(approval|nodes)\.spec\.ts/,
+      testMatch: /(approval|nodes-web)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        // WebGPU for the web node's engine; software Vulkan (SwiftShader) when the machine has no GPU (CI).
         launchOptions: {
           args: [
             '--enable-unsafe-webgpu',
@@ -65,6 +68,19 @@ export default defineConfig({
           ],
         },
       },
+    },
+    {
+      name: 'nodes-cli',
+      dependencies: ['setup'],
+      testMatch: /nodes-cli\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // The emulator is one device: Android is its own project (and CI job).
+    {
+      name: 'nodes-android',
+      dependencies: ['setup'],
+      testMatch: /nodes-android\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
 });

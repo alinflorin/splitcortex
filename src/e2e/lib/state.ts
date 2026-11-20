@@ -1,6 +1,14 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 /** What `setup` created, for the specs after it (separate files, one worker, same machine). */
+export interface NodePools {
+  chatPoolId: string;
+  embedPoolId: string;
+  /** Scoped to these two pools, so the model name picks the pool unambiguously. */
+  apiKey: string;
+  apiKeyId: string;
+}
+
 export interface RunState {
   orgId: string;
   orgName: string;
@@ -8,6 +16,8 @@ export interface RunState {
   embedPoolId: string;
   apiKey: string;
   apiKeyId: string;
+  /** Pools and key per node type under test (see `nodeTypes()`). */
+  nodes: Partial<Record<string, NodePools>>;
 }
 
 const FILE = '.state/run.json';
