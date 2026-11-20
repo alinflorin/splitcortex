@@ -32,7 +32,6 @@ The business model is bring-your-own-devices SaaS: customers supply the compute,
 | `src/desktop-node`  | Desktop node (Tauri 2: Linux, macOS arm64, Windows)                                    | [docs/desktop-node.md](docs/desktop-node.md)   |
 | `src/cli-node`      | Headless node (Rust, installed with one command)                                       | [docs/cli-node.md](docs/cli-node.md)           |
 | `chart/`            | Helm chart for everything (Traefik, cert-manager, Dex, Postgres, Garage, our services) | [docs/layout.md](docs/layout.md)               |
-| `e2e/`              | Playwright end-to-end tests against a deployed stack                                   | [docs/e2e.md](docs/e2e.md)                     |
 | `scripts/`          | Dev helpers (Android emulator, wiki sync)                                              |                                                |
 
 [CLAUDE.md](CLAUDE.md) holds the project rules and decisions; [docs/](docs/) holds the per-area detail. Read the doc of an area before changing it.
@@ -55,7 +54,6 @@ Only if you work on those parts:
 
 - Mobile node: JDK, Android SDK, a real Android device or emulator (`scripts/start-emulator.sh`); no Expo Go, local dev builds only
 - Desktop node: Rust plus the [Tauri system dependencies](https://v2.tauri.app/start/prerequisites/)
-- E2E tests: Playwright browsers (`pnpm exec playwright install`)
 
 ### Run the stack
 
@@ -125,15 +123,6 @@ Chart changes: `helm lint chart --strict` and `helm template splitcortex chart`.
 - API error messages exist in English and Romanian; add both.
 - No CDNs (fonts and icons are self-hosted) and no CORS on the gateway or the node-facing hosts.
 - Builds are slow: verify with typecheck, tests and `helm lint`/`helm template` rather than building images by hand.
-
-### End-to-end tests
-
-```sh
-cd e2e && pnpm install
-pnpm dev          # asks for the Dex login, runs against the local stack, shows the browser
-```
-
-Other stacks: set `E2E_APP_URL`. Details and secrets in [docs/e2e.md](docs/e2e.md).
 
 ## CI and releases
 

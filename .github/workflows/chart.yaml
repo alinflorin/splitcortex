@@ -78,11 +78,9 @@ jobs:
           LETSENCRYPT_EMAIL: ci@example.com
           GOOGLE_CLIENT_ID: ci-client-id
           GOOGLE_CLIENT_SECRET: ci-client-secret
-          E2E_EMAIL: e2e@example.com
-          E2E_PASSWORD_HASH: ci-password-hash
         run: |
           f="$CHART_DIR/values-${{ matrix.env }}.yaml"
-          envsubst '$LETSENCRYPT_EMAIL $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET $E2E_EMAIL $E2E_PASSWORD_HASH' < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+          envsubst '$LETSENCRYPT_EMAIL $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET' < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
 
       - name: Lint
         run: helm lint "$CHART_DIR" --strict $VALUES_ARGS

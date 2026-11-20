@@ -119,7 +119,7 @@ jobs:
           echo "::error::could not install NDK $NDK_VERSION"
           exit 1
       # LiteRT-LM only ships arm64-v8a and x86_64 (the patched library filters to those), so armeabi-v7a and x86 could never run the engine:
-      # releases build just those two (phones + the e2e emulator); every other run builds x86_64 alone (the CI debug APK is emulator-only).
+      # releases build just those two; every other run builds x86_64 alone (the CI debug APK is emulator-only).
       - name: Build APK
         working-directory: src/mobile-node/android
         run: |
