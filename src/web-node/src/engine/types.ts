@@ -94,6 +94,10 @@ export interface Embedder {
   /** Length of the vectors of the loaded model (0 when nothing is loaded). */
   readonly dimension: number;
   embed(texts: string[]): Promise<EmbedResult>;
+  /** Where the embedder reports what it decided (shown on the Logs screen). */
+  onLog?: (message: string) => void;
+  /** The backend setting changed: reload the model when the choice is now a different one. */
+  reapply?(): Promise<void>;
 }
 
 /** The engine plus the policy that picks its settings: admin override, else the device's own setting, else automatic. */

@@ -8,14 +8,17 @@ import { NodeRuntime } from './NodeRuntime';
 /** One node per browser tab: the stored files and the engine are shared by everything that uses `runtime`. */
 export const modelFiles = new OpfsModelFiles();
 const liteEngine = new LiteRtEngine({ openModel: (name) => modelFiles.openBlob(name) });
+const compute = new ComputeEngine(liteEngine);
 export const runtime = new NodeRuntime(
-  new ComputeEngine(liteEngine),
+  compute,
   undefined,
   undefined,
   () => modelFiles,
   new LiteRtEmbedder({
     openModel: (name) => modelFiles.openBlob(name),
-    gpuAvailable: async () => (await liteEngine.capabilities()).gpuAvailable,
+    // The same rules as chat: the admin's override, else this app's setting, else automatic.
+    backend: () => compute.preferredBackend,
+    capabilities: () => liteEngine.capabilities(),
   }),
 );
 

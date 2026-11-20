@@ -117,6 +117,7 @@ export class NodeRuntime {
     private readonly embedder: Embedder | null = null,
   ) {
     engine.onLog = (m) => this.log.info(m);
+    if (embedder) embedder.onLog = (m) => this.log.info(m);
   }
 
   getSnapshot = () => this.state;
@@ -315,6 +316,7 @@ export class NodeRuntime {
   setLocalCompute(prefs: ComputePrefs) {
     void this.engine
       .setPrefs('local', prefs)
+      .then(() => this.embedder?.reapply?.())
       .then(() => this.reportCompute())
       .catch((e) =>
         this.log.error(`Engine reload failed: ${e instanceof Error ? e.message : String(e)}`),
@@ -344,6 +346,7 @@ export class NodeRuntime {
     );
     try {
       await this.engine.setPrefs('admin', { backend, maxContextTokens });
+      await this.embedder?.reapply?.();
     } catch (e) {
       this.log.error(`Engine reload failed: ${e instanceof Error ? e.message : String(e)}`);
     }

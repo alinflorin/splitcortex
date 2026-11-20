@@ -97,6 +97,11 @@ export class ComputeEngine implements TunableEngine {
     return run;
   }
 
+  /** The backend asked for (admin override, else this app's setting); undefined = automatic. */
+  get preferredBackend(): Backend | undefined {
+    return this.wanted().backend;
+  }
+
   private wanted(): ComputePrefs {
     return {
       backend: this.admin.backend ?? this.local.backend,
