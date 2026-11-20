@@ -89,7 +89,10 @@ export function UserMenu() {
             // Dex has no end_session_endpoint: drop the local session only.
             <MenuItem
               icon={<SignOut24Regular />}
-              onClick={() => void auth.removeUser().then(() => navigate('/'))}
+              onClick={() => {
+                navigate('/');
+                void auth.removeUser();
+              }}
             >
               {t('auth.signOut')}
             </MenuItem>

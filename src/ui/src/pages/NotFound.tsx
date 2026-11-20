@@ -31,7 +31,7 @@ export function NotFound() {
       <span className={styles.code}>
         <GradientText>404</GradientText>
       </span>
-      <Text size={600} weight="semibold">
+      <Text as="h1" size={600} weight="semibold" style={{ margin: 0 }}>
         {t('notFound.title')}
       </Text>
       <Text className={styles.muted}>{t('notFound.body')}</Text>

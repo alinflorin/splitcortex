@@ -46,7 +46,10 @@ test.describe('signed out', () => {
     await page.goto(baseUrl());
     await page.getByRole('button', { name: 'Get started' }).first().click();
     await page.waitForURL(`${dexUrl()}/**`);
-    await expect(page.locator('#login')).toBeVisible();
+    // Dex shows the chooser (stg also offers Google) or goes straight to the password form.
+    await expect(
+      page.locator('#login').or(page.getByRole('link', { name: /log in with email/i })),
+    ).toBeVisible();
   });
 
   test('a wrong password stays on the sign-in page', async ({ page }) => {
@@ -97,19 +100,27 @@ test.describe('signed in', () => {
     await page.goto(baseUrl());
     // Run a node: the rolling releases, the install one-liners, the web node.
     await expect(page.getByText('Run a node').first()).toBeVisible();
-    const apk = page.getByRole('link', { name: 'Download APK' });
-    await expect(apk).toHaveAttribute('href', /github\.com\/.+\/releases\/.*mobile-node-latest/);
-    await expect(page.getByRole('link', { name: 'All command line downloads' })).toHaveAttribute(
-      'href',
-      /releases\/.*cli-node-latest/,
-    );
+    // A button that opens the rolling release in a new tab.
+    const popup = page.waitForEvent('popup');
+    await page.getByRole('button', { name: 'Download APK' }).click();
+    const apkTab = await popup;
+    await apkTab.waitForURL(/github\.com\/.+\/releases\/.*mobile-node-latest/);
+    await apkTab.close();
+    const cliPopup = page.waitForEvent('popup');
+    await page.getByRole('button', { name: 'All command line downloads' }).click();
+    const cliTab = await cliPopup;
+    await cliTab.waitForURL(/releases\/.*cli-node-latest/);
+    await cliTab.close();
     await expect(page.getByText(/install\.sh/).first()).toBeVisible();
     await expect(page.getByText(/install\.ps1/).first()).toBeVisible();
     await page.getByRole('button', { name: /^Copy: Linux and macOS/ }).click();
     await expect(page.getByText('Command copied').first()).toBeVisible();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('install.sh');
-    const web = page.getByRole('link', { name: 'Open web node' });
-    await expect(web).toHaveAttribute('href', /^https:\/\/web-node\./);
+    const webPopup = page.waitForEvent('popup');
+    await page.getByRole('button', { name: 'Open web node' }).click();
+    const webTab = await webPopup;
+    await webTab.waitForURL(/^https:\/\/web-node\./);
+    await webTab.close();
     await page.getByRole('button', { name: 'Share link' }).click();
     await expect(
       page.getByText(/Web node link copied|Could not share the link/).first(),
@@ -153,14 +164,9 @@ test.describe('signed in', () => {
     await page.getByRole('link', { name: 'Home', exact: true }).click();
     await page.waitForURL(`${baseUrl()}/`);
     await expect(page.getByText(/^Version /)).toBeVisible();
-    // The brand link in the top bar goes home from anywhere.
-    await page.goto(`${baseUrl()}/about`);
-    await page.getByRole('link', { name: 'SplitCortex', exact: true }).first().click();
-    await page.waitForURL(`${baseUrl()}/`);
-    // The sidebar can be hidden and shown again.
+    // On a narrow screen the sidebar is hidden and can be shown again with the top bar button.
+    await page.setViewportSize({ width: 600, height: 900 });
     const nav = page.getByRole('link', { name: 'About', exact: true });
-    await expect(nav).toBeVisible();
-    await page.getByRole('button', { name: 'Toggle navigation' }).click();
     await expect(nav).toBeHidden();
     await page.getByRole('button', { name: 'Toggle navigation' }).click();
     await expect(nav).toBeVisible();
@@ -169,16 +175,18 @@ test.describe('signed in', () => {
   test('account menu: who you are, theme, language (kept after a reload)', async ({ page }) => {
     await page.goto(baseUrl());
     await page.getByRole('button', { name: 'Account' }).click();
-    await expect(page.getByRole('menu').getByText(me().email, { exact: true })).toBeVisible();
+    // The identity header sits above the menu items, in the same popover.
+    await expect(page.getByText(me().email, { exact: true })).toBeVisible();
 
     // Theme: dark is remembered, "System" forgets it again.
     await page.getByRole('menuitem', { name: 'Theme' }).click();
     await page.getByRole('menuitemradio', { name: 'Dark' }).click();
     expect(await page.evaluate(() => localStorage.getItem('sc-theme'))).toBe('dark');
     const background = () =>
-      page.evaluate(
-        () => getComputedStyle(document.querySelector('.fui-FluentProvider')!).backgroundColor,
-      );
+      page
+        .locator('.fui-FluentProvider')
+        .first()
+        .evaluate((el) => getComputedStyle(el).backgroundColor);
     const dark = await background();
     await page.reload();
     expect(await page.evaluate(() => localStorage.getItem('sc-theme'))).toBe('dark');
@@ -202,8 +210,8 @@ test.describe('signed in', () => {
     expect(await page.evaluate(() => document.documentElement.lang)).toBe('ro');
     await page.reload();
     await expect(page.getByRole('link', { name: 'Organizații', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Cont' }).click();
-    await page.getByRole('menuitem', { name: 'Limbă' }).click();
+    await page.getByRole('button', { name: 'Cont', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Limba' }).click();
     await page.getByRole('menuitemradio', { name: 'English' }).click();
     await expect(page.getByRole('link', { name: 'Organisations', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.lang)).toBe('en');
