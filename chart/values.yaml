@@ -171,6 +171,12 @@ dex:
         validIfNotUsedFor: 2160h   # ~3 months
         absoluteLifetime: 2160h    # ~3 months
 
+# Users for the end-to-end suite (src/e2e): extra Dex password users, `{email, hash}` with a bcrypt hash. Empty everywhere
+# except stg, where deploy.yaml fills it from the E2E_EMAILS/E2E_PASSWORDS environment secrets (never commit hashes).
+# Local dev uses dex.config.staticPasswords in the git-ignored values-local.yaml instead.
+e2e:
+  users: []
+
 # Web app (src/ui): static SPA served by Caddy on port 8080. TLS and rate limiting are done by the ingress.
 ui:
   enabled: true

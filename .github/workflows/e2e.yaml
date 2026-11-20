@@ -1,0 +1,126 @@
+# End-to-end suite (src/e2e, Playwright) against stg: signs in through Dex, builds an organisation with a chat and an
+# embedding pool, then enrolls and exercises every node type one after the other (web node in the browser, the released
+# CLI node, the released Android app on an emulator). Daily, or by hand with optional node versions.
+name: E2E
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      cli_version:
+        description: CLI node version to test (X.Y.Z); empty = the rolling cli-node-latest
+        type: string
+        default: ""
+      mobile_version:
+        description: Mobile node version to test (X.Y.Z); empty = the rolling mobile-node-latest
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-stg
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    # The stg environment holds the secrets E2E_EMAILS and E2E_PASSWORDS (comma separated, same order); deploy.yaml
+    # turns them into Dex users.
+    environment: stg
+    env:
+      BASE_URL: https://stg.splitcortex.com
+      E2E_EMAILS: ${{ secrets.E2E_EMAILS }}
+      E2E_PASSWORDS: ${{ secrets.E2E_PASSWORDS }}
+      E2E_CLI_VERSION: ${{ inputs.cli_version }}
+      E2E_MOBILE_VERSION: ${{ inputs.mobile_version }}
+    defaults:
+      run:
+        working-directory: src/e2e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: src/e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: src/e2e/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm format:check
+
+      - name: Cache Playwright browsers
+        id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('src/e2e/pnpm-lock.yaml') }}
+      - name: Install Chromium
+        run: |
+          if [ "${{ steps.browsers.outputs.cache-hit }}" = "true" ]; then pnpm exec playwright install-deps chromium; else pnpm install:browsers; fi
+
+      # Released node builds are downloaded by the suite into src/e2e/.cache; keep them between runs (a rolling
+      # "latest" with a new asset name simply downloads the new file next to the old ones).
+      - name: Cache node release downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: src/e2e/.cache
+          key: e2e-releases-${{ github.run_id }}
+          restore-keys: e2e-releases-
+
+      # The emulator needs KVM, which is off by default for the runner user.
+      - name: Enable KVM
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Cache the Android virtual device
+        id: avd
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api-34-x86_64-pixel6-v1
+      # Cache miss: boot once to create the AVD and its snapshot, so later runs start from the snapshot.
+      - name: Create the AVD and its snapshot
+        if: steps.avd.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD ready"
+
+      - name: Run the suite (emulator attached)
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          working-directory: src/e2e
+          script: pnpm test
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ !cancelled() }}
+        with:
+          name: e2e-report
+          path: |
+            src/e2e/playwright-report
+            src/e2e/test-results
+          retention-days: 14

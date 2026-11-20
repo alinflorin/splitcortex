@@ -32,7 +32,7 @@ jobs:
     name: deploy (${{ inputs.environment }})
     runs-on: ubuntu-latest
     # Environment secrets: KUBECONFIG (base64 or plain), CLOUDFLARE_TOKEN (Zone:DNS:Edit),
-    # GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (stg Dex Google login).
+    # GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (stg Dex Google login), E2E_EMAILS, E2E_PASSWORDS (stg only; users of the e2e suite).
     # Add required reviewers on the environment for a manual approval gate.
     environment: ${{ inputs.environment }}
     concurrency:
@@ -43,6 +43,8 @@ jobs:
       CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      E2E_EMAILS: ${{ secrets.E2E_EMAILS }}
+      E2E_PASSWORDS: ${{ secrets.E2E_PASSWORDS }}
     steps:
       - name: Normalise version
         run: |
@@ -78,12 +80,28 @@ jobs:
           f="chart/values-${ENVIRONMENT}.yaml"
           envsubst '$CLOUDFLARE_TOKEN $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET' < "$f" > "$RUNNER_TEMP/values.yaml"
 
+      # stg only: the end-to-end suite's users (comma separated secrets, same order) as bcrypt hashes for Dex.
+      - name: Make E2E user hashes
+        if: inputs.environment == 'stg' && env.E2E_EMAILS != ''
+        run: |
+          IFS=',' read -ra EMAILS <<< "$E2E_EMAILS"
+          IFS=',' read -ra PASSWORDS <<< "$E2E_PASSWORDS"
+          [ "${#EMAILS[@]}" -eq "${#PASSWORDS[@]}" ] || { echo "::error::E2E_EMAILS and E2E_PASSWORDS differ in length"; exit 1; }
+          echo "e2e:" > "$RUNNER_TEMP/e2e-users.yaml"
+          echo "  users:" >> "$RUNNER_TEMP/e2e-users.yaml"
+          for i in "${!EMAILS[@]}"; do
+            HASH="$(htpasswd -bnBC 10 "" "${PASSWORDS[$i]}" | tr -d ':\n' | sed 's/^\$2y/$2a/')"
+            printf "    - email: '%s'\n      hash: '%s'\n" "$(echo "${EMAILS[$i]}" | xargs)" "$HASH" >> "$RUNNER_TEMP/e2e-users.yaml"
+          done
+
       - name: Helm upgrade
         run: |
           OWNER="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
           # --wait is required: the ClusterIssuer hooks run after the cert-manager webhook is ready.
+          EXTRA=()
+          [ -f "$RUNNER_TEMP/e2e-users.yaml" ] && EXTRA=(-f "$RUNNER_TEMP/e2e-users.yaml")
           helm upgrade -i --wait --atomic --timeout 10m \
             --create-namespace -n splitcortex \
-            -f "$RUNNER_TEMP/values.yaml" \
+            -f "$RUNNER_TEMP/values.yaml" "${EXTRA[@]}" \
             --version "$VERSION" \
             splitcortex "oci://ghcr.io/${OWNER}/charts/splitcortex"

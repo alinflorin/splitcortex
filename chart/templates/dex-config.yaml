@@ -1,4 +1,13 @@
 {{- if .Values.dex.enabled }}
+{{- /* e2e.users (stg only, bcrypt hashes made at deploy time from the E2E_EMAILS/E2E_PASSWORDS secrets) become extra password users for the end-to-end suite. */}}
+{{- $config := deepCopy .Values.dex.config }}
+{{- if .Values.e2e.users }}
+{{- $users := $config.staticPasswords | default list }}
+{{- range $i, $u := .Values.e2e.users }}
+{{- $users = append $users (dict "email" $u.email "hash" $u.hash "username" (printf "e2e%d" (add1 $i)) "userID" (printf "e2e-user-%d" (add1 $i))) }}
+{{- end }}
+{{- $_ := set $config "staticPasswords" $users }}
+{{- end }}
 {{- /* Dex's own chart writes `config` verbatim; rendering it here lets it use {{ .Values.domain }} (tpl). Name must equal dex.configSecret.name. */}}
 apiVersion: v1
 kind: Secret
@@ -10,5 +19,5 @@ metadata:
     app.kubernetes.io/component: dex
 type: Opaque
 data:
-  config.yaml: {{ tpl (toYaml .Values.dex.config) . | b64enc | quote }}
+  config.yaml: {{ tpl (toYaml $config) . | b64enc | quote }}
 {{- end }}
