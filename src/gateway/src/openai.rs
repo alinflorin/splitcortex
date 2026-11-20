@@ -1072,6 +1072,12 @@ pub async fn embeddings(
     embeddings_core(&app, key, body, false, Lang::from_headers(&parts.headers)).await
 }
 
+/// How long a node may take to answer: the first-event allowance plus time for each input (a big batch on a phone or
+/// in WASM is slow, and a timeout would only send it to an equally slow node).
+fn embedding_timeout(inputs: usize) -> Duration {
+    FIRST_EVENT_TIMEOUT + Duration::from_secs(5 * inputs as u64)
+}
+
 fn invalid_embedding_request(message: Tr) -> ApiError {
     bad_request("invalid_request", message)
 }
@@ -1212,7 +1218,7 @@ pub async fn embeddings_core(
         let answer = if node.tx.send(Outbound::Send(msg)).await.is_err() {
             Some(NodeEvent::Disconnected)
         } else {
-            tokio::time::timeout(FIRST_EVENT_TIMEOUT, rx.recv())
+            tokio::time::timeout(embedding_timeout(inputs.len()), rx.recv())
                 .await
                 .ok()
                 .flatten()

@@ -105,6 +105,11 @@ export class ComputeEngine implements TunableEngine {
     };
   }
 
+  /** The backend the admin or this app asked for (admin wins); undefined = automatic. Read by the embedder on load. */
+  get preferredBackend(): Backend | undefined {
+    return this.wanted().backend;
+  }
+
   load(path: string): Promise<void> {
     this.path = path;
     return this.queue(() => this.apply(path));

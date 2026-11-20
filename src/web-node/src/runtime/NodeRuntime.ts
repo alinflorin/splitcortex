@@ -106,6 +106,8 @@ export class NodeRuntime {
   private foregroundSub: (() => void) | null = null;
   private files: ModelFiles | null = null;
   private restartRequested = false;
+  /** Embedding requests run one after the other: the engine does one batch at a time (as on the other node types). */
+  private embedChain: Promise<void> = Promise.resolve();
   private onIdle: (() => void) | null = null;
   private generation = 0; // guards async start() against a stop()/restart() that happened meanwhile
 
@@ -257,7 +259,7 @@ export class NodeRuntime {
         void this.serve(b.value);
         break;
       case 'embeddingRequest':
-        void this.serveEmbedding(b.value);
+        this.queueEmbedding(b.value);
         break;
       case 'restart':
         void this.restartApp(b.value.graceSeconds);
@@ -448,27 +450,38 @@ export class NodeRuntime {
     }
   }
 
-  /** One embedding request: one `EmbeddingResult` (or an error) with every input in order. */
-  private async serveEmbedding(req: EmbeddingRequest) {
+  private queueEmbedding(req: EmbeddingRequest) {
     const id = req.requestId;
+    // Registered at once (not when its turn comes) so a `Cancel` or a resume finds it while it waits.
     this.outbox.set(id, { seq: 0, frames: [], finishedAt: null });
+    const ctl = new AbortController();
+    this.active.set(id, ctl);
+    this.set({ inFlight: this.active.size });
+    const next = this.embedChain.then(() => this.serveEmbedding(req, ctl));
+    this.embedChain = next.catch(() => undefined);
+  }
+
+  /** One embedding request: one `EmbeddingResult` (or an error) with every input in order. */
+  private async serveEmbedding(req: EmbeddingRequest, ctl: AbortController) {
+    const id = req.requestId;
     const fail = (code: string, message: string) =>
       this.emit(id, (seq) => ({
         case: 'inferenceError',
         value: create(InferenceErrorSchema, { requestId: id, code, message, seq }),
       }));
+    const done = (last?: () => void) => {
+      this.active.delete(id);
+      this.set({ inFlight: this.active.size });
+      this.finishBox(id, last);
+      if (this.active.size === 0) this.onIdle?.();
+    };
     const m = this.state.model;
-    if (this.restartRequested)
-      return this.finishBox(id, () => fail('restarting', 'The node is restarting'));
+    if (ctl.signal.aborted) return done();
+    if (this.restartRequested) return done(() => fail('restarting', 'The node is restarting'));
     if (m.kind !== 'embedding')
-      return this.finishBox(id, () =>
-        fail('wrong_model_kind', 'This node does not serve an embedding model'),
-      );
+      return done(() => fail('wrong_model_kind', 'This node does not serve an embedding model'));
     if (req.modelId !== m.modelId || m.phase !== 'ready' || !this.embedder?.loaded)
-      return this.finishBox(id, () => fail('model_not_ready', 'The requested model is not loaded'));
-    const ctl = new AbortController();
-    this.active.set(id, ctl);
-    this.set({ inFlight: this.active.size });
+      return done(() => fail('model_not_ready', 'The requested model is not loaded'));
     try {
       const out = await runEmbedding(this.embedder, {
         inputs: req.inputs,

@@ -63,7 +63,7 @@ export async function embedAll(embedder: Embedder, job: EmbeddingJob): Promise<n
     throw new EmbeddingRequestError('bad_request', `Unknown embedding task "${job.task}"`);
   if (job.inputs.length === 0)
     throw new EmbeddingRequestError('bad_request', 'There is nothing to embed');
-  if (job.task === '' && job.inputs.some((s) => s.trim() === ''))
+  if (job.inputs.some((s) => s.trim() === ''))
     throw new EmbeddingRequestError('bad_request', 'An input is empty');
   const full = embedder.dimension;
   if (job.dimensions > full && full > 0)

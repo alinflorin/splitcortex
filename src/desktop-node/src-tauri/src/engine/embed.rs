@@ -29,8 +29,13 @@ pub struct EmbedderInfo {
     dimension: usize,
 }
 
-fn create_embedder(api: &Arc<Api>, path: &str, cache_dir: &str) -> Result<LoadedEmbedder, String> {
-    let (path, backend, cache) = (cstr(path)?, cstr("cpu")?, cstr(cache_dir)?);
+fn create_embedder(
+    api: &Arc<Api>,
+    path: &str,
+    backend: &str,
+    cache_dir: &str,
+) -> Result<LoadedEmbedder, String> {
+    let (path, backend, cache) = (cstr(path)?, cstr(backend)?, cstr(cache_dir)?);
     unsafe {
         let mut settings: Handle = ptr::null_mut();
         // No vision or audio backend: embedding models are used as text only.
@@ -176,6 +181,7 @@ pub async fn embedder_load(
     app: AppHandle,
     state: State<'_, Arc<Engine>>,
     name: String,
+    backend: Option<String>,
 ) -> Result<EmbedderInfo, String> {
     let path = crate::storage::model_path(&app, &name)?;
     if !path.exists() {
@@ -196,7 +202,12 @@ pub async fn embedder_load(
     super::engine_unload(state.clone());
     *state.embedder.lock().unwrap_or_else(|x| x.into_inner()) = None;
     let loaded = tauri::async_runtime::spawn_blocking(move || {
-        let loaded = create_embedder(&api, &path, &cache)?;
+        // The GPU only when asked for; a GPU that cannot load the model falls back to the CPU.
+        let loaded = match backend.as_deref() {
+            Some("gpu") => create_embedder(&api, &path, "gpu", &cache)
+                .or_else(|_| create_embedder(&api, &path, "cpu", &cache))?,
+            _ => create_embedder(&api, &path, "cpu", &cache)?,
+        };
         let dimension = match metadata_dimension(&api, &path) {
             Some(d) => d,
             // The file does not say: embed one short text and take the vector's length.

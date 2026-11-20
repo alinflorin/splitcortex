@@ -20,4 +20,10 @@ describe('NativeEmbedder', () => {
     await e.unload();
     expect(e).toMatchObject({ loaded: false, dimension: 0 });
   });
+
+  it('passes the backend asked for to the native side', async () => {
+    const a = api();
+    await new NativeEmbedder(a, () => 'gpu').load('e.litertlm');
+    expect(a.embedderLoad).toHaveBeenCalledWith('e.litertlm', 'gpu');
+  });
 });

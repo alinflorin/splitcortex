@@ -49,7 +49,7 @@ export interface NativeApi {
   engineCancel(): Promise<void>;
   engineCaps(): Promise<DeviceCaps>;
 
-  embedderLoad(name: string): Promise<{ dimension: number }>;
+  embedderLoad(name: string, backend?: Backend): Promise<{ dimension: number }>;
   embedderUnload(): Promise<void>;
   /** Full-length (normalised) vectors, one per input, same order. */
   embedderEmbed(inputs: string[]): Promise<number[][]>;
@@ -87,7 +87,7 @@ export const tauriApi: NativeApi = {
   engineCancel: () => invoke('engine_cancel'),
   engineCaps: () => invoke('engine_caps'),
 
-  embedderLoad: (name) => invoke('embedder_load', { name }),
+  embedderLoad: (name, backend) => invoke('embedder_load', { name, backend }),
   embedderUnload: () => invoke('embedder_unload'),
   embedderEmbed: (inputs) => invoke('embedder_embed', { inputs }),
   restartApp: () => invoke('restart_app'),

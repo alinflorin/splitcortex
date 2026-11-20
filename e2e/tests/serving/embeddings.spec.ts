@@ -174,6 +174,16 @@ test.describe('real embeddings', () => {
     expect(cosine(vec(batch, 0), vec(batch, 1))).toBeLessThan(0.999);
   });
 
+  test('concurrent requests are all answered, each with its own vectors', async () => {
+    const texts = ['red apple', 'blue ocean', 'green forest', 'yellow sun'];
+    const alone = await Promise.all(texts.map((t) => call({ input: t })));
+    const together = await Promise.all(texts.map((t) => call({ input: [t, `${t} again`] })));
+    for (const [i, b] of together.entries()) {
+      expect(b.data).toHaveLength(2);
+      expect(cosine(vec(b, 0), vec(alone[i]!))).toBeGreaterThan(0.99);
+    }
+  });
+
   test('similar texts are closer than unrelated ones', async () => {
     const b = await call({
       input: [

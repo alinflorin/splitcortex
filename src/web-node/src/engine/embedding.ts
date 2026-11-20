@@ -26,6 +26,7 @@ export function prepareInputs(inputs: readonly string[], task: string): string[]
   const prefix = PREFIXES[task];
   if (prefix === undefined) throw new EmbeddingRequestError(`Unknown embedding task "${task}"`);
   if (inputs.length === 0) throw new EmbeddingRequestError('No inputs to embed');
+  if (inputs.some((s) => s.trim() === '')) throw new EmbeddingRequestError('An input is empty');
   return inputs.map((s) => prefix + s.trim());
 }
 

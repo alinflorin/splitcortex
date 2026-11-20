@@ -8,12 +8,13 @@ import { NodeRuntime } from './NodeRuntime';
 
 /** One node per installation: the stored files and the engine are shared by everything that uses `runtime`. */
 export const modelFiles = new NativeModelFiles();
+const engine = new ComputeEngine(new NativeEngine());
 export const runtime = new NodeRuntime(
-  new ComputeEngine(new NativeEngine()),
+  engine,
   nativeHost(),
   undefined,
   () => modelFiles,
-  new NativeEmbedder(),
+  new NativeEmbedder(undefined, () => engine.preferredBackend),
 );
 
 export const useRuntime = () => useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);

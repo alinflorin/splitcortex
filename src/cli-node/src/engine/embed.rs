@@ -1,7 +1,7 @@
 //! Embeddings: the second capability of the engine, next to chat. A pool whose model has kind "embedding" is loaded into
 //! LiteRT-LM's embedding engine (never the chat engine). This file is the model-independent part: the task prefixes,
 //! the Matryoshka truncation with renormalisation, and the batch handling, all behind the `Embedder` trait so they are
-//! tested with a fake. Port of `src/desktop-node/src/engine/embed.ts`-style logic: a fix in one must be made in the other.
+//! tested with a fake. Port of `src/desktop-node/src/engine/embedding.ts`: a fix in one must be made in the other.
 //! Texts and vectors are never logged.
 
 /// Why an embedding request failed: the input is the problem (the gateway may show it to the client), or the engine.
@@ -74,6 +74,9 @@ pub fn embed_request(
 ) -> Result<Vec<Vec<f32>>, EmbedError> {
     if inputs.is_empty() {
         return Err(EmbedError::bad_input("There is nothing to embed"));
+    }
+    if inputs.iter().any(|t| t.trim().is_empty()) {
+        return Err(EmbedError::bad_input("An input is empty"));
     }
     let prefix = task_prefix(task)
         .ok_or_else(|| EmbedError::bad_input(format!("Unknown embedding task \"{task}\"")))?;
@@ -199,6 +202,12 @@ mod tests {
         assert_eq!(embed_request(&f, &[], "", 0).unwrap_err().code, "bad_input");
         assert_eq!(
             embed_request(&f, &strings(&["a"]), "weird", 0)
+                .unwrap_err()
+                .code,
+            "bad_input"
+        );
+        assert_eq!(
+            embed_request(&f, &strings(&["a", "  \n"]), "", 0)
                 .unwrap_err()
                 .code,
             "bad_input"
