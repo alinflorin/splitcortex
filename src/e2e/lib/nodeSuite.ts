@@ -83,7 +83,7 @@ export function nodeSuite(type: NodeType, driver: NodeDriver) {
         lap('online (model loaded)');
         await page.goto(`${baseUrl()}/organisations/${s.orgId}/nodes/${nodeId}`);
         await expect(page.getByText('Online').first()).toBeVisible();
-        await checkNodePage(page, s.orgId, poolId, nodeId);
+        await checkNodePage(page, s.orgId, poolId, nodeId, kind);
 
         const models = (await (await openai(page, s.apiKey, '/models')).json()) as {
           data: { id: string }[];
@@ -160,7 +160,13 @@ async function chatOverApi(page: Page, apiKey: string, model: string) {
 }
 
 /** The device as an admin sees it: the pool's card for it, its page (live status, engine settings, device), restart. */
-async function checkNodePage(page: Page, orgId: string, poolId: string, nodeId: string) {
+async function checkNodePage(
+  page: Page,
+  orgId: string,
+  poolId: string,
+  nodeId: string,
+  kind: PoolKind,
+) {
   // The pool page counts it and links to it.
   await page.goto(`${baseUrl()}/organisations/${orgId}/pools/${poolId}`);
   // (Older, offline devices may still be listed: the count is not asserted.)
@@ -181,9 +187,12 @@ async function checkNodePage(page: Page, orgId: string, poolId: string, nodeId: 
     await expect(page.getByText(card, { exact: true }).first(), card).toBeVisible();
   }
   // What the device runs on, as the node reports it once the model is downloaded and the engine loaded. "Online" only
-  // means connected, so wait for it (several nodes load their models at the same time).
-  await expect(page.getByText('Running on')).toBeVisible({ timeout: 5 * 60_000 });
-  await expect(page.getByText(/^(CPU|GPU)$/).first()).toBeVisible();
+  // means connected, so wait for it (several nodes load their models at the same time). Only chat engines report it:
+  // the web and Android embedding engines send no backend, so the card is not there for an embeddings pool.
+  if (kind === 'chat') {
+    await expect(page.getByText('Running on')).toBeVisible({ timeout: 3 * 60_000 });
+    await expect(page.getByText(/^(CPU|GPU)$/).first()).toBeVisible();
+  }
   await expect(page.getByText('Key fingerprint')).toBeVisible();
   await expect(page.getByText('Could not load data')).toHaveCount(0);
 
