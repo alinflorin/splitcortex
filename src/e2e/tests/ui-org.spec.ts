@@ -322,3 +322,83 @@ test('inside an organisation an unknown pool, device or address says so', async 
   await page.goto(orgUrl('/nothing-here'));
   await expect(page.getByText('Page not found')).toBeVisible();
 });
+
+test('Playground in a narrow window: the message box and its buttons stay inside', async ({
+  browser,
+}) => {
+  const state = loadState();
+  for (const width of [320, 390, 600]) {
+    const context = await browser.newContext({
+      storageState: authFile(0),
+      viewport: { width, height: 700 },
+    });
+    const page = await context.newPage();
+    try {
+      await page.goto(`${baseUrl()}/playground`);
+      await page.getByLabel('API key').fill(state.apiKey);
+      await page.getByRole('button', { name: 'Connect' }).click();
+      const box = page.getByLabel('Message');
+      await expect(box).toBeVisible();
+      for (const target of [
+        box,
+        page.getByRole('button', { name: 'Send' }),
+        page.getByRole('button', { name: 'Attach files' }),
+        page.getByRole('button', { name: 'Clear conversation' }),
+      ]) {
+        const rect = await target.boundingBox();
+        expect(rect, `${width}px`).not.toBeNull();
+        expect(rect!.x, `${width}px: left edge`).toBeGreaterThanOrEqual(0);
+        expect(rect!.x + rect!.width, `${width}px: right edge`).toBeLessThanOrEqual(width + 1);
+      }
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+        `${width}px: no sideways scrolling`,
+      ).toBe(true);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+// Every page, in both languages: no key shown as text, no script error, no failed request to our own API.
+for (const lang of ['en', 'ro'] as const) {
+  test(`every page in ${lang}: no untranslated key, no script error, no failed API call`, async ({
+    page,
+  }) => {
+    const problems: string[] = [];
+    page.on('pageerror', (e) => problems.push(`script error: ${e.message}`));
+    page.on('response', (r) => {
+      if (r.url().includes('/api/') && r.status() >= 500) problems.push(`${r.status()} ${r.url()}`);
+    });
+    await page.addInitScript((l) => localStorage.setItem('sc-lang', l), lang);
+    const pool = await api<{ id: string }>(admin, 'POST', orgApi('/pools'), {
+      name: `sweep-${uniq()}`,
+    });
+    const paths = [
+      `${baseUrl()}/`,
+      `${baseUrl()}/about`,
+      `${baseUrl()}/organisations`,
+      `${baseUrl()}/playground`,
+      `${baseUrl()}/user-settings`,
+      ...['models', 'pools', `pools/${pool.body.id}`, 'api-keys', 'members', 'usage', 'metrics']
+        .concat(['audit', 'settings'])
+        .map((p) => orgUrl(`/${p}`)),
+      `${baseUrl()}/no-such-page`,
+    ];
+    for (const url of paths) {
+      await page.goto(url);
+      await expect(page.getByRole('heading').first(), url).toBeVisible();
+      // An i18n key that was not found renders as itself: "pools.title", "nodes.restartTitle"…
+      const text = await page.locator('main').innerText();
+      const keys = text.match(/(?<![\w./@-])[a-z][a-zA-Z]+(\.[a-zA-Z]+){1,3}(?![\w@-])/g) ?? [];
+      const suspicious = keys.filter((k) =>
+        /^(app|nav|auth|theme|language|apps|home|endpoints|notFound|about|settings|validation|common|errors|roles|organisations|pools|members|usage|orgNav|nodes|models|apiKeys|enroll|bulkEnroll|limits|benchmarks|playground|userSettings|audit|metrics)\./.test(
+          k,
+        ),
+      );
+      expect(suspicious, `${url}: untranslated`).toEqual([]);
+    }
+    await api(admin, 'DELETE', orgApi(`/pools/${pool.body.id}`));
+    expect(problems).toEqual([]);
+  });
+}

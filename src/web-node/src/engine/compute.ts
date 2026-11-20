@@ -194,9 +194,15 @@ export class ComputeEngine implements TunableEngine {
     const speed = async (b: Backend) => {
       try {
         await this.base.load(path, { backend: b, maxContextTokens: ctx });
-        return await this.base.benchmark();
-      } catch {
-        return 0; // a backend that cannot load or run loses
+        const rate = await this.base.benchmark();
+        if (rate <= 0) this.log(`${b.toUpperCase()} measurement produced no tokens`);
+        return rate;
+      } catch (e) {
+        // a backend that cannot load or run loses; say why, so a 0.0 is never a mystery
+        this.log(
+          `${b.toUpperCase()} measurement failed: ${e instanceof Error ? e.message : String(e)}`,
+        );
+        return 0;
       }
     };
     const cpu = await speed('cpu');
@@ -205,7 +211,8 @@ export class ComputeEngine implements TunableEngine {
     this.log(
       `CPU ${cpu.toFixed(1)} tok/s, GPU ${gpu.toFixed(1)} tok/s: using ${pick.toUpperCase()}`,
     );
-    await this.cache.set(path, pick).catch(() => undefined);
+    // Nothing measured at all is not an answer worth keeping: the next load tries again.
+    if (cpu > 0 || gpu > 0) await this.cache.set(path, pick).catch(() => undefined);
     return pick;
   }
 }

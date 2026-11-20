@@ -73,6 +73,7 @@ export function nodeSuite(kind: PoolKind, drivers: NodeDriver[]) {
 
         await page.goto(`${baseUrl()}/organisations/${s.orgId}/nodes/${nodeId}`);
         await expect(page.getByText('Online').first()).toBeVisible();
+        await checkNodePage(page, s.orgId, poolId, nodeId);
 
         const models = (await (await openai(page, s.apiKey, '/models')).json()) as {
           data: { id: string }[];
@@ -142,4 +143,50 @@ async function chatOverApi(page: Page, apiKey: string, model: string) {
 
   const bad = await openai(page, 'sk-not-a-key', '/chat/completions', { model, messages });
   expect(bad.status()).toBe(401);
+}
+
+/** The device as an admin sees it: the pool's card for it, its page (live status, engine settings, device), restart. */
+async function checkNodePage(page: Page, orgId: string, poolId: string, nodeId: string) {
+  // The pool page counts it and links to it.
+  await page.goto(`${baseUrl()}/organisations/${orgId}/pools/${poolId}`);
+  await expect(page.getByText('1 / 1 nodes online')).toBeVisible();
+  await expect(page.getByText('No devices in this pool yet.')).toHaveCount(0);
+
+  await page.goto(`${baseUrl()}/organisations/${orgId}/nodes/${nodeId}`);
+  await expect(page.getByRole('link', { name: /Back to pool/ })).toBeVisible();
+  for (const card of [
+    'Live status',
+    'Engine settings',
+    'Device',
+    'CPU',
+    'Memory',
+    'Load',
+    'Connection',
+  ]) {
+    await expect(page.getByText(card, { exact: true }).first(), card).toBeVisible();
+  }
+  // What the device runs on, as the node reported it (the engine is loaded by now).
+  await expect(page.getByText('Running on')).toBeVisible();
+  await expect(page.getByText(/^(CPU|GPU)$/).first()).toBeVisible();
+  await expect(page.getByText('Key fingerprint')).toBeVisible();
+  await expect(page.getByText('Could not load data')).toHaveCount(0);
+
+  // The overrides are offered; "Device decides" is the default.
+  await expect(page.getByLabel('Compute backend')).toBeVisible();
+  await expect(page.getByLabel('Maximum context (tokens)')).toBeVisible();
+  await page.getByLabel('Maximum context (tokens)').fill('10');
+  await expect(page.getByText(/Enter a whole number from \d+ to \d+/)).toBeVisible();
+  await page.getByLabel('Maximum context (tokens)').fill('');
+
+  // Restart and revoke ask first; Cancel leaves the device alone.
+  await page.getByRole('button', { name: 'Restart', exact: true }).click();
+  const confirm = page.getByRole('alertdialog');
+  await expect(confirm.getByText(/^Restart /)).toBeVisible();
+  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  await expect(confirm).toHaveCount(0);
+  await page.getByRole('button', { name: 'Revoke', exact: true }).click();
+  await expect(page.getByRole('alertdialog').getByText(/^Revoke /)).toBeVisible();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await expect(page.getByText('Online').first()).toBeVisible();
 }

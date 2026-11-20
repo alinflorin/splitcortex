@@ -84,6 +84,13 @@ describe('ComputeEngine', () => {
     expect(b.backend).toBe('cpu');
   });
 
+  it('does not remember a measurement that produced nothing', async () => {
+    const { e } = fakeEngine({}, { cpu: 0, gpu: 0 });
+    const cache = memCache();
+    await new ComputeEngine(e, cache).load('/m/a');
+    expect(cache.map.has('/m/a')).toBe(false);
+  });
+
   it('never benchmarks on an emulator or without a GPU driver', async () => {
     for (const caps of [{ emulator: true }, { gpuAvailable: false }]) {
       const { e, loads } = fakeEngine(caps, { cpu: 1, gpu: 100 });

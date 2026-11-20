@@ -142,14 +142,21 @@ const useStyles = makeStyles({
     '& code': { fontFamily: tokens.fontFamilyMonospace, fontSize: tokens.fontSizeBase200 },
     '& > :last-child': { marginBottom: 0 },
   },
-  composer: { display: 'flex', gap: tokens.spacingHorizontalS, alignItems: 'flex-end' },
+  composer: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS,
+    alignItems: 'flex-end',
+  },
   composerBox: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS },
   dropping: {
     outline: `2px dashed ${tokens.colorBrandStroke1}`,
     outlineOffset: tokens.spacingHorizontalXS,
     borderRadius: tokens.borderRadiusXLarge,
   },
-  textarea: { flexGrow: 1 },
+  // A basis of its own and no minimum width: in a narrow window the buttons wrap below instead of pushing the
+  // field past the edge.
+  textarea: { flex: '1 1 220px', minWidth: 0 },
   chips: { display: 'flex', flexWrap: 'wrap', gap: tokens.spacingHorizontalS },
   chip: {
     display: 'inline-flex',

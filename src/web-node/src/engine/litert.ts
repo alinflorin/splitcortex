@@ -61,6 +61,10 @@ export interface LiteModule {
 export const DEFAULT_CONTEXT = 4096;
 const BENCH_PROMPT = 'Count from one to one hundred in words.';
 const BENCH_TOKENS = 40;
+/** A measurement that is still running after this long is cut short: a slow backend has made its point. */
+const BENCH_MAX_MS = 30_000;
+/** Adapters that run WebGPU on the CPU (Chromium's SwiftShader, Mesa's llvmpipe): not a GPU for our purposes. */
+const SOFTWARE_ADAPTER = /swiftshader|llvmpipe|softpipe|software|cpu/i;
 /** Images one conversation may hold (the vision encoder reserves room for them up front). */
 const MAX_IMAGES = 8;
 /** Where the build serves the LiteRT-LM WASM runtime (vite.config.ts copies it there). */
@@ -87,7 +91,12 @@ const importLite = (): Promise<LiteModule> =>
 
 /** What `navigator.gpu` gives; typed locally because the DOM lib has no WebGPU types. */
 interface GpuNavigator {
-  gpu?: { requestAdapter(): Promise<{ isFallbackAdapter?: boolean } | null> };
+  gpu?: {
+    requestAdapter(): Promise<{
+      isFallbackAdapter?: boolean;
+      info?: { vendor?: string; architecture?: string; device?: string; description?: string };
+    } | null>;
+  };
   deviceMemory?: number;
 }
 
@@ -148,8 +157,16 @@ export class LiteRtEngine implements Engine {
       const mem = this.nav.deviceMemory ? Math.round(this.nav.deviceMemory * 1024) : 0;
       try {
         const adapter = await this.nav.gpu?.requestAdapter();
+        const named = adapter
+          ? [
+              adapter.info?.vendor,
+              adapter.info?.architecture,
+              adapter.info?.device,
+              adapter.info?.description,
+            ].join(' ')
+          : '';
         return {
-          gpuAvailable: !!adapter && !adapter.isFallbackAdapter,
+          gpuAvailable: !!adapter && !adapter.isFallbackAdapter && !SOFTWARE_ADAPTER.test(named),
           emulator: false,
           totalMemoryMb: mem,
         };
@@ -207,6 +224,7 @@ export class LiteRtEngine implements Engine {
     try {
       const conv = await this.lite.createConversation();
       let n = 0;
+      const start = Date.now();
       let first = 0;
       let last = 0;
       try {
@@ -218,13 +236,15 @@ export class LiteRtEngine implements Engine {
           n += 1;
           last = Date.now();
           if (n === 1) first = last;
-          if (n >= BENCH_TOKENS) break; // leaving the loop cancels the generation
+          if (n >= BENCH_TOKENS || last - start > BENCH_MAX_MS) break; // leaving the loop cancels the generation
         }
       } finally {
         await conv.delete().catch(() => undefined);
       }
       // Decode speed only: the time to the first token (prefill, warm-up) is not counted.
-      return n > 1 && last > first ? ((n - 1) * 1000) / (last - first) : 0;
+      if (n > 1 && last > first) return ((n - 1) * 1000) / (last - first);
+      // The chunks arrived in one go (or there was one): the whole time, prefill included, is the best estimate left.
+      return n > 0 && last > start ? (n * 1000) / (last - start) : 0;
     } finally {
       this.busy = false;
     }
