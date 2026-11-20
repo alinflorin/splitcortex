@@ -40,6 +40,12 @@ cert-manager:
   # Install and keep the CRDs with the release (cert-manager is unusable without them).
   crds:
     enabled: true
+  # DNS-01 self-check straight at public resolvers: through the cluster DNS (and the node's/router's resolver) the first
+  # "no TXT yet" answer is cached and challenges stay pending for many minutes (also rebinding protection on routers
+  # eats the 127.0.0.1 answers of the local domain).
+  extraArgs:
+    - --dns01-recursive-nameservers-only
+    - --dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53
 
 postgres:
   enabled: true
