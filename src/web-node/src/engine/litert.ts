@@ -66,6 +66,22 @@ const MAX_IMAGES = 8;
 /** Where the build serves the LiteRT-LM WASM runtime (vite.config.ts copies it there). */
 export const WASM_PATH = '/litertlm/';
 
+/** The runtime is loaded once per library instance: chat and embedding engines share it (a second call throws "already loading / loaded"). */
+const runtimes = new WeakMap<object, Promise<unknown>>();
+export function loadRuntime(mod: {
+  loadLiteRtLm(path: string): Promise<unknown>;
+}): Promise<unknown> {
+  let p = runtimes.get(mod);
+  if (!p) {
+    p = mod.loadLiteRtLm(`${location.origin}${WASM_PATH}`).catch((e) => {
+      runtimes.delete(mod); // a failed load may be tried again
+      throw e;
+    });
+    runtimes.set(mod, p);
+  }
+  return p;
+}
+
 const importLite = (): Promise<LiteModule> =>
   import('@litert-lm/core') as unknown as Promise<LiteModule>;
 
@@ -102,7 +118,6 @@ const textOf = (chunk: LiteChunk) =>
 export class LiteRtEngine implements Engine {
   private lite: LiteEngine | null = null;
   private mod: LiteModule | null = null;
-  private wasmReady: Promise<unknown> | null = null;
   private busy = false;
   private active: { backend: Backend; ctx: number; modalities: Modality[] } | null = null;
   private caps: Promise<DeviceCaps> | null = null;
@@ -147,8 +162,7 @@ export class LiteRtEngine implements Engine {
 
   private async module(): Promise<LiteModule> {
     this.mod ??= await (this.o.loadModule ?? importLite)();
-    this.wasmReady ??= this.mod.loadLiteRtLm(`${location.origin}${WASM_PATH}`);
-    await this.wasmReady;
+    await loadRuntime(this.mod);
     return this.mod;
   }
 

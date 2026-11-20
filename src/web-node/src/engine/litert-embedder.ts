@@ -1,5 +1,5 @@
 import type { Embedder, EmbedResult } from './types';
-import { WASM_PATH } from './litert';
+import { loadRuntime } from './litert';
 
 /**
  * Adapter over `@litert-lm/core`'s `EmbeddingEngine` (same WASM build as the chat engine, same self-served runtime
@@ -62,7 +62,7 @@ export class LiteRtEmbedder implements Embedder {
     await this.unload();
     this.mod ??= await (this.o.loadModule ?? importLite)();
     const mod = this.mod;
-    await mod.loadLiteRtLm(`${location.origin}${WASM_PATH}`);
+    await loadRuntime(mod);
     const model = await this.o.openModel(name);
     const gpu = await this.o.gpuAvailable();
     // No model size is assumed: ask for the largest window we would ever want and let the file say what it has.
