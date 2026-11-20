@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import {
@@ -7,13 +7,14 @@ import {
   NodeParamsSchema,
   NodeSchema,
   PoolNodesParamsSchema,
+  IdSchema,
   UpdateNodeSchema,
   type NodeDto,
 } from '../dto';
 import { requireOrgRole } from '../access';
 import { notifyConfigChange, recordConfigChange } from '../db/config-changes';
 import type { Db } from '../db/client';
-import { nodeStatus, nodes, pools } from '../db/schema';
+import { nodeCommands, nodeStatus, nodes, pools } from '../db/schema';
 
 /** A node counts as online only while the gateway keeps refreshing its row (it writes every few seconds). */
 export const LIVE_STALENESS_MS = 60_000;
@@ -159,6 +160,41 @@ export const nodeRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db })
       await notifyConfigChange(db, result);
       const [row] = await select().where(eq(nodes.id, nodeId));
       return toNodeDto(row!);
+    },
+  );
+
+  app.post(
+    '/organisations/:orgId/nodes/:nodeId/restart',
+    {
+      onRequest: app.authenticate,
+      schema: {
+        tags: ['nodes'],
+        summary:
+          'Ask a connected device to restart its app: it finishes what it is serving, then starts again and reconnects (admin or owner)',
+        security: [{ dex: [] }, { bearer: [] }],
+        params: NodeParamsSchema,
+        response: {
+          202: z.object({ id: IdSchema }),
+          401: ErrorSchema,
+          403: ErrorSchema,
+          404: ErrorSchema,
+          409: ErrorSchema,
+        },
+      },
+    },
+    async (req, reply) => {
+      const { orgId, nodeId } = req.params;
+      await requireOrgRole(app, db, req, orgId, 'admin');
+      const [row] = await select().where(and(eq(nodes.id, nodeId), eq(nodes.orgId, orgId)));
+      if (!row) throw app.httpErrors.notFound('errors.nodeNotFound');
+      if (toNodeDto(row).status !== 'online') throw app.httpErrors.conflict('errors.nodeOffline');
+      // The gateway instance that holds the node's connection claims the row and sends the command.
+      const [cmd] = await db
+        .insert(nodeCommands)
+        .values({ nodeId, orgId, command: 'restart' })
+        .returning({ id: nodeCommands.id });
+      await db.execute(sql`select pg_notify('node_commands', ${cmd!.id})`);
+      return reply.code(202).send({ id: cmd!.id });
     },
   );
 

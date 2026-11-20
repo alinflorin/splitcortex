@@ -28,6 +28,8 @@ export const balancingType = pgEnum('balancing_type', [
   'random',
 ]);
 export const modelSource = pgEnum('model_source', ['huggingface', 'upload']);
+/** What a model is for: text generation (`/v1/chat/completions`) or vectors (`/v1/embeddings`). */
+export const modelKind = pgEnum('model_kind', ['chat', 'embedding']);
 export const modelStatus = pgEnum('model_status', [
   'pending',
   'downloading',
@@ -173,6 +175,27 @@ export const nodeStatus = pgTable('node_status', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Commands for a connected device (today only `restart`), written by the control plane and delivered by the gateway
+ * instance that holds the node's connection (`NOTIFY node_commands` wakes every instance; the one that has the node claims
+ * the row with a delete). A row nobody claims within a couple of minutes is stale (the node is offline) and is dropped.
+ */
+export const nodeCommands = pgTable(
+  'node_commands',
+  {
+    id: id(),
+    nodeId: uuid('node_id')
+      .notNull()
+      .references(() => nodes.id, { onDelete: 'cascade' }),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organisations.id, { onDelete: 'cascade' }),
+    command: text('command').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('node_commands_node_idx').on(t.nodeId)],
+);
+
 /** Running gateway instances (each heartbeats every few seconds); written by the gateways only. */
 export const gatewayInstances = pgTable('gateway_instances', {
   id: text('id').primaryKey(),
@@ -236,6 +259,7 @@ export const models = pgTable(
       .references(() => organisations.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     source: modelSource('source').notNull(),
+    kind: modelKind('kind').notNull().default('chat'),
     /** Hugging Face URL (normalised to `/resolve/`) for `source = huggingface`. */
     sourceUrl: text('source_url'),
     fileName: text('file_name').notNull(),

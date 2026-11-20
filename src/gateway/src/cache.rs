@@ -37,6 +37,8 @@ pub struct NodeRec {
 pub struct ModelRec {
     pub id: Uuid,
     pub name: String,
+    /// `chat` or `embedding`.
+    pub kind: String,
     pub file_name: String,
     pub size_bytes: i64,
     pub sha256: Option<String>,
@@ -76,7 +78,8 @@ pub type SharedCache = Arc<RwLock<Cache>>;
 
 const NODE_SQL: &str =
     "select id, org_id, pool_id, public_key, approved, compute_backend, max_context_tokens, keep_screen_on, enable_mtp from nodes";
-const POOL_SQL: &str = "select p.id, p.org_id, p.balancing_type::text as balancing, m.id as model_id, m.name, \
+const POOL_SQL: &str =
+    "select p.id, p.org_id, p.balancing_type::text as balancing, m.id as model_id, m.name, m.kind::text as kind, \
      m.file_name, m.size_bytes, m.sha256 from pools p \
      left join pool_models pm on pm.pool_id = p.id \
      left join models m on m.id = pm.model_id and m.status = 'ready'";
@@ -126,6 +129,7 @@ fn pool_from(r: &sqlx::postgres::PgRow) -> PoolRec {
     let model = r.get::<Option<Uuid>, _>("model_id").map(|id| ModelRec {
         id,
         name: r.get("name"),
+        kind: r.get("kind"),
         file_name: r.get("file_name"),
         size_bytes: r.get::<Option<i64>, _>("size_bytes").unwrap_or(0),
         sha256: r.get("sha256"),

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TunableEngine } from '../engine/types';
+import type { Embedder, TunableEngine } from '../engine/types';
 import type { Host } from './host';
 import { NodeRuntime } from './NodeRuntime';
 
@@ -75,6 +75,7 @@ function setup() {
   const host = {
     setKeepAwake: vi.fn(async () => undefined),
     onForeground: vi.fn(() => () => undefined),
+    restartApp: vi.fn(),
     telemetry: vi.fn(async () => ({
       cpuPercent: 42.5,
       memoryUsedMb: 1234.4,
@@ -90,7 +91,17 @@ function setup() {
     keepScreenOn: true,
   });
   const files = {} as never;
-  return { rt: new NodeRuntime(engine, host, settings, () => files), host };
+  const embedder: Embedder = {
+    loaded: true,
+    dimension: 3,
+    load: vi.fn(),
+    unload: vi.fn(),
+    embed: vi.fn(async (texts: string[]) => ({
+      vectors: texts.map(() => [3, 4, 0]),
+      promptTokens: 5,
+    })),
+  };
+  return { rt: new NodeRuntime(engine, host, settings, () => files, embedder), host, embedder };
 }
 
 describe('NodeRuntime', () => {
@@ -248,6 +259,177 @@ describe('NodeRuntime', () => {
         ],
       });
       await rt.stop();
+    });
+  });
+
+  describe('embeddings', () => {
+    const ready = {
+      phase: 'ready',
+      modelId: 'e1',
+      name: 'e',
+      progressBytes: 0,
+      sizeBytes: 0,
+      kind: 'embedding',
+      embeddingDimension: 3,
+    };
+    const req = {
+      requestId: 'q1',
+      modelId: 'e1',
+      inputs: ['a', 'b'],
+      task: 'document',
+      dimensions: 2,
+    };
+    const answers = () =>
+      mockSent.filter((m) => m.case === 'embeddingResult' || m.case === 'inferenceError');
+
+    it('reports the dimension and no modalities, then answers with one result in order', async () => {
+      mockEnrollment = approved;
+      const { rt, embedder } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      expect(mockSent.filter((m) => m.case === 'modelState').at(-1)?.value).toMatchObject({
+        embeddingDimension: 3,
+        modalities: [],
+      });
+      mockOnBody?.({ case: 'embeddingRequest', value: req });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(embedder.embed).toHaveBeenCalledWith([
+        'title: none | text: a',
+        'title: none | text: b',
+      ]);
+      const r = answers();
+      expect(r).toHaveLength(1);
+      expect(r[0]?.case).toBe('embeddingResult');
+      const v = r[0]?.value as {
+        promptTokens: number;
+        seq: number;
+        embeddings: { values: number[] }[];
+      };
+      expect(v).toMatchObject({ promptTokens: 5, seq: 1 });
+      expect(v.embeddings).toHaveLength(2);
+      expect(v.embeddings[0]?.values[0]).toBeCloseTo(0.6);
+      await rt.stop();
+    });
+
+    it('rejects embedding requests on a chat model and chat requests on an embedding model', async () => {
+      mockEnrollment = approved;
+      const { rt } = setup();
+      await rt.start();
+      mockOnStatus?.({ phase: 'ready', modelId: 'e1', name: 'e', progressBytes: 0, sizeBytes: 0 });
+      mockOnBody?.({ case: 'embeddingRequest', value: req });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(answers()[0]?.value).toMatchObject({ code: 'wrong_model_kind', seq: 1 });
+      mockSent.length = 0;
+      mockOnStatus?.(ready);
+      mockOnBody?.({
+        case: 'inferenceRequest',
+        value: {
+          requestId: 'c1',
+          modelId: 'e1',
+          messages: [],
+          maxTokens: 0,
+          temperature: 0,
+          topP: 0,
+        },
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(answers()[0]?.value).toMatchObject({ code: 'wrong_model_kind' });
+      await rt.stop();
+    });
+
+    it('answers a bad task with bad_request and an engine failure with engine_error', async () => {
+      mockEnrollment = approved;
+      const { rt, embedder } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      mockOnBody?.({ case: 'embeddingRequest', value: { ...req, task: 'weird' } });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(answers()[0]?.value).toMatchObject({ code: 'bad_request' });
+      vi.mocked(embedder.embed).mockRejectedValueOnce(new Error('overflow'));
+      mockOnBody?.({ case: 'embeddingRequest', value: { ...req, requestId: 'q2' } });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(answers().at(-1)?.value).toMatchObject({ code: 'engine_error', requestId: 'q2' });
+      await rt.stop();
+    });
+  });
+
+  describe('remote restart', () => {
+    const ready = { phase: 'ready', modelId: 'm1', name: 'm', progressBytes: 0, sizeBytes: 0 };
+    const request = {
+      requestId: 'r1',
+      modelId: 'm1',
+      messages: [],
+      maxTokens: 0,
+      temperature: 0,
+      topP: 0,
+    };
+    const errors = () => mockSent.filter((m) => m.case === 'inferenceError');
+    const hang = (onAbort?: () => void) =>
+      vi.fn(
+        (_req, _on, signal: AbortSignal) =>
+          new Promise((resolve) =>
+            signal.addEventListener('abort', () => {
+              onAbort?.();
+              resolve({ finishReason: 'stop' });
+            }),
+          ),
+      ) as unknown as TunableEngine['generate'];
+
+    it('restarts at once when idle, refusing nothing and closing the connection', async () => {
+      mockEnrollment = approved;
+      const { rt, host } = setup();
+      await rt.start();
+      mockOnBody?.({ case: 'restart', value: { graceSeconds: 30 } });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(host.restartApp).toHaveBeenCalledTimes(1);
+      expect(rt.getSnapshot().connection).toBe('idle');
+    });
+
+    it('refuses new requests with "restarting" and waits for the running one to finish', async () => {
+      mockEnrollment = approved;
+      const { rt, host } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      let finish!: () => void;
+      engine.generate = vi.fn(
+        (_req, onToken) =>
+          new Promise((resolve) => {
+            onToken('a');
+            finish = () => resolve({ finishReason: 'stop' });
+          }),
+      ) as unknown as TunableEngine['generate'];
+      mockOnBody?.({ case: 'inferenceRequest', value: request });
+      await vi.advanceTimersByTimeAsync(0);
+      mockOnBody?.({ case: 'restart', value: { graceSeconds: 30 } });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(rt.getSnapshot().restarting).toBe(true);
+      mockOnBody?.({ case: 'inferenceRequest', value: { ...request, requestId: 'r2' } });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(errors().at(-1)?.value).toMatchObject({ requestId: 'r2', code: 'restarting' });
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(host.restartApp).not.toHaveBeenCalled(); // still within the grace period
+      finish();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockSent.some((m) => m.case === 'inferenceDone')).toBe(true); // it finished, not cancelled
+      expect(host.restartApp).toHaveBeenCalledTimes(1);
+    });
+
+    it('cancels what is still running when the grace period ends, then restarts', async () => {
+      mockEnrollment = approved;
+      const { rt, host } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      let aborted = false;
+      engine.generate = hang(() => (aborted = true));
+      mockOnBody?.({ case: 'inferenceRequest', value: request });
+      await vi.advanceTimersByTimeAsync(0);
+      mockOnBody?.({ case: 'restart', value: { graceSeconds: 5 } });
+      await vi.advanceTimersByTimeAsync(4_900);
+      expect(aborted).toBe(false);
+      expect(host.restartApp).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(200);
+      expect(aborted).toBe(true);
+      expect(host.restartApp).toHaveBeenCalledTimes(1);
     });
   });
 

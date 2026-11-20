@@ -2,6 +2,7 @@ mod audit;
 mod benchmark;
 mod cache;
 mod cluster;
+mod commands;
 mod config;
 mod i18n;
 mod limits;
@@ -115,6 +116,7 @@ async fn main() -> Result<()> {
     tokio::spawn(audit::flush_loop(audit.clone(), db.clone()));
     tokio::spawn(metrics::flush_loop(metrics.clone(), db.clone()));
     tokio::spawn(node_ws::reconcile_loop(app.clone()));
+    tokio::spawn(commands::run_loop(app.clone()));
     tokio::spawn(node_ws::heartbeat_loop(app.clone()));
     tokio::spawn(cluster::instance_loop(app.clone()));
     tokio::spawn(benchmark::run_loop(app.clone()));
@@ -144,6 +146,7 @@ async fn main() -> Result<()> {
         .route("/node", get(node_ws::upgrade))
         .route("/v1/models", get(openai::models))
         .route("/v1/chat/completions", post(openai::chat_completions))
+        .route("/v1/embeddings", post(openai::embeddings))
         .layer(axum::middleware::from_fn(openai::localize))
         .with_state(app.clone());
 

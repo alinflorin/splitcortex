@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { nodeStatus, nodes, models } from '../db/schema';
+import { nodeCommands, nodeStatus, nodes, models } from '../db/schema';
 import { mirrorNext } from '../models/mirror';
 import { createTestApp } from '../test/harness';
 
@@ -73,6 +73,103 @@ describe('pool settings', () => {
     ).toBe('least_in_flight');
     expect((await call('PATCH', url, 'own@s.io', { balancingType: 'nope' })).statusCode).toBe(400);
     expect((await call('PATCH', url, 'own@s.io', { servingType: 'sharded' })).statusCode).toBe(400);
+  });
+});
+
+describe('remote restart', () => {
+  it('queues a restart command for an online node only, for admins, and keeps tenants apart', async () => {
+    const { orgId, poolId, member } = await setup('own@r.io', 'restart-org');
+    const base = { orgId, poolId, fingerprint: 'AB12-CD34' };
+    const [online, offline] = await t.db
+      .insert(nodes)
+      .values([
+        { ...base, name: 'on', publicKey: 'r1' },
+        { ...base, name: 'off', publicKey: 'r2' },
+      ])
+      .returning();
+    await t.db.insert(nodeStatus).values({ nodeId: online!.id, connected: true });
+
+    const url = (id: string) => `/organisations/${orgId}/nodes/${id}/restart`;
+    expect((await call('POST', url(offline!.id), 'own@r.io')).statusCode).toBe(409);
+    expect((await call('POST', url(online!.id), member)).statusCode).toBe(403);
+    expect((await call('POST', url(online!.id), 'stranger@r.io')).statusCode).toBe(404);
+
+    const ok = await call('POST', url(online!.id), 'own@r.io');
+    expect(ok.statusCode).toBe(202);
+    const rows = await t.db.select().from(nodeCommands);
+    expect(rows.filter((r) => r.nodeId === online!.id)).toMatchObject([
+      { command: 'restart', orgId },
+    ]);
+    expect(rows.some((r) => r.nodeId === offline!.id)).toBe(false);
+
+    const log = (await call('GET', `/organisations/${orgId}/audit-logs`, 'own@r.io')).json<{
+      items: { action: string; entityId: string | null }[];
+    }>();
+    expect(log.items.some((e) => e.action === 'node.restart' && e.entityId === online!.id)).toBe(
+      true,
+    );
+  });
+});
+
+describe('benchmark of an embedding pool', () => {
+  it('is refused', async () => {
+    const { orgId, poolId } = await setup('own@bk.io', 'bench-kind-org');
+    const [m] = await t.db
+      .insert(models)
+      .values({
+        orgId,
+        name: 'emb',
+        source: 'upload',
+        kind: 'embedding',
+        fileName: 'e.litertlm',
+        status: 'ready',
+        storageKey: 'k',
+        sizeBytes: 10,
+      })
+      .returning();
+    expect(
+      (await call('PUT', `/organisations/${orgId}/pools/${poolId}/models/${m!.id}`, 'own@bk.io'))
+        .statusCode,
+    ).toBeLessThan(300);
+    const res = await call(
+      'POST',
+      `/organisations/${orgId}/pools/${poolId}/benchmarks`,
+      'own@bk.io',
+    );
+    expect(res.statusCode).toBe(409);
+  });
+});
+
+describe('model kind', () => {
+  it('defaults to chat, takes embedding, and reaches the node list', async () => {
+    const { orgId } = await setup('own@k.io', 'kind-org');
+    const chat = await call('POST', `/organisations/${orgId}/models/from-url`, 'own@k.io', {
+      name: 'c',
+      url: 'https://huggingface.co/x/y/resolve/main/c.litertlm',
+    });
+    expect(chat.json()).toMatchObject({ kind: 'chat' });
+    const emb = await call('POST', `/organisations/${orgId}/models/from-url`, 'own@k.io', {
+      name: 'e',
+      kind: 'embedding',
+      url: 'https://huggingface.co/x/y/resolve/main/e.litertlm',
+    });
+    expect(emb.json()).toMatchObject({ kind: 'embedding' });
+    const up = await call('POST', `/organisations/${orgId}/models/uploads`, 'own@k.io', {
+      name: 'u',
+      kind: 'embedding',
+      fileName: 'u.litertlm',
+      sizeBytes: 1024,
+    });
+    expect(up.json().model).toMatchObject({ kind: 'embedding' });
+    expect(
+      (
+        await call('POST', `/organisations/${orgId}/models/from-url`, 'own@k.io', {
+          name: 'bad',
+          kind: 'vision',
+          url: 'https://huggingface.co/x/y/resolve/main/e.litertlm',
+        })
+      ).statusCode,
+    ).toBe(400);
   });
 });
 

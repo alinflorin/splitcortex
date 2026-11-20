@@ -49,6 +49,13 @@ export interface NativeApi {
   engineCancel(): Promise<void>;
   engineCaps(): Promise<DeviceCaps>;
 
+  embedderLoad(name: string): Promise<{ dimension: number }>;
+  embedderUnload(): Promise<void>;
+  /** Full-length (normalised) vectors, one per input, same order. */
+  embedderEmbed(inputs: string[]): Promise<number[][]>;
+  /** Restarts the whole app (new process, same arguments); does not return when it works. */
+  restartApp(): Promise<void>;
+
   modelSize(name: string): Promise<number>;
   modelWrite(name: string, at: number, bytes: Uint8Array): Promise<void>;
   modelTruncate(name: string, length: number): Promise<void>;
@@ -79,6 +86,11 @@ export const tauriApi: NativeApi = {
   },
   engineCancel: () => invoke('engine_cancel'),
   engineCaps: () => invoke('engine_caps'),
+
+  embedderLoad: (name) => invoke('embedder_load', { name }),
+  embedderUnload: () => invoke('embedder_unload'),
+  embedderEmbed: (inputs) => invoke('embedder_embed', { inputs }),
+  restartApp: () => invoke('restart_app'),
 
   modelSize: (name) => invoke('model_size', { name }),
   // Raw bytes as the request body (no JSON/base64 detour for 8 MiB pieces); the arguments travel in headers.

@@ -19,12 +19,20 @@ export interface NodeInfo {
   platform: string | null;
   approved: boolean;
   status: 'pending' | 'online' | 'offline';
-  live: { backend: 'cpu' | 'gpu' | null; maxContextTokens: number | null } | null;
+  live: {
+    connectedSince: string | null;
+    backend: 'cpu' | 'gpu' | null;
+    maxContextTokens: number | null;
+  } | null;
 }
+
+/** `chat` generates text; `embedding` produces vectors (served at `/v1/embeddings`, in a pool of its own). */
+export type ModelKind = 'chat' | 'embedding';
 
 export interface ModelInfo {
   id: string;
   name: string;
+  kind: ModelKind;
   status: 'pending' | 'downloading' | 'uploading' | 'ready' | 'failed';
   error: string | null;
 }
@@ -145,6 +153,7 @@ export class ControlPlane {
     orgId: string,
     name: string,
     file: { path: string; fileName: string; sizeBytes: number },
+    kind: ModelKind = 'chat',
   ): Promise<ModelInfo> {
     const { model, partSize, partCount } = await this.call<{
       model: ModelInfo;
@@ -152,6 +161,7 @@ export class ControlPlane {
       partCount: number;
     }>('POST', `/organisations/${orgId}/models/uploads`, {
       name,
+      kind,
       fileName: file.fileName,
       sizeBytes: file.sizeBytes,
     });
@@ -178,6 +188,34 @@ export class ControlPlane {
     }
     return this.call('POST', `/organisations/${orgId}/models/${model.id}/complete`, { parts });
   }
+  /** Adds a model from a Hugging Face URL; the control plane mirrors it in the background (poll `getModel`). */
+  addModelFromUrl(
+    orgId: string,
+    name: string,
+    url: string,
+    kind: ModelKind = 'chat',
+  ): Promise<ModelInfo> {
+    return this.call('POST', `/organisations/${orgId}/models/from-url`, { name, url, kind });
+  }
+  getModel(orgId: string, modelId: string): Promise<ModelInfo> {
+    return this.call('GET', `/organisations/${orgId}/models/${modelId}`);
+  }
+  /** Polls until the control plane has the model in storage (or fails when its download failed). */
+  async waitModelReady(orgId: string, modelId: string, timeoutMs = 600_000): Promise<ModelInfo> {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const m = await this.getModel(orgId, modelId);
+      if (m.status === 'ready') return m;
+      if (m.status === 'failed') throw new Error(`model ${m.name} failed: ${m.error ?? 'unknown'}`);
+      if (Date.now() > deadline)
+        throw new Error(`Timed out waiting for model ${m.name} (${m.status})`);
+      await new Promise((r) => setTimeout(r, 3_000));
+    }
+  }
+  /** Asks a connected node to restart its app (202 with the command id; 409 when it is offline). */
+  restartNode(orgId: string, nodeId: string) {
+    return this.send('POST', `/organisations/${orgId}/nodes/${nodeId}/restart`);
+  }
   /** Serve the model from the pool (replaces the pool's current one). */
   assignModel(orgId: string, poolId: string, modelId: string): Promise<void> {
     return this.call('PUT', `/organisations/${orgId}/pools/${poolId}/models/${modelId}`);
@@ -202,6 +240,13 @@ export class ControlPlane {
   usageByKey(orgId: string): Promise<Usage> {
     return this.call('GET', `/organisations/${orgId}/usage?groupBy=key&granularity=day`);
   }
+  /** A GET whose body is text (a file download): status, headers and the whole body. */
+  async download(path: string): Promise<{ status: number; headers: Headers; text: string }> {
+    const res = await fetch(`${apiUrl}${path}`, {
+      headers: { authorization: `Bearer ${this.token}` },
+    });
+    return { status: res.status, headers: res.headers, text: await res.text() };
+  }
   /** The HTTP status of a GET as this user, without throwing (for "must not be reachable" checks). */
   async probe(path: string): Promise<number> {
     const res = await fetch(`${apiUrl}${path}`, {
@@ -225,8 +270,12 @@ export async function createWorkspace(opts: { requireApproval?: boolean } = {}) 
     pool,
     code: () => cp.createEnrollmentCode(org.id, pool.id),
     /** Uploads `file` as a model of the org and makes the pool serve it. */
-    serveModel: async (name: string, file: Parameters<ControlPlane['uploadModel']>[2]) => {
-      const model = await cp.uploadModel(org.id, name, file);
+    serveModel: async (
+      name: string,
+      file: Parameters<ControlPlane['uploadModel']>[2],
+      kind: ModelKind = 'chat',
+    ) => {
+      const model = await cp.uploadModel(org.id, name, file, kind);
       await cp.assignModel(org.id, pool.id, model.id);
       return model;
     },

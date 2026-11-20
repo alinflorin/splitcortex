@@ -10,7 +10,15 @@ import {
 } from '../dto';
 import { requireOrgRole } from '../access';
 import type { Db } from '../db/client';
-import { benchmarkResults, benchmarks, nodeStatus, nodes, poolModels, pools } from '../db/schema';
+import {
+  benchmarkResults,
+  benchmarks,
+  models,
+  nodeStatus,
+  nodes,
+  poolModels,
+  pools,
+} from '../db/schema';
 import { LIVE_STALENESS_MS } from './nodes';
 
 /** Benchmarks shown per pool; older ones are deleted when a new one starts. */
@@ -127,10 +135,13 @@ export const benchmarkRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { 
       await requireOrgRole(app, db, req, orgId, 'admin');
       await poolOf(orgId, poolId);
       const [assigned] = await db
-        .select({ modelId: poolModels.modelId })
+        .select({ modelId: poolModels.modelId, kind: models.kind })
         .from(poolModels)
+        .innerJoin(models, eq(models.id, poolModels.modelId))
         .where(eq(poolModels.poolId, poolId));
       if (!assigned) throw app.httpErrors.conflict('errors.poolServesNoModel');
+      // A benchmark measures text generation; an embedding pool has nothing to generate.
+      if (assigned.kind === 'embedding') throw app.httpErrors.conflict('errors.benchmarkChatOnly');
       const online = await db
         .select({ id: nodes.id })
         .from(nodes)

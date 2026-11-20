@@ -35,7 +35,12 @@ export function ModelCard({
   return (
     <ItemCard
       title={model.name}
-      subtitle={[model.fileName, size, t(`models.source.${model.source}`)]
+      subtitle={[
+        model.kind === 'embedding' ? t('models.embeddingBadge') : null,
+        model.fileName,
+        size,
+        t(`models.source.${model.source}`),
+      ]
         .filter(Boolean)
         .join(' · ')}
       meta={<ModelStatusBadge status={model.status} />}

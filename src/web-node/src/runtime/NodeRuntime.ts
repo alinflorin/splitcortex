@@ -2,7 +2,8 @@ import { create } from '@bufbuild/protobuf';
 import { fromB64, toB64 } from '../enrollment/crypto';
 import { getOrCreateIdentity } from '../enrollment/identity';
 import { loadEnrollment, saveEnrollment } from '../enrollment/store';
-import type { ComputePrefs, TunableEngine } from '../engine/types';
+import { EmbeddingRequestError, runEmbedding } from '../engine/embedding';
+import type { ComputePrefs, Embedder, TunableEngine } from '../engine/types';
 import { toChatMessage } from '../engine/messages';
 import { APP_VERSION } from '../lib/config';
 import { browserHost, UNKNOWN_TELEMETRY, type Host } from './host';
@@ -10,6 +11,8 @@ import { OpfsModelFiles, type ModelFiles } from '../models/files';
 import { ModelManager, NO_MODEL, type ModelStatus } from '../models/manager';
 import { GatewayConnection, type Body, type ConnectionState } from '../protocol/connection';
 import {
+  EmbeddingResultSchema,
+  EmbeddingSchema,
   InferenceChunkSchema,
   InferenceDoneSchema,
   InferenceErrorSchema,
@@ -19,6 +22,7 @@ import {
   ResumeSchema,
   type ResumeAck,
   TelemetrySchema,
+  type EmbeddingRequest,
   type InferenceRequest,
 } from '../protocol/gen/splitcortex/node/v1/node_pb';
 import { LogBuffer } from './log';
@@ -36,6 +40,8 @@ export interface RuntimeState {
   /** What the engine runs on and its context window (null / 0 while no model is loaded). */
   backend: 'cpu' | 'gpu' | null;
   maxContextTokens: number;
+  /** The gateway asked this node to restart: it takes no new requests and finishes (or drops) the running ones. */
+  restarting: boolean;
   /** Why it cannot run (not enrolled, waiting for approval, no gateway pinned). */
   blocked: 'not-enrolled' | 'not-approved' | 'no-gateway' | null;
 }
@@ -50,6 +56,7 @@ const INITIAL: RuntimeState = {
   tokensPerSec: 0,
   backend: null,
   maxContextTokens: 0,
+  restarting: false,
   blocked: null,
 };
 
@@ -98,6 +105,8 @@ export class NodeRuntime {
   };
   private foregroundSub: (() => void) | null = null;
   private files: ModelFiles | null = null;
+  private restartRequested = false;
+  private onIdle: (() => void) | null = null;
   private generation = 0; // guards async start() against a stop()/restart() that happened meanwhile
 
   constructor(
@@ -105,6 +114,7 @@ export class NodeRuntime {
     private readonly host: Host = browserHost,
     private readonly readSettings: () => Promise<NodeSettings> = loadSettings,
     private readonly makeFiles: () => ModelFiles = () => new OpfsModelFiles(),
+    private readonly embedder: Embedder | null = null,
   ) {
     engine.onLog = (m) => this.log.info(m);
   }
@@ -140,6 +150,7 @@ export class NodeRuntime {
     let pinned = enrollment.gateway;
     this.models = new ModelManager({
       engine: this.engine,
+      embedder: this.embedder ?? undefined,
       files: (this.files ??= this.makeFiles()),
       log: this.log,
       baseUrl: enrollment.enrollmentUrl,
@@ -243,6 +254,12 @@ export class NodeRuntime {
       case 'inferenceRequest':
         void this.serve(b.value);
         break;
+      case 'embeddingRequest':
+        void this.serveEmbedding(b.value);
+        break;
+      case 'restart':
+        void this.restartApp(b.value.graceSeconds);
+        break;
       case 'cancel':
         this.active.get(b.value.requestId)?.abort();
         this.outbox.delete(b.value.requestId);
@@ -339,6 +356,7 @@ export class NodeRuntime {
   }
 
   private reportModel(m: ModelStatus) {
+    const embedding = m.kind === 'embedding';
     this.conn?.send({
       case: 'modelState',
       value: create(ModelStateSchema, {
@@ -346,8 +364,10 @@ export class NodeRuntime {
         phase: PHASE[m.phase],
         progressBytes: BigInt(Math.round(m.progressBytes)),
         error: m.error ?? '',
-        // What the loaded model accepts besides text; the gateway routes media only to nodes that list it.
-        modalities: m.phase === 'ready' ? [...this.engine.modalities] : [],
+        // What the loaded model accepts besides text; the gateway routes media only to nodes that list it
+        // (an embedding model takes text only).
+        modalities: m.phase === 'ready' && !embedding ? [...this.engine.modalities] : [],
+        embeddingDimension: m.phase === 'ready' && embedding ? (m.embeddingDimension ?? 0) : 0,
       }),
     });
   }
@@ -360,6 +380,12 @@ export class NodeRuntime {
         case: 'inferenceError',
         value: create(InferenceErrorSchema, { requestId: id, code, message, seq }),
       }));
+    if (this.restartRequested)
+      return this.finishBox(id, () => fail('restarting', 'The node is restarting'));
+    if (this.state.model.kind === 'embedding')
+      return this.finishBox(id, () =>
+        fail('wrong_model_kind', 'This node serves an embedding model'),
+      );
     if (this.state.inFlight > 0)
       return this.finishBox(id, () => fail('busy', 'The node is already generating'));
     if (req.modelId !== this.state.model.modelId || this.state.model.phase !== 'ready') {
@@ -367,7 +393,7 @@ export class NodeRuntime {
     }
     const ctl = new AbortController();
     this.active.set(id, ctl);
-    this.set({ inFlight: 1 });
+    this.set({ inFlight: this.active.size });
     const started = Date.now();
     let pieces = 0;
     try {
@@ -412,9 +438,91 @@ export class NodeRuntime {
       fail('engine_error', 'The engine failed to answer');
     } finally {
       this.active.delete(id);
-      this.set({ inFlight: 0 });
+      this.set({ inFlight: this.active.size });
       this.finishBox(id);
+      if (this.active.size === 0) this.onIdle?.();
     }
+  }
+
+  /** One embedding request: one `EmbeddingResult` (or an error) with every input in order. */
+  private async serveEmbedding(req: EmbeddingRequest) {
+    const id = req.requestId;
+    this.outbox.set(id, { seq: 0, frames: [], finishedAt: null });
+    const fail = (code: string, message: string) =>
+      this.emit(id, (seq) => ({
+        case: 'inferenceError',
+        value: create(InferenceErrorSchema, { requestId: id, code, message, seq }),
+      }));
+    const m = this.state.model;
+    if (this.restartRequested)
+      return this.finishBox(id, () => fail('restarting', 'The node is restarting'));
+    if (m.kind !== 'embedding')
+      return this.finishBox(id, () =>
+        fail('wrong_model_kind', 'This node does not serve an embedding model'),
+      );
+    if (req.modelId !== m.modelId || m.phase !== 'ready' || !this.embedder?.loaded)
+      return this.finishBox(id, () => fail('model_not_ready', 'The requested model is not loaded'));
+    const ctl = new AbortController();
+    this.active.set(id, ctl);
+    this.set({ inFlight: this.active.size });
+    try {
+      const out = await runEmbedding(this.embedder, {
+        inputs: req.inputs,
+        task: req.task,
+        dimensions: req.dimensions,
+      });
+      if (!ctl.signal.aborted) {
+        this.emit(id, (seq) => ({
+          case: 'embeddingResult',
+          value: create(EmbeddingResultSchema, {
+            requestId: id,
+            embeddings: out.vectors.map((values) => create(EmbeddingSchema, { values })),
+            promptTokens: out.promptTokens,
+            seq,
+          }),
+        }));
+      }
+      this.set({ requestsServed: this.state.requestsServed + 1 });
+      this.log.info(`Embedding request served: ${req.inputs.length} input(s)`);
+    } catch (e) {
+      if (e instanceof EmbeddingRequestError) fail('bad_request', e.message);
+      else {
+        this.log.error(`Embedding failed: ${e instanceof Error ? e.message : String(e)}`);
+        fail('engine_error', 'The engine failed to embed the input');
+      }
+    } finally {
+      this.active.delete(id);
+      this.set({ inFlight: this.active.size });
+      this.finishBox(id);
+      if (this.active.size === 0) this.onIdle?.();
+    }
+  }
+
+  /**
+   * Remote restart (the gateway already routes nothing here): refuse new requests, let the running ones finish for up
+   * to `graceSeconds` (then cancel them), close the socket cleanly and start the app again (a tab reload: enrollment,
+   * identity and the model are in localStorage / OPFS, so it comes back the same and resumes by itself).
+   */
+  async restartApp(graceSeconds: number) {
+    if (this.restartRequested) return;
+    this.restartRequested = true;
+    this.set({ restarting: true });
+    this.log.info(
+      `Restart requested: waiting up to ${graceSeconds} s for ${this.active.size} request(s)`,
+    );
+    await new Promise<void>((resolve) => {
+      if (this.active.size === 0) return resolve();
+      const timer = setTimeout(resolve, graceSeconds * 1000);
+      this.onIdle = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+    });
+    this.onIdle = null;
+    if (this.active.size > 0) this.log.warn('Grace period over: cancelling the running requests');
+    await this.stop(); // cancels what is left and closes the socket cleanly
+    this.restartRequested = false;
+    this.host.restartApp();
   }
 
   /** The request is over: keep its frames a little while (a reconnect may still need them), then forget them. */

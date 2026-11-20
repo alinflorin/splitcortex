@@ -33,6 +33,9 @@ message Envelope {
     Resume resume = 16;
     ResumeAck resume_ack = 17;
     GatewayKeys gateway_keys = 18;
+    Restart restart = 19;
+    EmbeddingRequest embedding_request = 20;
+    EmbeddingResult embedding_result = 21;
   }
 }
 
@@ -97,6 +100,9 @@ message ModelAssignment {
   string file_name = 3;
   uint64 size_bytes = 4;
   string sha256 = 5; // hex, may be empty when unknown
+  // What the model is for: "" or "chat" (text generation, `InferenceRequest`) | "embedding" (`EmbeddingRequest`). An
+  // embedding model is loaded into the embedding engine; a node never serves both kinds from one pool.
+  string kind = 6;
 }
 
 // Admin overrides for this device (gateway -> node). Sent after Ready and whenever they change; the node applies
@@ -129,6 +135,8 @@ message ModelState {
   // What the loaded model accepts besides text, set while READY: "image" and/or "audio" (empty = text only). The
   // gateway only sends a request with media parts to a node that lists the matching input here.
   repeated string modalities = 5;
+  // Set while READY for an embedding model: the length of the vectors it produces (0 = a chat model / unknown).
+  uint32 embedding_dimension = 6;
 }
 
 // Unknown values: cpu_percent < 0, memory_used_mb = 0, battery_percent < 0 (charging is then meaningless),
@@ -210,4 +218,36 @@ message InferenceError {
 // gateway -> node: the client went away, stop generating.
 message Cancel {
   string request_id = 1;
+}
+
+// gateway -> node: restart the app (an admin asked for it in the web app). The node stops taking new requests, lets the
+// ones it has finish for up to `grace_seconds` (then drops them; the gateway retries or fails them), and then starts
+// itself again (process, tab or app, per node type), reconnecting with its usual resume. The gateway stops routing to the
+// node as soon as it sends this.
+message Restart {
+  uint32 grace_seconds = 1;
+}
+
+// gateway -> node, for a pool whose model has kind "embedding": embed every input (one vector per input, same order).
+// Answered by one `EmbeddingResult` or an `InferenceError` with the same request id; there is nothing to stream.
+message EmbeddingRequest {
+  string request_id = 1;
+  string model_id = 2;
+  repeated string inputs = 3;
+  // The kind of text, for models that expect a task prefix (EmbeddingGemma): "" (none) | "query" | "document" |
+  // "classification" | "clustering" | "similarity". The node writes the model's own prefix; the gateway never does.
+  string task = 4;
+  // Truncate every vector to this many dimensions (Matryoshka models; the node renormalises). 0 = the full vector.
+  uint32 dimensions = 5;
+}
+
+message Embedding {
+  repeated float values = 1; // packed
+}
+
+message EmbeddingResult {
+  string request_id = 1;
+  repeated Embedding embeddings = 2;
+  uint32 prompt_tokens = 3; // tokens of all inputs together; 0 = the node cannot tell (the gateway estimates)
+  uint32 seq = 4;           // as for the other per-request messages
 }

@@ -7,6 +7,7 @@ mod enroll;
 mod handshake;
 mod models;
 mod proto;
+mod restart;
 mod runtime;
 mod service;
 mod settings;
@@ -188,7 +189,13 @@ async fn main() -> Result<()> {
                 wait_for_signal().await;
                 s.cancel();
             });
-            runtime::run(dirs, shutdown).await?;
+            if runtime::run(dirs, shutdown).await? == runtime::End::Restart {
+                // Everything is closed: start this program again (see restart.rs). It returns only on failure.
+                let e = restart::relaunch();
+                tracing::error!("Cannot restart: {e}");
+                // Exit non-zero so a service manager that restarts on failure still brings the node back.
+                std::process::exit(75);
+            }
         }
         Command::Status => match enroll::refresh_enrollment(&dirs).await {
             None => println!("Not enrolled. Run: splitcortex-node join"),

@@ -17,7 +17,14 @@ interface Metrics {
     peakInFlight: number;
     latencyP50Ms: number | null;
   }[];
-  nodes: { nodesReporting: number; tokensPerSec: number | null; memoryUsedMb: number | null }[];
+  nodes: {
+    nodesReporting: number;
+    tokensPerSec: number | null;
+    memoryUsedMb: number | null;
+    requests: number;
+    failures: number;
+    measuredTokensPerSec: number | null;
+  }[];
 }
 
 let node: ServingNode;
@@ -80,6 +87,26 @@ test('the node reports device telemetry per minute', async () => {
   const [n] = await node.ws.nodes();
   const one = await metrics(`?nodeId=${n!.id}`);
   expect(one.nodes.some((p) => p.nodesReporting === 1)).toBe(true);
+});
+
+test('the gateway measures what each node served: requests, failures and tokens per second', async () => {
+  // Not what the device reports about itself (tokensPerSec) but what the gateway saw from finished requests; the
+  // gateway also routes on this number, which is not observable with one node.
+  const [n] = await node.ws.nodes();
+  const m = await waitFor(
+    'the measured numbers of the node',
+    async () => {
+      const x = await metrics(`?nodeId=${n!.id}`);
+      const served = x.nodes.reduce((s, p) => s + p.requests, 0);
+      return served >= 3 && x.nodes.some((p) => p.measuredTokensPerSec !== null) ? x : undefined;
+    },
+    180_000,
+    5_000,
+  );
+  expect(m.nodes.reduce((s, p) => s + p.failures, 0)).toBe(0);
+  const speeds = m.nodes.map((p) => p.measuredTokensPerSec).filter((v): v is number => v !== null);
+  expect(speeds.length).toBeGreaterThan(0);
+  expect(speeds.every((v) => v > 0)).toBe(true);
 });
 
 test('the range is capped and another organisation sees none of it', async () => {

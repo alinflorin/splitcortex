@@ -1,7 +1,7 @@
 import { sha256 } from '@noble/hashes/sha2.js';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { LogBuffer } from '../runtime/log';
-import type { Engine } from '../engine/types';
+import type { Embedder, Engine } from '../engine/types';
 import { ModelManager, type ModelStatus } from './manager';
 
 // In-memory stand-in for the parts of expo-file-system the manager uses.
@@ -100,6 +100,17 @@ function setup(fileBytes: Uint8Array = FILE) {
     }),
     generate: jest.fn(),
   };
+  const embedder: Embedder = {
+    loaded: false,
+    dimension: 0,
+    load: jest.fn(async () => {
+      Object.assign(embedder, { loaded: true, dimension: 768 });
+    }),
+    unload: jest.fn(async () => {
+      Object.assign(embedder, { loaded: false, dimension: 0 });
+    }),
+    embed: jest.fn(),
+  };
   const ranges: string[] = [];
   const auth: string[] = [];
   const fetchFn = jest.fn(async (_url: string, init: RequestInit) => {
@@ -111,6 +122,7 @@ function setup(fileBytes: Uint8Array = FILE) {
   }) as unknown as typeof fetch;
   const mgr = new ModelManager({
     engine,
+    embedder,
     log: new LogBuffer(),
     baseUrl: 'https://app.test/api/',
     nodeId: 'n1',
@@ -119,7 +131,7 @@ function setup(fileBytes: Uint8Array = FILE) {
     fetchFn,
     dir: new Directory('doc/models'),
   });
-  return { mgr, engine, statuses, ranges, auth, fetchFn };
+  return { mgr, engine, embedder, statuses, ranges, auth, fetchFn };
 }
 
 describe('ModelManager', () => {
@@ -175,5 +187,52 @@ describe('ModelManager', () => {
     await mgr.apply({ modelId: '', name: '', fileName: '', sizeBytes: 0, sha256: '' });
     expect(mockDisk.size).toBe(0);
     expect(statuses.at(-1)).toMatchObject({ phase: 'none' });
+  });
+
+  it('loads an embedding model into the embedder, not the chat engine, and reports its dimension', async () => {
+    const { mgr, engine, embedder, statuses } = setup();
+    await mgr.apply(assignment({ kind: 'embedding' }));
+    expect(embedder.load).toHaveBeenCalledWith('doc/models/m1.litertlm');
+    expect(engine.load).not.toHaveBeenCalled();
+    expect(statuses.at(-1)).toMatchObject({
+      phase: 'ready',
+      kind: 'embedding',
+      embeddingDimension: 768,
+    });
+  });
+
+  it('frees the old engine first when the kind changes, in both directions', async () => {
+    const { mgr, engine, embedder, statuses } = setup();
+    await mgr.apply(assignment());
+    expect(engine.loaded).toBe(true);
+    await mgr.apply(assignment({ modelId: 'm2', kind: 'embedding' }));
+    expect(engine.loaded).toBe(false);
+    expect(embedder.loaded).toBe(true);
+    // the same file but another kind is a different assignment: not just re-reported
+    await mgr.apply(assignment({ modelId: 'm2', kind: 'chat' }));
+    expect(embedder.loaded).toBe(false);
+    expect(engine.loaded).toBe(true);
+    expect(statuses.at(-1)).toMatchObject({
+      phase: 'ready',
+      kind: 'chat',
+      embeddingDimension: undefined,
+    });
+  });
+
+  it("does not carry the previous model's kind into the new one's download statuses", async () => {
+    const { mgr, statuses } = setup();
+    await mgr.apply(assignment({ kind: 'embedding' }));
+    statuses.length = 0;
+    await mgr.apply(assignment({ modelId: 'm2' }));
+    expect(statuses.every((s) => s.kind === 'chat' && s.embeddingDimension === undefined)).toBe(
+      true,
+    );
+  });
+
+  it('treats a missing kind as chat', async () => {
+    const { mgr, engine, embedder } = setup();
+    await mgr.apply(assignment({ kind: undefined }));
+    expect(engine.load).toHaveBeenCalled();
+    expect(embedder.load).not.toHaveBeenCalled();
   });
 });

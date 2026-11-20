@@ -11,6 +11,7 @@ import { codeFromHash } from './enrollment/link';
 import { useEnrollment } from './enrollment/store';
 import { opfsSupported } from './models/files';
 import { runtime } from './runtime';
+import { consumeRestarted } from './runtime/host';
 import { loadSettings } from './runtime/settings';
 
 const useStyles = makeStyles({
@@ -43,6 +44,9 @@ function takeJoinCode(): string {
   return code;
 }
 
+// Read once per page load (the effect below may run twice in development).
+const restartedByAdmin = consumeRestarted();
+
 export function App() {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -56,7 +60,8 @@ export function App() {
     if (!enrollment?.approved || !supported) return;
     let alive = true;
     void loadSettings().then((s) => {
-      if (alive && s.connectOnStart) void runtime.start();
+      // A remote restart reloaded this tab: serve again whatever the setting says (it was serving before).
+      if (alive && (restartedByAdmin || s.connectOnStart)) void runtime.start();
     });
     return () => {
       alive = false;

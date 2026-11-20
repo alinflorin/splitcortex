@@ -5,6 +5,7 @@
 //! **Not run against a real model yet.** Written from the C headers (v0.19.1); the points to verify on a machine are
 //! listed in docs/desktop-node.md (the chunk format of the conversation stream, GPU backends, the MTP drafter).
 
+pub mod embed;
 mod ffi;
 
 use ffi::{Api, Handle};
@@ -40,6 +41,8 @@ impl Drop for Loaded {
 pub struct Engine {
     api: Mutex<Option<Arc<Api>>>,
     loaded: Mutex<Option<Loaded>>,
+    /// The embedding model, when this node's pool serves one (never together with `loaded`).
+    embedder: Mutex<Option<embed::LoadedEmbedder>>,
     cancel: Arc<AtomicBool>,
 }
 

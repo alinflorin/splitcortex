@@ -205,6 +205,36 @@ fn touch(app: &Arc<AppState>, key: Uuid) {
     });
 }
 
+/// The pools of the key that serve `model` as a model of `kind` (`chat` | `embedding`). A model of the other kind
+/// answers 400 (it exists, it is the wrong endpoint), an unknown one 404.
+fn holders_of(app: &AppState, key: &KeyRec, model: &str, kind: &str) -> Result<Vec<(PoolRec, ModelRec)>, ApiError> {
+    let named: Vec<(PoolRec, ModelRec)> = key_pools(app, key)
+        .into_iter()
+        .filter_map(|p| p.model.clone().filter(|m| m.name == model).map(|m| (p, m)))
+        .collect();
+    let holders: Vec<(PoolRec, ModelRec)> = named.iter().filter(|(_, m)| m.kind == kind).cloned().collect();
+    if !holders.is_empty() {
+        return Ok(holders);
+    }
+    if named.is_empty() {
+        return Err(ApiError::new(
+            StatusCode::NOT_FOUND,
+            "invalid_request_error",
+            "model_not_found",
+            Tr::new("model_not_found").arg("model", model),
+        ));
+    }
+    Err(bad_request(
+        "wrong_model_kind",
+        Tr::new(if kind == "chat" {
+            "model_is_embedding"
+        } else {
+            "model_is_chat"
+        })
+        .arg("model", model),
+    ))
+}
+
 /// Pools the key may use (org-wide keys cover every pool of the org, including later ones).
 fn key_pools(app: &AppState, key: &KeyRec) -> Vec<PoolRec> {
     let c = app.cache.read().unwrap();
@@ -218,8 +248,8 @@ fn key_pools(app: &AppState, key: &KeyRec) -> Vec<PoolRec> {
 pub async fn models(State(app): State<Arc<AppState>>, headers: HeaderMap) -> Result<Json<Value>, ApiError> {
     let key = authenticate(&app, &headers).await?;
     // name -> (the smallest context window among its ready nodes (the size every request is safe to use), if any
-    // reports one; the inputs besides text that its nodes accept).
-    let mut models: std::collections::BTreeMap<String, (Option<u32>, u32)> = Default::default();
+    // reports one; the inputs besides text that its nodes accept; whether it is an embedding model).
+    let mut models: std::collections::BTreeMap<String, (Option<u32>, u32, bool)> = Default::default();
     for p in key_pools(&app, &key) {
         let Some(m) = p.model else { continue };
         let ctx = app.registry.context_range(p.org_id, p.id, m.id).map(|(lo, _)| lo);
@@ -227,7 +257,7 @@ pub async fn models(State(app): State<Arc<AppState>>, headers: HeaderMap) -> Res
         if cluster::clustered(&app) {
             mods |= cluster::modalities(&app, &[p.id]).await.unwrap_or(0);
         }
-        let e = models.entry(m.name).or_insert((ctx, 0));
+        let e = models.entry(m.name).or_insert((ctx, 0, m.kind == "embedding"));
         e.0 = match (e.0, ctx) {
             (Some(a), Some(b)) => Some(a.min(b)),
             (a, b) => a.or(b),
@@ -236,8 +266,10 @@ pub async fn models(State(app): State<Arc<AppState>>, headers: HeaderMap) -> Res
     }
     let data: Vec<Value> = models
         .into_iter()
-        .map(|(n, (ctx, mods))| {
+        .map(|(n, (ctx, mods, embedding))| {
             let mut v = json!({ "id": n, "object": "model", "created": 0, "owned_by": key.org_id });
+            // Not part of the OpenAI format: lets clients list chat and embedding models apart.
+            v["kind"] = json!(if embedding { "embedding" } else { "chat" });
             if let Some(c) = ctx {
                 v["context_length"] = json!(c);
             }
@@ -643,18 +675,7 @@ pub async fn chat_core(
     }
 
     // Resolve the pool from the model among the key's pools.
-    let holders: Vec<(PoolRec, ModelRec)> = key_pools(&app, &key)
-        .into_iter()
-        .filter_map(|p| p.model.clone().filter(|m| m.name == req.model).map(|m| (p, m)))
-        .collect();
-    if holders.is_empty() {
-        return Err(ApiError::new(
-            StatusCode::NOT_FOUND,
-            "invalid_request_error",
-            "model_not_found",
-            Tr::new("model_not_found").arg("model", &req.model),
-        ));
-    }
+    let holders = holders_of(&app, &key, &req.model, "chat")?;
 
     let mut conv = Converted {
         limit: app.max_media_bytes,
@@ -840,7 +861,16 @@ pub async fn chat_core(
     if !forwarded {
         let ids: Vec<Uuid> = holders.iter().map(|(p, _)| p.id).collect();
         for peer in cluster::peers_with_pools(&app, &ids, &registry::modality_names(mods)).await {
-            match cluster::forward_chat(&app, &peer, &key.hash, body.clone(), lang).await {
+            match cluster::forward_chat(
+                &app,
+                &peer,
+                "/internal/v1/chat/completions",
+                &key.hash,
+                body.clone(),
+                lang,
+            )
+            .await
+            {
                 // 502/503 mean "that instance has no node for it right now": try the next one.
                 Ok(res) if !matches!(res.status().as_u16(), 502 | 503) => return Ok(res),
                 _ => continue,
@@ -930,6 +960,7 @@ fn stream_response(
                         .await;
                     return;
                 }
+                NodeEvent::Embeddings { .. } => return, // not an answer to a chat request
                 NodeEvent::Disconnected => {
                     let message = Tr::new("node_disconnected").render(lang);
                     send(
@@ -983,7 +1014,7 @@ async fn collect_response(
                     Tr::new("node_error").arg("message", message),
                 ))
             }
-            NodeEvent::Disconnected => {
+            NodeEvent::Disconnected | NodeEvent::Embeddings { .. } => {
                 return Err(ApiError::new(
                     StatusCode::BAD_GATEWAY,
                     "server_error",
@@ -993,6 +1024,281 @@ async fn collect_response(
             }
         }
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Embeddings
+
+/// Inputs per request and characters per input (a request body is capped anyway; this keeps one request from holding a
+/// phone for minutes).
+const MAX_EMBEDDING_INPUTS: usize = 128;
+const MAX_EMBEDDING_CHARS: usize = 32_000;
+const EMBEDDING_TASKS: [&str; 5] = ["query", "document", "classification", "clustering", "similarity"];
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum EmbeddingInput {
+    One(String),
+    Many(Vec<String>),
+}
+
+#[derive(Deserialize)]
+struct EmbeddingReq {
+    model: String,
+    input: EmbeddingInput,
+    /// Truncate the vectors to this many dimensions (Matryoshka models).
+    dimensions: Option<u32>,
+    /// `float` (default) or `base64` (little-endian f32 bytes).
+    encoding_format: Option<String>,
+    /// Not part of the OpenAI format: the kind of text (query, document, ...) for models that expect a task prefix.
+    task: Option<String>,
+}
+
+pub async fn embeddings(
+    State(app): State<Arc<AppState>>,
+    request: axum::extract::Request,
+) -> Result<Response, ApiError> {
+    let (parts, body) = request.into_parts();
+    let key = authenticate(&app, &parts.headers).await?;
+    let body = axum::body::to_bytes(body, app.max_body_bytes()).await.map_err(|_| {
+        ApiError::new(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "invalid_request_error",
+            "request_too_large",
+            Tr::new("request_too_large"),
+        )
+    })?;
+    embeddings_core(&app, key, body, false, Lang::from_headers(&parts.headers)).await
+}
+
+fn invalid_embedding_request(message: Tr) -> ApiError {
+    bad_request("invalid_request", message)
+}
+
+/// Serves an embedding request of an authenticated key; `forwarded` as for `chat_core`.
+pub async fn embeddings_core(
+    app: &Arc<AppState>,
+    key: KeyRec,
+    body: Bytes,
+    forwarded: bool,
+    _lang: Lang,
+) -> Result<Response, ApiError> {
+    let app = app.clone();
+    let req: EmbeddingReq = serde_json::from_slice(&body).map_err(|e| {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_request_error",
+            "invalid_request",
+            Tr::new("invalid_body").arg("detail", e),
+        )
+    })?;
+    let inputs = match req.input {
+        EmbeddingInput::One(s) => vec![s],
+        EmbeddingInput::Many(v) => v,
+    };
+    if inputs.is_empty() || inputs.iter().any(|s| s.trim().is_empty()) {
+        return Err(invalid_embedding_request(Tr::new("embedding_input_empty")));
+    }
+    if inputs.len() > MAX_EMBEDDING_INPUTS {
+        return Err(invalid_embedding_request(
+            Tr::new("embedding_too_many").arg("max", MAX_EMBEDDING_INPUTS),
+        ));
+    }
+    if inputs.iter().any(|s| s.chars().count() > MAX_EMBEDDING_CHARS) {
+        return Err(invalid_embedding_request(
+            Tr::new("embedding_input_long").arg("max", MAX_EMBEDDING_CHARS),
+        ));
+    }
+    let task = req.task.unwrap_or_default();
+    if !task.is_empty() && !EMBEDDING_TASKS.contains(&task.as_str()) {
+        return Err(invalid_embedding_request(
+            Tr::new("embedding_bad_task").arg("task", &task),
+        ));
+    }
+    let base64_out = match req.encoding_format.as_deref() {
+        None | Some("float") => false,
+        Some("base64") => true,
+        Some(_) => return Err(invalid_embedding_request(Tr::new("embedding_bad_format"))),
+    };
+    if req.dimensions == Some(0) {
+        return Err(invalid_embedding_request(Tr::new("embedding_bad_dimensions")));
+    }
+    if app.draining.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(ApiError::unavailable(Tr::new("shutting_down")));
+    }
+    if !app.usage.healthy() {
+        return Err(ApiError::unavailable(Tr::new("metering_behind")));
+    }
+    let holders = holders_of(&app, &key, &req.model, "embedding")?;
+
+    let tokens_in = (inputs.iter().map(|s| s.chars().count()).sum::<usize>() as u32).div_ceil(4);
+
+    // Rate limits, as for chat: the organisation's and the key's (a forwarded request was checked already).
+    if !forwarded {
+        let now = chrono::Utc::now().timestamp();
+        let org_limits = app
+            .cache
+            .read()
+            .unwrap()
+            .org_limits
+            .get(&key.org_id)
+            .copied()
+            .unwrap_or_default();
+        for (subject, limits) in [
+            (Subject::Org(key.org_id), org_limits),
+            (Subject::Key(key.id), key.limits),
+        ] {
+            app.limiter.refresh_day(&app.db, subject, &limits).await;
+            if let Err(r) = app.limiter.check(subject, &limits, now) {
+                key_event(&app, &key, "limit.exceeded", json!({ "what": r.what }));
+                app.metrics.rate_limited(key.org_id, holders[0].0.id);
+                return Err(ApiError::too_many(r.what, r.retry_after_secs));
+            }
+        }
+        app.limiter.admit(Subject::Org(key.org_id), tokens_in as u64, now);
+        app.limiter.admit(Subject::Key(key.id), tokens_in as u64, now);
+    }
+
+    let mut tried: Vec<Uuid> = Vec::new();
+    let mut last = ApiError::unavailable(Tr::new("no_node"));
+    for _ in 0..2 {
+        let target = holders
+            .iter()
+            .filter_map(|(p, m)| {
+                let (n, load) = app.registry.pool_load(p.org_id, p.id, m.id, 0, 0);
+                (n > 0).then(|| (p, m, load as f64 / n as f64))
+            })
+            .min_by(|a, b| a.2.total_cmp(&b.2));
+        let Some((pool, model, _)) = target else { break };
+        let Some(node) = app
+            .registry
+            .pick(pool.org_id, pool.id, model.id, 0, 0, &pool.balancing, &tried)
+        else {
+            break;
+        };
+
+        let request_id = Uuid::new_v4().to_string();
+        let mut rx = app.registry.track_request(&request_id, &node);
+        let mut run = Run {
+            app: app.clone(),
+            node: node.clone(),
+            request_id: request_id.clone(),
+            key: key.id,
+            org: key.org_id,
+            pool: pool.id,
+            model: req.model.clone(),
+            tokens_in,
+            tokens_out: 0,
+            error: false,
+            finished: false,
+            record: true,
+            limited: !forwarded,
+            started: Instant::now(),
+            ttft: None,
+        };
+        let pool_running = app.registry.pool_running(pool.org_id, pool.id, model.id);
+        app.metrics.in_flight(pool.org_id, pool.id, pool_running);
+        let msg = Envelope {
+            body: Some(Body::EmbeddingRequest(proto::EmbeddingRequest {
+                request_id,
+                model_id: model.id.to_string(),
+                inputs: inputs.clone(),
+                task: task.clone(),
+                dimensions: req.dimensions.unwrap_or(0),
+            })),
+        };
+        let sent = Instant::now();
+        let answer = if node.tx.send(Outbound::Send(msg)).await.is_err() {
+            Some(NodeEvent::Disconnected)
+        } else {
+            tokio::time::timeout(FIRST_EVENT_TIMEOUT, rx.recv())
+                .await
+                .ok()
+                .flatten()
+        };
+        match answer {
+            Some(NodeEvent::Embeddings { vectors, prompt_tokens }) => {
+                if vectors.len() != inputs.len() || vectors.iter().any(|v| v.is_empty()) {
+                    run.error = true;
+                    return Err(ApiError::new(
+                        StatusCode::BAD_GATEWAY,
+                        "server_error",
+                        "node_failed",
+                        Tr::new("embedding_bad_answer"),
+                    ));
+                }
+                run.ttft = Some(sent.elapsed());
+                run.finished = true;
+                if prompt_tokens > 0 {
+                    run.tokens_in = prompt_tokens;
+                }
+                let used = run.tokens_in;
+                let data: Vec<Value> = vectors
+                    .iter()
+                    .enumerate()
+                    .map(|(i, v)| {
+                        let embedding = if base64_out {
+                            use base64::Engine as _;
+                            let bytes: Vec<u8> = v.iter().flat_map(|f| f.to_le_bytes()).collect();
+                            json!(base64::engine::general_purpose::STANDARD.encode(bytes))
+                        } else {
+                            json!(v)
+                        };
+                        json!({ "object": "embedding", "index": i, "embedding": embedding })
+                    })
+                    .collect();
+                return Ok(Json(json!({
+                    "object": "list",
+                    "data": data,
+                    "model": req.model,
+                    "usage": { "prompt_tokens": used, "total_tokens": used }
+                }))
+                .into_response());
+            }
+            // The input itself was refused (for example more dimensions than the model has): the client's mistake, so
+            // no other node would do better.
+            Some(NodeEvent::Error { code, message })
+                if matches!(code.as_str(), "bad_request" | "invalid_request" | "bad_input") =>
+            {
+                run.record = false;
+                return Err(bad_request(
+                    "invalid_request",
+                    Tr::new("node_error").arg("message", message),
+                ));
+            }
+            // The node dropped or failed: retry once on another node (its failure is not billed).
+            other => {
+                run.record = false;
+                run.node_failed_early();
+                tried.push(node.node_id);
+                last = match other {
+                    Some(NodeEvent::Error { message, .. }) => ApiError::new(
+                        StatusCode::BAD_GATEWAY,
+                        "server_error",
+                        "node_error",
+                        Tr::new("node_error").arg("message", message),
+                    ),
+                    _ => ApiError::new(
+                        StatusCode::BAD_GATEWAY,
+                        "server_error",
+                        "node_failed",
+                        Tr::new("node_failed"),
+                    ),
+                };
+            }
+        }
+    }
+    if !forwarded {
+        let ids: Vec<Uuid> = holders.iter().map(|(p, _)| p.id).collect();
+        for peer in cluster::peers_with_pools(&app, &ids, &[]).await {
+            match cluster::forward_chat(&app, &peer, "/internal/v1/embeddings", &key.hash, body.clone(), _lang).await {
+                Ok(res) if !matches!(res.status().as_u16(), 502 | 503) => return Ok(res),
+                _ => continue,
+            }
+        }
+        app.metrics.unavailable(key.org_id, holders[0].0.id);
+    }
+    Err(last)
 }
 
 #[cfg(test)]

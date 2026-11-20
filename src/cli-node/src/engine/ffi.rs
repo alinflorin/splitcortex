@@ -13,6 +13,13 @@ pub type Handle = *mut c_void;
 pub const SAMPLER_TOP_P: c_int = 2;
 pub const SPECULATIVE_ON: c_int = 1;
 pub const LOG_SILENT: c_int = 1000;
+pub const INPUT_TEXT: c_int = 0;
+/// `kLiteRtLmInputOverflowStrategyError`: a text longer than the model's longest signature fails instead of being
+/// silently truncated or averaged.
+pub const OVERFLOW_ERROR: c_int = 2;
+/// `kLiteRtLmStatusInvalidArgument` and `kLiteRtLmStatusOutOfRange`: the input, not the engine, is the problem.
+pub const STATUS_INVALID_ARGUMENT: Status = 3;
+pub const STATUS_OUT_OF_RANGE: Status = 11;
 
 pub type StreamCallback = unsafe extern "C" fn(data: *mut c_void, chunk: *const c_void);
 
@@ -73,6 +80,29 @@ api! {
     conv_send_stream: "litert_lm_conversation_send_message_stream" = fn(Handle, *const c_char, *const c_char, Handle, StreamCallback, *mut c_void) -> Status;
     conv_cancel: "litert_lm_conversation_cancel_process" = fn(Handle) -> Status;
     conv_wait: "litert_lm_conversation_wait_until_done" = fn(Handle) -> Status;
+
+    input_create: "litert_lm_input_data_create" = fn(c_int, *const c_void, usize, *mut Handle) -> Status;
+    input_delete: "litert_lm_input_data_delete" = fn(Handle) -> ();
+
+    // Embedding engine (embedding_engine.h / model_info.h): a second capability next to the chat engine.
+    emb_settings_create: "litert_lm_embedding_engine_settings_create" = fn(*const c_char, *const c_char, *const c_char, *const c_char, *mut Handle) -> Status;
+    emb_settings_delete: "litert_lm_embedding_engine_settings_delete" = fn(Handle) -> ();
+    emb_settings_cache_dir: "litert_lm_embedding_engine_settings_set_cache_dir" = fn(Handle, *const c_char) -> Status;
+    emb_engine_create: "litert_lm_embedding_engine_create" = fn(Handle, *mut Handle) -> Status;
+    emb_engine_delete: "litert_lm_embedding_engine_delete" = fn(Handle) -> ();
+    emb_options_create: "litert_lm_embedding_options_create" = fn(*mut Handle) -> Status;
+    emb_options_delete: "litert_lm_embedding_options_delete" = fn(Handle) -> ();
+    emb_options_normalize: "litert_lm_embedding_options_set_normalize" = fn(Handle, bool) -> Status;
+    emb_options_overflow: "litert_lm_embedding_options_set_input_overflow_strategy" = fn(Handle, c_int) -> Status;
+    emb_compute_batch: "litert_lm_embedding_engine_compute_embedding_batch" = fn(Handle, *const *const *const c_void, *const usize, usize, Handle, *mut Handle) -> Status;
+    emb_responses_delete: "litert_lm_embedding_responses_delete" = fn(Handle) -> ();
+    emb_responses_size: "litert_lm_embedding_responses_get_size" = fn(Handle, *mut usize) -> Status;
+    emb_responses_at: "litert_lm_embedding_responses_get_at" = fn(Handle, usize, *mut Handle) -> Status;
+    emb_response_size: "litert_lm_embedding_response_get_size" = fn(Handle, *mut usize) -> Status;
+    emb_response_values: "litert_lm_embedding_response_get_values" = fn(Handle, *mut *const f32) -> Status;
+    loaded_file_create: "litert_lm_loaded_file_create" = fn(*const c_char, *mut Handle) -> Status;
+    loaded_file_delete: "litert_lm_loaded_file_delete" = fn(Handle) -> ();
+    loaded_file_embedding_dimension: "litert_lm_loaded_file_embedding_dimension" = fn(Handle, *mut i32) -> Status;
 
     chunk_text: "litert_lm_stream_chunk_get_text" = fn(*const c_void, *mut *const c_char) -> Status;
     chunk_final: "litert_lm_stream_chunk_is_final" = fn(*const c_void, *mut bool) -> Status;

@@ -74,6 +74,28 @@ export interface Engine {
   ): Promise<GenerateResult>;
 }
 
+/** What an embedding engine returns for a batch: full-size vectors, in input order. */
+export interface EmbedResult {
+  vectors: number[][];
+  /** Tokens of all inputs together; 0 when the engine cannot tell. */
+  promptTokens: number;
+}
+
+/**
+ * The embedding capability (LiteRT-LM's embedding engine, a separate engine from the chat one: a pool serves either
+ * a chat or an embedding model, never both). Takes the already prefixed text and returns the model's own vectors;
+ * the task prefix and the `dimensions` truncation live in `embedding.ts`, outside the adapter.
+ */
+export interface Embedder {
+  /** Loads the `.litertlm` embedding model stored under this name (replacing any loaded model). */
+  load(name: string): Promise<void>;
+  unload(): Promise<void>;
+  readonly loaded: boolean;
+  /** Length of the vectors of the loaded model (0 when nothing is loaded). */
+  readonly dimension: number;
+  embed(texts: string[]): Promise<EmbedResult>;
+}
+
 /** The engine plus the policy that picks its settings: admin override, else the device's own setting, else automatic. */
 export interface TunableEngine extends Engine {
   /** Where the engine reports what it decided (shown on the Logs screen). */

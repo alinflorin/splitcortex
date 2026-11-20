@@ -74,6 +74,25 @@ export interface Engine {
   ): Promise<GenerateResult>;
 }
 
+/** The kind of text an embedding is for (the protocol's `EmbeddingRequest.task`). */
+export type EmbeddingTask =
+  '' | 'query' | 'document' | 'classification' | 'clustering' | 'similarity';
+
+/**
+ * The embedding capability, a second engine next to `Engine` (LiteRT-LM's EmbeddingEngine). A pool serves either a
+ * chat model or an embedding model, never both, so the node keeps only one of the two loaded.
+ */
+export interface Embedder {
+  /** Loads the `.litertlm` embedding bundle at a local path (replacing any loaded one). */
+  load(path: string): Promise<void>;
+  unload(): Promise<void>;
+  readonly loaded: boolean;
+  /** Length of the vectors `embed` returns (0 when nothing is loaded). */
+  readonly dimension: number;
+  /** One L2-normalised vector of `dimension` numbers per (already prefixed) text, in order, in one engine call. */
+  embed(texts: string[]): Promise<ArrayLike<number>[]>;
+}
+
 /** The engine plus the policy that picks its settings: admin override, else the device's own setting, else automatic. */
 export interface TunableEngine extends Engine {
   /** Where the engine reports what it decided (shown on the Logs screen). */

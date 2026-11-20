@@ -1,4 +1,4 @@
-import type { TunableEngine } from '../engine/types';
+import type { Embedder, TunableEngine } from '../engine/types';
 import { NodeRuntime } from './NodeRuntime';
 
 let mockOnBody: ((b: { case?: string; value?: unknown }) => void) | undefined;
@@ -67,7 +67,7 @@ const approved = {
   enrolledAt: '',
 };
 
-function setup() {
+function setup(embedder?: Embedder) {
   mockSent.length = 0;
   mockOnline = true;
   const service = {
@@ -90,7 +90,11 @@ function setup() {
     keepScreenOn: true,
     enableMtp: true,
   });
-  return { rt: new NodeRuntime(engine, service, telemetry, settings), service, telemetry };
+  return {
+    rt: new NodeRuntime(engine, service, telemetry, settings, embedder),
+    service,
+    telemetry,
+  };
 }
 
 describe('NodeRuntime', () => {
@@ -285,6 +289,245 @@ describe('NodeRuntime', () => {
       await jest.advanceTimersByTimeAsync(11_000);
       expect(aborted).toBe(true);
       await rt.stop();
+    });
+  });
+
+  describe('remote restart', () => {
+    const ready = { phase: 'ready', modelId: 'm1', name: 'm', progressBytes: 0, sizeBytes: 0 };
+    const request = {
+      requestId: 'r1',
+      modelId: 'm1',
+      messages: [],
+      maxTokens: 0,
+      temperature: 0,
+      topP: 0,
+    };
+    const errors = () =>
+      mockSent.filter((m) => m.case === 'inferenceError').map((m) => m.value?.code);
+    /** A generation that only ends when released or aborted. */
+    function hang() {
+      let release!: () => void;
+      let aborted = false;
+      engine.generate = jest.fn(
+        (_req, _on, signal: AbortSignal) =>
+          new Promise((resolve) => {
+            release = () => resolve({ finishReason: 'stop' });
+            signal.addEventListener('abort', () => {
+              aborted = true;
+              resolve({ finishReason: 'stop' });
+            });
+          }),
+      ) as unknown as TunableEngine['generate'];
+      return { release: () => release(), wasAborted: () => aborted };
+    }
+
+    it('restarts at once when nothing is running, keeping the background service on', async () => {
+      mockEnrollment = approved;
+      const { rt, service } = setup();
+      await rt.start();
+      jest.mocked(engine.unload).mockClear();
+      mockOnBody?.({ case: 'restart', value: { graceSeconds: 30 } });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(engine.unload).toHaveBeenCalled();
+      expect(service.stop).not.toHaveBeenCalled();
+      expect(service.start).toHaveBeenCalledTimes(2);
+      expect(rt.getSnapshot()).toMatchObject({ running: true, restarting: false });
+      await rt.stop();
+    });
+
+    it('refuses new requests while it waits, lets the running one finish, then restarts', async () => {
+      mockEnrollment = approved;
+      const { rt, service } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      const gen = hang();
+      mockOnBody?.({ case: 'inferenceRequest', value: request });
+      await jest.advanceTimersByTimeAsync(0);
+      mockOnBody?.({ case: 'restart', value: { graceSeconds: 30 } });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(rt.getSnapshot().restarting).toBe(true);
+      mockOnBody?.({ case: 'inferenceRequest', value: { ...request, requestId: 'r2' } });
+      mockOnBody?.({
+        case: 'embeddingRequest',
+        value: { requestId: 'r3', modelId: 'm1', inputs: ['a'] },
+      });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(errors()).toEqual(['restarting', 'restarting']);
+      // still serving r1: no restart before it ends
+      await jest.advanceTimersByTimeAsync(10_000);
+      expect(service.start).toHaveBeenCalledTimes(1);
+      expect(gen.wasAborted()).toBe(false);
+      gen.release();
+      await jest.advanceTimersByTimeAsync(0);
+      expect(mockSent.some((m) => m.case === 'inferenceDone')).toBe(true);
+      expect(service.start).toHaveBeenCalledTimes(2);
+      expect(rt.getSnapshot()).toMatchObject({ running: true, restarting: false });
+      await rt.stop();
+    });
+
+    it('cancels what is still running when the grace period is over', async () => {
+      mockEnrollment = approved;
+      const { rt, service } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      const gen = hang();
+      mockOnBody?.({ case: 'inferenceRequest', value: request });
+      await jest.advanceTimersByTimeAsync(0);
+      mockOnBody?.({ case: 'restart', value: { graceSeconds: 5 } });
+      await jest.advanceTimersByTimeAsync(4_900);
+      expect(gen.wasAborted()).toBe(false);
+      expect(service.start).toHaveBeenCalledTimes(1);
+      await jest.advanceTimersByTimeAsync(200);
+      expect(gen.wasAborted()).toBe(true);
+      expect(service.start).toHaveBeenCalledTimes(2);
+      expect(rt.getSnapshot()).toMatchObject({ running: true, restarting: false, inFlight: 0 });
+      await rt.stop();
+    });
+
+    it('ignores a second restart while one is pending', async () => {
+      mockEnrollment = approved;
+      const { rt, service } = setup();
+      await rt.start();
+      mockOnStatus?.(ready);
+      const gen = hang();
+      mockOnBody?.({ case: 'inferenceRequest', value: request });
+      await jest.advanceTimersByTimeAsync(0);
+      mockOnBody?.({ case: 'restart', value: { graceSeconds: 30 } });
+      mockOnBody?.({ case: 'restart', value: { graceSeconds: 30 } });
+      gen.release();
+      await jest.advanceTimersByTimeAsync(0);
+      expect(service.start).toHaveBeenCalledTimes(2);
+      await rt.stop();
+    });
+  });
+
+  describe('embeddings', () => {
+    const emb = (over: Partial<Embedder> = {}): Embedder & { texts: string[][] } => {
+      const texts: string[][] = [];
+      return {
+        texts,
+        loaded: true,
+        dimension: 4,
+        load: jest.fn(async () => undefined),
+        unload: jest.fn(async () => undefined),
+        embed: jest.fn(async (t: string[]) => {
+          texts.push(t);
+          return t.map(() => [3, 4, 0, 0]);
+        }),
+        ...over,
+      };
+    };
+    const ready = (kind?: string) => ({
+      phase: 'ready',
+      modelId: 'e1',
+      name: 'e',
+      progressBytes: 0,
+      sizeBytes: 0,
+      kind,
+      embeddingDimension: kind === 'embedding' ? 4 : undefined,
+    });
+    const sent = (c: string) => mockSent.filter((m) => m.case === c);
+
+    it('answers with one result, in order, prefixed and shortened', async () => {
+      mockEnrollment = approved;
+      const e = emb();
+      const { rt } = setup(e);
+      await rt.start();
+      mockOnStatus?.(ready('embedding'));
+      expect(sent('modelState').at(-1)?.value).toMatchObject({
+        embeddingDimension: 4,
+        modalities: [],
+      });
+      mockOnBody?.({
+        case: 'embeddingRequest',
+        value: {
+          requestId: 'r1',
+          modelId: 'e1',
+          inputs: [' a ', 'b'],
+          task: 'query',
+          dimensions: 2,
+        },
+      });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(e.texts[0]).toEqual([
+        'task: search result | query: a',
+        'task: search result | query: b',
+      ]);
+      const res = sent('embeddingResult')[0]?.value as unknown as {
+        seq: number;
+        promptTokens: number;
+        embeddings: { values: number[] }[];
+      };
+      expect(res.seq).toBe(1);
+      expect(res.promptTokens).toBe(0);
+      expect(res.embeddings).toHaveLength(2);
+      expect(res.embeddings[0]!.values).toEqual([0.6, 0.8]);
+      await rt.stop();
+    });
+
+    it('reports an engine failure and a bad input as an error with seq 1', async () => {
+      mockEnrollment = approved;
+      const e = emb({
+        embed: jest.fn(async () => {
+          throw new Error('boom');
+        }),
+      });
+      const { rt } = setup(e);
+      await rt.start();
+      mockOnStatus?.(ready('embedding'));
+      mockOnBody?.({
+        case: 'embeddingRequest',
+        value: { requestId: 'r1', modelId: 'e1', inputs: ['a'], task: '' },
+      });
+      mockOnBody?.({
+        case: 'embeddingRequest',
+        value: { requestId: 'r2', modelId: 'e1', inputs: [], task: '' },
+      });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(sent('inferenceError').map((m) => [m.value?.code, m.value?.seq])).toEqual([
+        ['engine_error', 1],
+        ['bad_request', 1],
+      ]);
+      await rt.stop();
+    });
+
+    it('rejects an embedding request on a chat model and a chat request on an embedding model', async () => {
+      mockEnrollment = approved;
+      const { rt } = setup(emb());
+      await rt.start();
+      mockOnStatus?.(ready('chat'));
+      mockOnBody?.({
+        case: 'embeddingRequest',
+        value: { requestId: 'r1', modelId: 'e1', inputs: ['a'] },
+      });
+      await jest.advanceTimersByTimeAsync(0);
+      mockOnStatus?.(ready('embedding'));
+      mockOnBody?.({
+        case: 'inferenceRequest',
+        value: {
+          requestId: 'r2',
+          modelId: 'e1',
+          messages: [],
+          maxTokens: 0,
+          temperature: 0,
+          topP: 0,
+        },
+      });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(sent('inferenceError').map((m) => m.value?.code)).toEqual([
+        'wrong_model_kind',
+        'wrong_model_kind',
+      ]);
+      await rt.stop();
+    });
+
+    it('frees the embedder on stop', async () => {
+      mockEnrollment = approved;
+      const e = emb();
+      const { rt } = setup(e);
+      await rt.start();
+      await rt.stop();
+      expect(e.unload).toHaveBeenCalled();
     });
   });
 });

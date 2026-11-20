@@ -8,11 +8,15 @@ import {
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
-import { CheckmarkCircle20Regular, Delete20Regular } from '@fluentui/react-icons';
+import {
+  ArrowClockwise20Regular,
+  CheckmarkCircle20Regular,
+  Delete20Regular,
+} from '@fluentui/react-icons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useDeleteNode, useNode, useUpdateNode } from '../../api/hooks';
+import { useDeleteNode, useNode, useRestartNode, useUpdateNode } from '../../api/hooks';
 import type { Node } from '../../api/schemas';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { QueryBoundary } from '../../components/QueryBoundary';
@@ -185,6 +189,7 @@ export function NodePage() {
   const query = useNode(org.id, nodeId);
   const update = useUpdateNode(org.id, nodeId);
   const remove = useDeleteNode(org.id, nodeId);
+  const restartNode = useRestartNode(org.id, nodeId);
   const confirm = useConfirm();
   const toast = useToast();
   const num = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 });
@@ -192,6 +197,21 @@ export function NodePage() {
 
   const approve = () =>
     update.mutate({ approved: true }, { onSuccess: () => toast.success(t('nodes.approved')) });
+
+  const restart = async (node: Node) => {
+    const ok = await confirm({
+      title: t('nodes.restartTitle', { name: node.name }),
+      message: t('nodes.restartMessage'),
+      confirmLabel: t('nodes.restart'),
+    });
+    if (!ok) return;
+    try {
+      await restartNode.mutateAsync();
+      toast.success(t('nodes.restartSent'));
+    } catch {
+      // error toast shown by the mutation cache
+    }
+  };
 
   const revoke = async (node: Node) => {
     const ok = await confirm({
@@ -240,6 +260,14 @@ export function NodePage() {
                           {t('nodes.approve')}
                         </Button>
                       )}
+                      <Button
+                        icon={<ArrowClockwise20Regular />}
+                        disabled={node.status !== 'online' || restartNode.isPending}
+                        title={node.status !== 'online' ? t('nodes.restartOffline') : undefined}
+                        onClick={() => void restart(node)}
+                      >
+                        {t('nodes.restart')}
+                      </Button>
                       <Button icon={<Delete20Regular />} onClick={() => void revoke(node)}>
                         {t('nodes.revoke')}
                       </Button>

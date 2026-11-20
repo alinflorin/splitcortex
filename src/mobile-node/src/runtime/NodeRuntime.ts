@@ -5,7 +5,9 @@ import { fromB64, toB64 } from '../enrollment/crypto';
 import { getOrCreateIdentity } from '../enrollment/identity';
 import { loadEnrollment, saveEnrollment } from '../enrollment/store';
 import { toChatMessage } from '../engine/messages';
-import type { ComputePrefs, TunableEngine } from '../engine/types';
+import { embedAll, EmbeddingRequestError } from '../engine/embedding';
+import { LiteRtEmbedder } from '../engine/litertEmbedder';
+import type { ComputePrefs, Embedder, TunableEngine } from '../engine/types';
 import {
   nodeService,
   UNKNOWN_TELEMETRY,
@@ -15,6 +17,8 @@ import {
 import { ModelManager, NO_MODEL, type ModelStatus } from '../models/manager';
 import { GatewayConnection, type Body, type ConnectionState } from '../protocol/connection';
 import {
+  EmbeddingResultSchema,
+  EmbeddingSchema,
   InferenceChunkSchema,
   InferenceDoneSchema,
   InferenceErrorSchema,
@@ -24,7 +28,9 @@ import {
   ResumeSchema,
   type ResumeAck,
   TelemetrySchema,
+  type EmbeddingRequest,
   type InferenceRequest,
+  type Restart,
 } from '../protocol/gen/splitcortex/node/v1/node_pb';
 import { LogBuffer } from './log';
 import { computePrefs, loadSettings, type NodeSettings } from './settings';
@@ -35,6 +41,8 @@ export interface RuntimeState {
   connection: ConnectionState;
   model: ModelStatus;
   inFlight: number;
+  /** A restart was asked for: new requests are refused while the running ones finish. */
+  restarting: boolean;
   requestsServed: number;
   tokensServed: number;
   tokensPerSec: number;
@@ -50,6 +58,7 @@ const INITIAL: RuntimeState = {
   connection: 'idle',
   model: NO_MODEL,
   inFlight: 0,
+  restarting: false,
   requestsServed: 0,
   tokensServed: 0,
   tokensPerSec: 0,
@@ -65,6 +74,9 @@ const PHASE: Record<ModelStatus['phase'], ModelPhase> = {
   ready: ModelPhase.READY,
   failed: ModelPhase.FAILED,
 };
+
+/** The grace period of a `Restart`: what the gateway asks for, at most 1 h (a request never runs longer). */
+const restartGrace = (r: Restart) => Math.min(Math.max(r.graceSeconds, 0), 3600);
 
 /**
  * A request the gateway may need to hear again after a dropped connection: everything sent for it carries a sequence
@@ -102,6 +114,9 @@ export class NodeRuntime {
     admin: undefined,
   };
   private appStateSub: { remove(): void } | null = null;
+  /** Waiting for the running requests to finish before a restart (resolved by `settle`). */
+  private drained: (() => void) | null = null;
+  private embedChain: Promise<void> = Promise.resolve();
   private generation = 0; // guards async start() against a stop()/restart() that happened meanwhile
 
   constructor(
@@ -109,6 +124,7 @@ export class NodeRuntime {
     private readonly service: ServiceControl = nodeService,
     private readonly readTelemetry: () => Promise<DeviceTelemetry> = () => nodeService.telemetry(),
     private readonly readSettings: () => Promise<NodeSettings> = loadSettings,
+    private readonly embedder: Embedder = new LiteRtEmbedder(),
   ) {
     engine.onLog = (m) => this.log.info(m);
   }
@@ -125,6 +141,10 @@ export class NodeRuntime {
 
   async start() {
     if (this.state.running) return;
+    await this.boot();
+  }
+
+  private async boot() {
     const gen = ++this.generation;
     this.set({ running: true, blocked: null });
     const enrollment = await loadEnrollment();
@@ -144,6 +164,7 @@ export class NodeRuntime {
     let pinned = enrollment.gateway;
     this.models = new ModelManager({
       engine: this.engine,
+      embedder: this.embedder,
       log: this.log,
       baseUrl: enrollment.enrollmentUrl,
       nodeId: enrollment.nodeId,
@@ -200,6 +221,13 @@ export class NodeRuntime {
   }
 
   async stop() {
+    await this.teardown(true);
+    this.set({ ...INITIAL, blocked: null });
+    this.log.info('Stopped');
+  }
+
+  /** Closes the connection, drops running work and frees both engines; the background service only when asked. */
+  private async teardown(stopService: boolean) {
     this.generation++;
     this.conn?.stop();
     this.models?.stop();
@@ -214,11 +242,54 @@ export class NodeRuntime {
     this.active.clear();
     this.outbox.clear();
     await this.engine.unload();
-    await this.service.stop().catch(() => undefined);
+    await this.embedder.unload();
+    if (stopService) await this.service.stop().catch(() => undefined);
     this.conn = null;
     this.models = null;
-    this.set({ ...INITIAL, blocked: null });
-    this.log.info('Stopped');
+  }
+
+  /**
+   * "Restart" asked from the web app. On a phone there is no process restart without extra native code, so this is an
+   * app-level restart: stop taking requests (they get `restarting`), let the running ones finish for up to
+   * `graceSeconds` (then cancel them), close the socket, free the engines, then start again from scratch (reload the
+   * model, reconnect, resume). The foreground service and `running` stay on throughout, so the headless task lives on.
+   */
+  private async remoteRestart(graceSeconds: number) {
+    if (this.state.restarting || !this.state.running) return;
+    this.log.info(`Restart requested by an admin (grace ${graceSeconds} s)`);
+    this.set({ restarting: true });
+    const gen = this.generation;
+    if (this.active.size > 0) {
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(() => {
+          this.log.warn('Restart: grace period over, cancelling the running requests');
+          resolve();
+        }, graceSeconds * 1000);
+        this.drained = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+      });
+      this.drained = null;
+    }
+    // A stop() or a local restart happened while waiting: nothing left to restart.
+    if (gen !== this.generation) return;
+    await this.teardown(false);
+    this.set({
+      ...INITIAL,
+      running: true,
+      restarting: true,
+      requestsServed: this.state.requestsServed,
+      tokensServed: this.state.tokensServed,
+    });
+    await this.boot();
+    this.set({ restarting: false });
+    this.log.info('Restarted');
+  }
+
+  /** A request finished: wakes a pending restart once nothing is left running. */
+  private settle() {
+    if (this.active.size === 0) this.drained?.();
   }
 
   async restart() {
@@ -248,6 +319,7 @@ export class NodeRuntime {
           fileName: a.fileName,
           sizeBytes: Number(a.sizeBytes),
           sha256: a.sha256,
+          kind: a.kind,
         });
         break;
       }
@@ -256,6 +328,12 @@ export class NodeRuntime {
         break;
       case 'inferenceRequest':
         void this.serve(b.value);
+        break;
+      case 'embeddingRequest':
+        void this.serveEmbedding(b.value);
+        break;
+      case 'restart':
+        void this.remoteRestart(restartGrace(b.value));
         break;
       case 'cancel':
         this.active.get(b.value.requestId)?.abort();
@@ -362,7 +440,10 @@ export class NodeRuntime {
         progressBytes: BigInt(Math.round(m.progressBytes)),
         error: m.error ?? '',
         // What the loaded model accepts besides text; the gateway routes media only to nodes that list it.
-        modalities: m.phase === 'ready' ? [...this.engine.modalities] : [],
+        modalities:
+          m.phase === 'ready' && m.kind !== 'embedding' ? [...this.engine.modalities] : [],
+        embeddingDimension:
+          m.phase === 'ready' && m.kind === 'embedding' ? (m.embeddingDimension ?? 0) : 0,
       }),
     });
   }
@@ -375,6 +456,12 @@ export class NodeRuntime {
         case: 'inferenceError',
         value: create(InferenceErrorSchema, { requestId: id, code, message, seq }),
       }));
+    if (this.state.restarting)
+      return this.finishBox(id, () => fail('restarting', 'The node is restarting'));
+    if (this.state.model.kind === 'embedding')
+      return this.finishBox(id, () =>
+        fail('wrong_model_kind', 'This node serves an embedding model, not a chat model'),
+      );
     if (this.state.inFlight > 0)
       return this.finishBox(id, () => fail('busy', 'The node is already generating'));
     if (req.modelId !== this.state.model.modelId || this.state.model.phase !== 'ready') {
@@ -429,7 +516,72 @@ export class NodeRuntime {
       this.active.delete(id);
       this.set({ inFlight: 0 });
       this.finishBox(id);
+      this.settle();
     }
+  }
+
+  /** Answers an embedding request with one `EmbeddingResult` (or one error), one request at a time. */
+  private serveEmbedding(req: EmbeddingRequest): Promise<void> {
+    const id = req.requestId;
+    this.outbox.set(id, { seq: 0, frames: [], finishedAt: null });
+    const fail = (code: string, message: string) =>
+      this.finishBox(id, () =>
+        this.emit(id, (seq) => ({
+          case: 'inferenceError',
+          value: create(InferenceErrorSchema, { requestId: id, code, message, seq }),
+        })),
+      );
+    if (this.state.restarting) {
+      fail('restarting', 'The node is restarting');
+      return Promise.resolve();
+    }
+    const model = this.state.model;
+    if (model.phase === 'ready' && model.kind !== 'embedding') {
+      fail('wrong_model_kind', 'This node serves a chat model, not an embedding model');
+      return Promise.resolve();
+    }
+    if (req.modelId !== model.modelId || model.phase !== 'ready' || !this.embedder.loaded) {
+      fail('model_not_ready', 'The requested model is not loaded');
+      return Promise.resolve();
+    }
+    const ctl = new AbortController();
+    this.active.set(id, ctl);
+    // The engine embeds one batch at a time; later requests queue behind it.
+    const run = async () => {
+      try {
+        if (ctl.signal.aborted) return;
+        const vectors = await embedAll(this.embedder, {
+          inputs: req.inputs,
+          task: req.task,
+          dimensions: req.dimensions,
+        });
+        if (ctl.signal.aborted) return;
+        this.emit(id, (seq) => ({
+          case: 'embeddingResult',
+          value: create(EmbeddingResultSchema, {
+            requestId: id,
+            embeddings: vectors.map((values) => create(EmbeddingSchema, { values })),
+            promptTokens: 0, // the engine does not say; the gateway estimates
+            seq,
+          }),
+        }));
+        this.set({ requestsServed: this.state.requestsServed + 1 });
+        this.log.info(`Embedding request served: ${vectors.length} input(s)`);
+        this.finishBox(id);
+      } catch (e) {
+        if (e instanceof EmbeddingRequestError) fail(e.code, e.message);
+        else {
+          this.log.error(`Embedding failed: ${e instanceof Error ? e.message : String(e)}`);
+          fail('engine_error', 'The engine failed to embed');
+        }
+      } finally {
+        this.active.delete(id);
+        this.settle();
+      }
+    };
+    const next = this.embedChain.then(run);
+    this.embedChain = next;
+    return next;
   }
 
   /** The request is over: keep its frames a little while (a reconnect may still need them), then forget them. */
@@ -454,7 +606,7 @@ export class NodeRuntime {
         batteryPercent: Math.round(d.batteryPercent),
         charging: d.charging,
         temperatureC: d.temperatureC,
-        tokensPerSec: this.state.tokensPerSec,
+        tokensPerSec: this.state.model.kind === 'embedding' ? 0 : this.state.tokensPerSec,
         backend: this.engine.backend ?? '',
         maxContextTokens: this.engine.maxContextTokens,
       }),

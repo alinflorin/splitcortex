@@ -214,11 +214,16 @@ export type Node = z.infer<typeof nodeSchema>;
 export const modelStatusSchema = z.enum(['pending', 'downloading', 'uploading', 'ready', 'failed']);
 export type ModelStatus = z.infer<typeof modelStatusSchema>;
 
+/** `chat` generates text; `embedding` produces vectors (served at `/v1/embeddings`, in a pool of its own). */
+export const modelKindSchema = z.enum(['chat', 'embedding']);
+export type ModelKind = z.infer<typeof modelKindSchema>;
+
 export const modelSchema = z.object({
   id: z.string(),
   orgId: z.string(),
   name: z.string(),
   source: z.enum(['huggingface', 'upload']),
+  kind: modelKindSchema,
   sourceUrl: z.string().nullable(),
   fileName: z.string(),
   status: modelStatusSchema,

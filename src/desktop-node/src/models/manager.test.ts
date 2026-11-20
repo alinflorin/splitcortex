@@ -1,7 +1,7 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { describe, expect, it, vi } from 'vitest';
-import type { Engine } from '../engine/types';
+import type { Embedder, Engine } from '../engine/types';
 import { LogBuffer } from '../runtime/log';
 import type { ModelFiles } from './files';
 import { ModelManager, type ModelStatus } from './manager';
@@ -62,6 +62,17 @@ function setup(fileBytes: Uint8Array = FILE) {
     }),
     generate: vi.fn(),
   };
+  const embedder: Embedder = {
+    loaded: false,
+    dimension: 0,
+    load: vi.fn(async () => {
+      Object.assign(embedder, { loaded: true, dimension: 768 });
+    }),
+    unload: vi.fn(async () => {
+      Object.assign(embedder, { loaded: false, dimension: 0 });
+    }),
+    embed: vi.fn(),
+  };
   const ranges: string[] = [];
   const auth: string[] = [];
   const fetchFn = vi.fn(async (_url: string, init: RequestInit) => {
@@ -73,6 +84,7 @@ function setup(fileBytes: Uint8Array = FILE) {
   }) as unknown as typeof fetch;
   const mgr = new ModelManager({
     engine,
+    embedder,
     files,
     log: new LogBuffer(),
     baseUrl: 'https://web.test/api/',
@@ -81,7 +93,7 @@ function setup(fileBytes: Uint8Array = FILE) {
     onStatus: (s) => statuses.push(s),
     fetchFn,
   });
-  return { mgr, engine, statuses, ranges, auth, disk };
+  return { mgr, engine, embedder, statuses, ranges, auth, disk };
 }
 
 describe('ModelManager', () => {
@@ -144,5 +156,50 @@ describe('ModelManager', () => {
     await mgr.apply({ modelId: '', name: '', fileName: '', sizeBytes: 0, sha256: '' });
     expect(disk.size).toBe(0);
     expect(statuses.at(-1)).toMatchObject({ phase: 'none' });
+  });
+
+  it('loads an embedding model into the embedder, not the chat engine, and reports its dimension', async () => {
+    const { mgr, engine, embedder, statuses, disk } = setup();
+    disk.set('m1.litertlm', FILE);
+    disk.set('m1.ok', new Uint8Array([1]));
+    await mgr.apply(assignment({ kind: 'embedding' }));
+    expect(embedder.load).toHaveBeenCalledWith('m1.litertlm');
+    expect(engine.load).not.toHaveBeenCalled();
+    expect(statuses.at(-1)).toMatchObject({
+      phase: 'ready',
+      kind: 'embedding',
+      embeddingDimension: 768,
+    });
+  });
+
+  it('unloads the old engine first when the kind changes, in both directions', async () => {
+    const { mgr, engine, embedder } = setup();
+    await mgr.apply(assignment());
+    expect(engine.loaded).toBe(true);
+    await mgr.apply(assignment({ modelId: 'm2', kind: 'embedding' }));
+    expect(engine.loaded).toBe(false);
+    expect(embedder.loaded).toBe(true);
+    await mgr.apply(assignment({ modelId: 'm3', kind: 'chat' }));
+    expect(embedder.loaded).toBe(false);
+    expect(engine.loaded).toBe(true);
+  });
+
+  it('fails an embedding assignment on a node without an embedder', async () => {
+    const { disk, files } = memoryFiles();
+    disk.set('m1.litertlm', FILE);
+    disk.set('m1.ok', new Uint8Array([1]));
+    const statuses: ModelStatus[] = [];
+    const engine = { unload: vi.fn(), load: vi.fn(), loaded: false } as unknown as Engine;
+    const mgr = new ModelManager({
+      engine,
+      files,
+      log: new LogBuffer(),
+      baseUrl: 'https://web.test/api',
+      nodeId: 'n1',
+      privateKey: ed25519.utils.randomSecretKey(),
+      onStatus: (s) => statuses.push(s),
+    });
+    await mgr.apply(assignment({ kind: 'embedding' }));
+    expect(statuses.at(-1)).toMatchObject({ phase: 'failed', kind: 'embedding' });
   });
 });

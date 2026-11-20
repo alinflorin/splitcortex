@@ -40,6 +40,7 @@ const toDto = (m: typeof models.$inferSelect): ModelDto => ({
   orgId: m.orgId,
   name: m.name,
   source: m.source,
+  kind: m.kind,
   sourceUrl: m.sourceUrl,
   fileName: m.fileName,
   status: m.status,
@@ -167,6 +168,7 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
             orgId,
             name: req.body.name,
             source: 'huggingface',
+            kind: req.body.kind,
             sourceUrl,
             fileName,
             status: 'pending',
@@ -206,7 +208,7 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
       const { orgId } = req.params;
       await requireOrgRole(app, db, req, orgId, 'admin');
       const store = needStorage();
-      const { name, fileName, sizeBytes } = req.body;
+      const { name, kind, fileName, sizeBytes } = req.body;
       const id = randomUUID();
       const storageKey = `orgs/${orgId}/models/${id}/${fileName}`;
       try {
@@ -215,6 +217,7 @@ export const modelRoutes: FastifyPluginAsyncZod<{ db: Db; storage: ModelStorage 
           orgId,
           name,
           source: 'upload',
+          kind,
           fileName,
           sizeBytes,
           status: 'uploading',

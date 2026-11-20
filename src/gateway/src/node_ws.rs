@@ -164,6 +164,7 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
         modalities: Default::default(),
         config_sent: Default::default(),
         resuming: Default::default(),
+        restarting: Default::default(),
         since: std::time::Instant::now(),
     });
     let waiting = app.registry.register(conn.clone());
@@ -385,6 +386,20 @@ async fn handle(app: &Arc<AppState>, conn: &Arc<NodeConn>, e: Envelope) {
                 )
                 .await
         }
+        Some(Body::EmbeddingResult(r)) => {
+            let vectors = r.embeddings.into_iter().map(|e| e.values).collect();
+            app.registry
+                .deliver(
+                    node,
+                    &r.request_id,
+                    r.seq,
+                    NodeEvent::Embeddings {
+                        vectors,
+                        prompt_tokens: r.prompt_tokens,
+                    },
+                )
+                .await
+        }
         Some(Body::Resume(r)) => {
             let (resumed, unknown) = app.registry.resume(conn, &r.request_ids);
             conn.resuming.store(false, Ordering::Relaxed);
@@ -446,6 +461,7 @@ pub fn sync_assignment(app: &AppState, conn: &NodeConn) {
             file_name: m.file_name,
             size_bytes: m.size_bytes as u64,
             sha256: m.sha256.unwrap_or_default(),
+            kind: m.kind,
         },
         None => proto::ModelAssignment::default(),
     };

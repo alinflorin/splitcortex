@@ -120,6 +120,9 @@ async fn run_one(app: &Arc<AppState>, node_id: Uuid) -> Result<Measured, String>
             .and_then(|p| p.model.clone())
             .ok_or("The pool serves no model")?
     };
+    if model.kind == "embedding" {
+        return Err("Benchmarks measure text generation; this pool serves an embedding model".into());
+    }
     // Wait for the node to be idle and to have the model ready (it may be serving a customer request).
     let started = Instant::now();
     let conn = loop {
@@ -177,6 +180,7 @@ async fn run_one(app: &Arc<AppState>, node_id: Uuid) -> Result<Measured, String>
                     });
                 }
                 Ok(Some(NodeEvent::Error { message, .. })) => return Err(message),
+                Ok(Some(NodeEvent::Embeddings { .. })) => return Err("Unexpected answer from the node".into()),
                 Ok(Some(NodeEvent::Disconnected)) | Ok(None) => return Err("The node disconnected".into()),
                 Err(_) => return Err("The node took too long".into()),
             }

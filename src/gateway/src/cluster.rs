@@ -172,13 +172,14 @@ pub async fn max_context(app: &AppState, pools: &[Uuid]) -> Option<u32> {
 pub async fn forward_chat(
     app: &AppState,
     peer: &Peer,
+    path: &str,
     key_hash: &str,
     body: Bytes,
     lang: Lang,
 ) -> Result<Response, ()> {
     let req = Request::builder()
         .method("POST")
-        .uri(format!("http://{}/internal/v1/chat/completions", peer.address))
+        .uri(format!("http://{}{}", peer.address, path))
         .header(header::AUTHORIZATION, format!("Bearer {}", app.internal_token))
         .header("x-sc-key", key_hash)
         .header(header::ACCEPT_LANGUAGE, lang.tag())
@@ -200,6 +201,7 @@ pub fn internal_router(app: Arc<AppState>) -> Router {
     Router::new()
         .route("/healthz", get(|| async { "ok" }))
         .route("/internal/v1/chat/completions", post(internal_chat))
+        .route("/internal/v1/embeddings", post(internal_embeddings))
         .layer(axum::middleware::from_fn(openai::localize))
         .with_state(app)
 }
@@ -208,6 +210,17 @@ async fn internal_chat(
     State(app): State<Arc<AppState>>,
     request: axum::extract::Request,
 ) -> Result<Response, ApiError> {
+    internal(app, request, false).await
+}
+
+async fn internal_embeddings(
+    State(app): State<Arc<AppState>>,
+    request: axum::extract::Request,
+) -> Result<Response, ApiError> {
+    internal(app, request, true).await
+}
+
+async fn internal(app: Arc<AppState>, request: axum::extract::Request, embeddings: bool) -> Result<Response, ApiError> {
     let (parts, body) = request.into_parts();
     let headers = parts.headers;
     let token = headers
@@ -244,5 +257,10 @@ async fn internal_chat(
             Tr::new("request_too_large"),
         )
     })?;
-    openai::chat_core(&app, key, body, true, Lang::from_headers(&headers)).await
+    let lang = Lang::from_headers(&headers);
+    if embeddings {
+        openai::embeddings_core(&app, key, body, true, lang).await
+    } else {
+        openai::chat_core(&app, key, body, true, lang).await
+    }
 }

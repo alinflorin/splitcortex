@@ -1,6 +1,6 @@
 import i18n from 'i18next';
 import { nodeAuthorization } from '../protocol/handshake';
-import type { Engine } from '../engine/types';
+import type { Embedder, Engine } from '../engine/types';
 import type { LogBuffer } from '../runtime/log';
 import type { ModelFiles } from './files';
 
@@ -14,7 +14,11 @@ export interface Assignment {
   fileName: string;
   sizeBytes: number;
   sha256: string;
+  /** "" or "chat" (default) | "embedding": an embedding model goes to the embedder, never the chat engine. */
+  kind?: string;
 }
+
+export type ModelKind = 'chat' | 'embedding';
 
 export type ModelPhaseName = 'none' | 'downloading' | 'loading' | 'ready' | 'failed';
 export interface ModelStatus {
@@ -24,6 +28,10 @@ export interface ModelStatus {
   progressBytes: number;
   sizeBytes: number;
   error?: string;
+  /** Absent = chat. */
+  kind?: ModelKind;
+  /** Vector length while an embedding model is ready. */
+  embeddingDimension?: number;
 }
 export const NO_MODEL: ModelStatus = {
   phase: 'none',
@@ -35,6 +43,8 @@ export const NO_MODEL: ModelStatus = {
 
 export interface ModelManagerOptions {
   engine: Engine;
+  /** The embedding capability; without it an embedding assignment fails. */
+  embedder?: Embedder;
   files: ModelFiles;
   log: LogBuffer;
   /** Control plane base URL the device enrolled against (includes `/api`). */
@@ -83,14 +93,19 @@ export class ModelManager {
   }
 
   private async run(a: Assignment, signal: AbortSignal) {
-    const { log, engine, files } = this.o;
+    const { log, engine, files, embedder } = this.o;
+    const kind: ModelKind = a.kind === 'embedding' ? 'embedding' : 'chat';
+    // Only one kind of model is ever in memory: whichever is not wanted is unloaded first.
+    const other = () =>
+      kind === 'embedding' ? engine.unload() : (embedder?.unload() ?? Promise.resolve());
     if (signal.aborted) return;
     // Already serving exactly this model (a reconnect re-sends the assignment): just report it again.
     if (
       a.modelId &&
       this.status.modelId === a.modelId &&
       this.status.phase === 'ready' &&
-      engine.loaded
+      (this.status.kind ?? 'chat') === kind &&
+      (kind === 'embedding' ? embedder?.loaded : engine.loaded)
     ) {
       this.o.onStatus(this.status);
       return;
@@ -98,6 +113,7 @@ export class ModelManager {
     try {
       if (!a.modelId) {
         await engine.unload();
+        await embedder?.unload();
         await this.removeOthers('');
         this.status = NO_MODEL;
         this.o.onStatus(NO_MODEL);
@@ -107,8 +123,12 @@ export class ModelManager {
       const name = dataFile(a.modelId);
       const complete =
         (await files.size(doneMarker(a.modelId))) >= 0 && (await files.size(name)) === a.sizeBytes;
+      if (kind === 'embedding' && !embedder)
+        throw new Error('This node cannot serve embedding models');
+      await other();
       if (!complete) {
         await engine.unload();
+        await embedder?.unload();
         await this.removeOthers(a.modelId); // replace: the old model goes first, there may not be room for two
         await files.remove(doneMarker(a.modelId));
         await this.download(a, signal);
@@ -120,9 +140,12 @@ export class ModelManager {
         name: a.name,
         sizeBytes: a.sizeBytes,
         progressBytes: a.sizeBytes,
+        kind,
+        embeddingDimension: 0,
       });
       log.info(`Loading model ${a.name}`);
-      await engine.load(name);
+      if (kind === 'embedding' && embedder) await embedder.load(name);
+      else await engine.load(name);
       if (signal.aborted) return;
       this.set({
         phase: 'ready',
@@ -130,6 +153,8 @@ export class ModelManager {
         name: a.name,
         sizeBytes: a.sizeBytes,
         progressBytes: a.sizeBytes,
+        kind,
+        embeddingDimension: kind === 'embedding' ? (embedder?.dimension ?? 0) : 0,
       });
       log.info(`Model ${a.name} is ready`);
     } catch (e) {

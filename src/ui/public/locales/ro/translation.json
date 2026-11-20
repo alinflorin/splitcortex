@@ -510,7 +510,12 @@
     "inputs": "Acceptă",
     "inputText": "text",
     "input_image": "imagini",
-    "input_audio": "audio"
+    "input_audio": "audio",
+    "restart": "Repornește",
+    "restartTitle": "Repornești {{name}}?",
+    "restartMessage": "Aplicația de pe dispozitiv termină ce are de servit, apoi pornește din nou și se reconectează. Cererile care nu se termină într-un minut sunt oprite.",
+    "restartSent": "Repornirea a fost trimisă.",
+    "restartOffline": "Dispozitivul trebuie să fie online pentru a fi repornit."
   },
   "models": {
     "title": "Modele",
@@ -546,7 +551,12 @@
       "huggingface": "Hugging Face",
       "upload": "Încărcat"
     },
-    "subtitle": "Fișierele de model servite de pool-uri, de pe Hugging Face sau încărcate de tine."
+    "subtitle": "Fișierele de model servite de pool-uri, de pe Hugging Face sau încărcate de tine.",
+    "kind": "Tip",
+    "kindChat": "Conversație",
+    "kindEmbedding": "Embedding-uri",
+    "kindHint": "Modelele de conversație generează text. Modelele de embedding-uri transformă textul în vectori (pentru căutare și similaritate) și sunt servite la /v1/embeddings; dă-le un pool separat.",
+    "embeddingBadge": "Embedding-uri"
   },
   "apiKeys": {
     "title": "Chei API",
@@ -789,7 +799,8 @@
       "enrollment.create_bulk": "Coduri de înrolare create în masă",
       "enrollment.delete": "Cod de înrolare anulat",
       "benchmark.run": "Benchmark pornit",
-      "benchmark.delete": "Benchmark șters"
+      "benchmark.delete": "Benchmark șters",
+      "node.restart": "Repornire dispozitiv"
     }
   },
   "metrics": {

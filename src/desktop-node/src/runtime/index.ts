@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { ComputeEngine } from '../engine/compute';
+import { NativeEmbedder } from '../engine/embedder';
 import { NativeEngine } from '../engine/native';
 import { NativeModelFiles } from '../models/files';
 import { nativeHost } from './host';
@@ -12,6 +13,7 @@ export const runtime = new NodeRuntime(
   nativeHost(),
   undefined,
   () => modelFiles,
+  new NativeEmbedder(),
 );
 
 export const useRuntime = () => useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);

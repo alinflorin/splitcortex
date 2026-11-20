@@ -112,3 +112,11 @@ pub fn can_self_update() -> bool {
         true
     }
 }
+
+/// Restarts the app: a new process with the same arguments (so `--hidden` from autostart is kept) and the old one
+/// exits; the tray icon is removed on the way out and the new process sets it up again. Used for the remote restart
+/// the gateway asks for. The web side has already closed the gateway socket and unloaded the engines.
+#[tauri::command]
+pub fn restart_app(app: tauri::AppHandle) {
+    app.restart()
+}

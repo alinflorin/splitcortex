@@ -1,6 +1,13 @@
 import { existsSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { bin, MODEL, startServingNode, type ServingNode } from '../../src/serving-node.ts';
+import {
+  addPlaceholderEmbeddingPool,
+  bin,
+  MODEL,
+  PLACEHOLDER_EMBED_MODEL,
+  startServingNode,
+  type ServingNode,
+} from '../../src/serving-node.ts';
 import { signIn } from '../platform/support.ts';
 
 // The web app's Playground page: the user pastes an API key and chats with the pool through `/v1` on the app's own
@@ -70,4 +77,19 @@ test('chats with the pool through the app origin, streams the reply and keeps th
   await page.reload();
   await expect(page.getByLabel('Message')).toHaveCount(0);
   await expect(page.getByLabel(/API key/)).toHaveValue('');
+});
+
+test('lists chat models only, not the embedding models of the organisation', async ({ page }) => {
+  await addPlaceholderEmbeddingPool(node); // the key now also sees an embedding model
+  const key = await node.ws.apiKey();
+  await signIn(page);
+  await page.goto('/playground');
+  await page.getByLabel(/API key/).fill(key.secret);
+  await page.getByRole('button', { name: 'Connect' }).click();
+  const models = page.getByRole('combobox', { name: 'Model' });
+  await expect(models).toHaveValue(MODEL);
+  await models.click();
+  const options = await page.getByRole('option').allInnerTexts();
+  expect(options).toContain(MODEL);
+  expect(options).not.toContain(PLACEHOLDER_EMBED_MODEL);
 });

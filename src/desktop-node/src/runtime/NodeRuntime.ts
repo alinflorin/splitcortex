@@ -2,7 +2,8 @@ import { create } from '@bufbuild/protobuf';
 import { fromB64, toB64 } from '../enrollment/crypto';
 import { getOrCreateIdentity } from '../enrollment/identity';
 import { loadEnrollment, saveEnrollment } from '../enrollment/store';
-import type { ComputePrefs, TunableEngine } from '../engine/types';
+import type { ComputePrefs, Embedder, TunableEngine } from '../engine/types';
+import { EmbeddingInputError, embedTexts, kindOf } from '../engine/embedding';
 import { toChatMessage } from '../engine/messages';
 import { APP_VERSION } from '../lib/config';
 import { nativeHost, UNKNOWN_TELEMETRY, type Host } from './host';
@@ -10,11 +11,14 @@ import { NativeModelFiles, type ModelFiles } from '../models/files';
 import { ModelManager, NO_MODEL, type ModelStatus } from '../models/manager';
 import { GatewayConnection, type Body, type ConnectionState } from '../protocol/connection';
 import {
+  EmbeddingResultSchema,
+  EmbeddingSchema,
   InferenceChunkSchema,
   InferenceDoneSchema,
   InferenceErrorSchema,
   ModelPhase,
   ModelStateSchema,
+  type EmbeddingRequest,
   type NodeConfig,
   ResumeSchema,
   type ResumeAck,
@@ -38,6 +42,8 @@ export interface RuntimeState {
   maxContextTokens: number;
   /** Why it cannot run (not enrolled, waiting for approval, no gateway pinned). */
   blocked: 'not-enrolled' | 'not-approved' | 'no-gateway' | null;
+  /** A remote restart is under way: no new requests are taken, running ones finish (or are cut at the grace end). */
+  restarting: boolean;
 }
 
 const INITIAL: RuntimeState = {
@@ -51,6 +57,7 @@ const INITIAL: RuntimeState = {
   backend: null,
   maxContextTokens: 0,
   blocked: null,
+  restarting: false,
 };
 
 const PHASE: Record<ModelStatus['phase'], ModelPhase> = {
@@ -76,6 +83,10 @@ const OUTBOX_FRAMES = 20_000;
 const OUTBOX_KEEP_MS = 60_000;
 /** If the gateway has been unreachable this long, running requests are given up (the gateway fails them after 20 s). */
 const OFFLINE_ABORT_MS = 40_000;
+/** The longest grace a restart request may ask for (the gateway's own drain limit is one hour). */
+const MAX_RESTART_GRACE_S = 3600;
+/** After cancelling the requests at the end of the grace, how long to wait for the engine to let go of them. */
+const CANCEL_SETTLE_MS = 5_000;
 
 /**
  * The node's service: owns the gateway connection, the model on disk and the engine, and serves inference requests
@@ -99,12 +110,15 @@ export class NodeRuntime {
   private foregroundSub: (() => void) | null = null;
   private files: ModelFiles | null = null;
   private generation = 0; // guards async start() against a stop()/restart() that happened meanwhile
+  private remoteRestart: Promise<void> | null = null;
+  private embedQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly engine: TunableEngine,
     private readonly host: Host = nativeHost(),
     private readonly readSettings: () => Promise<NodeSettings> = loadSettings,
     private readonly makeFiles: () => ModelFiles = () => new NativeModelFiles(),
+    private readonly embedder?: Embedder,
   ) {
     engine.onLog = (m) => this.log.info(m);
   }
@@ -140,6 +154,7 @@ export class NodeRuntime {
     let pinned = enrollment.gateway;
     this.models = new ModelManager({
       engine: this.engine,
+      embedder: this.embedder,
       files: (this.files ??= this.makeFiles()),
       log: this.log,
       baseUrl: enrollment.enrollmentUrl,
@@ -201,6 +216,7 @@ export class NodeRuntime {
     this.active.clear();
     this.outbox.clear();
     await this.engine.unload();
+    await this.embedder?.unload();
     this.conn = null;
     this.models = null;
     this.set({ ...INITIAL, blocked: null });
@@ -234,6 +250,7 @@ export class NodeRuntime {
           fileName: a.fileName,
           sizeBytes: Number(a.sizeBytes),
           sha256: a.sha256,
+          kind: a.kind,
         });
         break;
       }
@@ -242,6 +259,12 @@ export class NodeRuntime {
         break;
       case 'inferenceRequest':
         void this.serve(b.value);
+        break;
+      case 'embeddingRequest':
+        this.queueEmbedding(b.value);
+        break;
+      case 'restart':
+        this.beginRemoteRestart(b.value.graceSeconds);
         break;
       case 'cancel':
         this.active.get(b.value.requestId)?.abort();
@@ -348,7 +371,9 @@ export class NodeRuntime {
         progressBytes: BigInt(Math.round(m.progressBytes)),
         error: m.error ?? '',
         // What the loaded model accepts besides text; the gateway routes media only to nodes that list it.
-        modalities: m.phase === 'ready' ? [...this.engine.modalities] : [],
+        modalities:
+          m.phase === 'ready' && kindOf(m.kind) === 'chat' ? [...this.engine.modalities] : [],
+        embeddingDimension: m.phase === 'ready' ? (m.embeddingDimension ?? 0) : 0,
       }),
     });
   }
@@ -361,6 +386,12 @@ export class NodeRuntime {
         case: 'inferenceError',
         value: create(InferenceErrorSchema, { requestId: id, code, message, seq }),
       }));
+    if (this.state.restarting)
+      return this.finishBox(id, () => fail('restarting', 'The node is restarting'));
+    if (kindOf(this.state.model.kind) === 'embedding')
+      return this.finishBox(id, () =>
+        fail('wrong_model_kind', 'This pool serves an embedding model, not a chat model'),
+      );
     if (this.state.inFlight > 0)
       return this.finishBox(id, () => fail('busy', 'The node is already generating'));
     if (req.modelId !== this.state.model.modelId || this.state.model.phase !== 'ready') {
@@ -368,7 +399,7 @@ export class NodeRuntime {
     }
     const ctl = new AbortController();
     this.active.set(id, ctl);
-    this.set({ inFlight: 1 });
+    this.set({ inFlight: this.active.size });
     const started = Date.now();
     let pieces = 0;
     try {
@@ -413,8 +444,138 @@ export class NodeRuntime {
       fail('engine_error', 'The engine failed to answer');
     } finally {
       this.active.delete(id);
-      this.set({ inFlight: 0 });
+      this.set({ inFlight: this.active.size });
       this.finishBox(id);
+    }
+  }
+
+  /** Embedding requests run one after the other (the engine does one at a time); the gateway may send several. */
+  private queueEmbedding(req: EmbeddingRequest) {
+    const id = req.requestId;
+    this.outbox.set(id, { seq: 0, frames: [], finishedAt: null });
+    const fail = (code: string, message: string) =>
+      this.emit(id, (seq) => ({
+        case: 'inferenceError',
+        value: create(InferenceErrorSchema, { requestId: id, code, message, seq }),
+      }));
+    if (this.state.restarting)
+      return this.finishBox(id, () => fail('restarting', 'The node is restarting'));
+    const model = this.state.model;
+    if (kindOf(model.kind) !== 'embedding')
+      return this.finishBox(id, () =>
+        fail('wrong_model_kind', 'This pool serves a chat model, not an embedding model'),
+      );
+    if (req.modelId !== model.modelId || model.phase !== 'ready' || !this.embedder?.loaded)
+      return this.finishBox(id, () => fail('model_not_ready', 'The requested model is not loaded'));
+    const ctl = new AbortController();
+    this.active.set(id, ctl);
+    this.set({ inFlight: this.active.size });
+    this.embedQueue = this.embedQueue.then(() => this.serveEmbedding(req, ctl.signal, fail));
+  }
+
+  private async serveEmbedding(
+    req: EmbeddingRequest,
+    signal: AbortSignal,
+    fail: (code: string, message: string) => void,
+  ) {
+    const id = req.requestId;
+    try {
+      if (signal.aborted) return;
+      const started = Date.now();
+      const { vectors, promptTokens } = await embedTexts(
+        this.embedder!,
+        req.inputs,
+        req.task,
+        req.dimensions,
+      );
+      if (signal.aborted) return; // cancelled while computing: nothing more to say
+      this.emit(id, (seq) => ({
+        case: 'embeddingResult',
+        value: create(EmbeddingResultSchema, {
+          requestId: id,
+          embeddings: vectors.map((values) => create(EmbeddingSchema, { values })),
+          promptTokens,
+          seq,
+        }),
+      }));
+      this.set({ requestsServed: this.state.requestsServed + 1 });
+      this.log.info(
+        `Embedding request served: ${vectors.length} input(s) in ${((Date.now() - started) / 1000).toFixed(1)} s`,
+      );
+    } catch (e) {
+      if (e instanceof EmbeddingInputError) {
+        fail('invalid_request', e.message);
+      } else {
+        this.log.error(`Embedding failed: ${e instanceof Error ? e.message : String(e)}`);
+        fail('engine_error', 'The engine failed to embed the input');
+      }
+    } finally {
+      this.active.delete(id);
+      this.set({ inFlight: this.active.size });
+      this.finishBox(id);
+    }
+  }
+
+  /**
+   * The gateway asked for a restart (an admin pressed it in the web app; it has already stopped routing to this node).
+   * Stop taking requests, let the running ones finish for up to `graceSeconds`, cut what is left, close the socket and
+   * start the app again. Idempotent while one is under way.
+   */
+  private beginRemoteRestart(graceSeconds: number) {
+    if (this.remoteRestart) return;
+    const run = this.drainAndRestart(Math.min(Math.max(graceSeconds, 0), MAX_RESTART_GRACE_S));
+    this.remoteRestart = run.finally(() => {
+      this.remoteRestart = null;
+    });
+  }
+
+  /** Resolves true once nothing is running, false when `ms` ran out first. */
+  private waitForIdle(ms: number): Promise<boolean> {
+    if (this.active.size === 0) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      const done = (idle: boolean) => {
+        clearInterval(poll);
+        clearTimeout(limit);
+        resolve(idle);
+      };
+      const poll = setInterval(() => this.active.size === 0 && done(true), 50);
+      const limit = setTimeout(() => done(false), ms);
+    });
+  }
+
+  private async drainAndRestart(graceSeconds: number) {
+    this.log.info(`Restart requested: finishing running requests first (up to ${graceSeconds} s)`);
+    this.set({ restarting: true });
+    if (!(await this.waitForIdle(graceSeconds * 1000))) {
+      this.log.warn('Grace period over: cancelling the running requests');
+      for (const [id, ctl] of this.active) {
+        ctl.abort();
+        // The gateway then fails or retries the request instead of waiting for the dropped socket.
+        this.emit(id, (seq) => ({
+          case: 'inferenceError',
+          value: create(InferenceErrorSchema, {
+            requestId: id,
+            code: 'restarting',
+            message: 'The node is restarting',
+            seq,
+          }),
+        }));
+      }
+      await this.waitForIdle(CANCEL_SETTLE_MS);
+    }
+    this.conn?.stop(); // closes the socket cleanly (the gateway sees a normal close, not a lost node)
+    this.models?.stop();
+    try {
+      await this.engine.unload();
+      await this.embedder?.unload();
+      this.log.info('Restarting the app');
+      await this.host.restartApp();
+    } catch (e) {
+      // This installation cannot restart its process (e.g. not the packaged app): start the service again instead.
+      this.log.warn(
+        `Could not restart the app (${e instanceof Error ? e.message : String(e)}): restarting the service`,
+      );
+      await this.restart();
     }
   }
 

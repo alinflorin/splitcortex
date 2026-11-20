@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Outlet, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -167,6 +167,35 @@ describe('node view', () => {
     );
   });
 
+  it('lets an admin restart an online node after confirming, and not an offline one', async () => {
+    const calls = stubApi({
+      'GET /api/organisations/o1/nodes/n1': node(),
+      'POST /api/organisations/o1/nodes/n1/restart': { id: 'c1' },
+    });
+    const user = userEvent.setup();
+    await inOrg('admin', '/nodes/:nodeId', <NodePage />);
+    await user.click(await screen.findByRole('button', { name: 'Restart' }));
+    expect(calls.some((c) => c.key.endsWith('/restart'))).toBe(false); // asks first
+    const dialog = await screen.findByRole('alertdialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Restart' }));
+    await waitFor(() =>
+      expect(calls.some((c) => c.key === 'POST /api/organisations/o1/nodes/n1/restart')).toBe(true),
+    );
+  });
+
+  it('disables restart for an offline node', async () => {
+    stubApi({ 'GET /api/organisations/o1/nodes/n1': node({ status: 'offline', live: null }) });
+    await inOrg('admin', '/nodes/:nodeId', <NodePage />);
+    expect(await screen.findByRole('button', { name: 'Restart' })).toBeDisabled();
+  });
+
+  it('hides restart from plain members', async () => {
+    stubApi({ 'GET /api/organisations/o1/nodes/n1': node() });
+    await inOrg('member', '/nodes/:nodeId', <NodePage />);
+    expect(await screen.findByLabelText('Compute backend')).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Restart' })).not.toBeInTheDocument();
+  });
+
   it('hides actions from plain members and shows an offline explanation', async () => {
     stubApi({ 'GET /api/organisations/o1/nodes/n1': node({ status: 'offline', live: null }) });
     await inOrg('member', '/nodes/:nodeId', <NodePage />);
@@ -204,6 +233,7 @@ const model = (over: Partial<Model> = {}): Model => ({
   orgId: 'o1',
   name: 'Gemma 3n',
   source: 'huggingface',
+  kind: 'chat',
   sourceUrl: 'https://huggingface.co/a/b/resolve/main/g.litertlm',
   fileName: 'g.litertlm',
   status: 'ready',
@@ -258,7 +288,31 @@ describe('models page', () => {
       ).toEqual({
         name: 'Gemma',
         url: 'https://huggingface.co/a/b/blob/main/g.litertlm',
+        kind: 'chat',
       }),
+    );
+  });
+
+  it('adds an embedding model and marks it on its card', async () => {
+    const calls = stubApi({
+      'GET /api/organisations/o1/models': [model({ id: 'e1', name: 'Embed', kind: 'embedding' })],
+      'POST /api/organisations/o1/models/from-url': model({ kind: 'embedding', status: 'pending' }),
+    });
+    const user = userEvent.setup();
+    await inOrg('admin', '/', <ModelsPage />);
+    expect(await screen.findByText(/^Embeddings ·/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add model' }));
+    await user.type(await screen.findByLabelText(/^Name/), 'EmbeddingGemma');
+    await user.type(
+      screen.getByLabelText(/Hugging Face link/),
+      'https://huggingface.co/a/b/resolve/main/e.litertlm',
+    );
+    await user.click(screen.getByRole('radio', { name: 'Embeddings' }));
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    await waitFor(() =>
+      expect(
+        calls.find((c) => c.key === 'POST /api/organisations/o1/models/from-url')?.body,
+      ).toMatchObject({ name: 'EmbeddingGemma', kind: 'embedding' }),
     );
   });
 

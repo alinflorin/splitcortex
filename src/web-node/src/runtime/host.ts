@@ -24,6 +24,21 @@ export interface Host {
   /** Calls back when the tab becomes visible again or the network returns (a good moment to reconnect at once). */
   onForeground(cb: () => void): () => void;
   telemetry(): Promise<DeviceTelemetry>;
+  /** Starts this app again (here: reloads the tab into the same enrolled state; it serves again once it is back). */
+  restartApp(): void;
+}
+
+/** Set before a remote restart reloads the tab: the reloaded page serves again even if "connect on start" is off. */
+const RESTARTED = 'sc-node-restarted';
+/** True once after a remote restart (and forgets it). */
+export function consumeRestarted(): boolean {
+  try {
+    const was = sessionStorage.getItem(RESTARTED) === '1';
+    sessionStorage.removeItem(RESTARTED);
+    return was;
+  } catch {
+    return false;
+  }
 }
 
 interface BatteryManager {
@@ -72,6 +87,14 @@ export const browserHost: Host = (() => {
         document.removeEventListener('visibilitychange', onVisible);
         window.removeEventListener('online', cb);
       };
+    },
+    restartApp() {
+      try {
+        sessionStorage.setItem(RESTARTED, '1');
+      } catch {
+        // storage blocked: the tab still reloads and follows its own settings
+      }
+      location.reload();
     },
     async telemetry() {
       const t = { ...UNKNOWN_TELEMETRY };

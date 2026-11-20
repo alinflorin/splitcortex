@@ -117,6 +117,7 @@ describe('node model downloads', () => {
       {
         id: m.id,
         name: 'gemma',
+        kind: 'chat',
         fileName: 'gemma.litertlm',
         sizeBytes: SIZE,
         sha256: 'ab'.repeat(32),

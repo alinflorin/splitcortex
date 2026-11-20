@@ -25,6 +25,11 @@ pub enum NodeEvent {
     Done {
         finish_reason: String,
     },
+    /// The answer to an embedding request (one vector per input, in order); the request is over.
+    Embeddings {
+        vectors: Vec<Vec<f32>>,
+        prompt_tokens: u32,
+    },
     Error {
         code: String,
         message: String,
@@ -149,6 +154,8 @@ pub struct NodeConn {
     /// The node reconnected while requests of its previous connection wait to be resumed: no new request is sent to it
     /// until it lists what it still holds (or a few seconds pass).
     pub resuming: std::sync::atomic::AtomicBool,
+    /// The gateway told the node to restart: nothing new is routed to it (what it already runs may finish).
+    pub restarting: std::sync::atomic::AtomicBool,
     /// When this connection was accepted.
     pub since: std::time::Instant,
     /// Measured speed and failure rate of the node (shared by its successive connections).
@@ -511,6 +518,7 @@ fn eligible(c: &NodeConn, org: Uuid, pool: Uuid, model: Uuid, need: u32, mods: u
         && c.pool_id == pool
         && c.load() < c.capacity
         && !c.resuming.load(Ordering::Relaxed)
+        && !c.restarting.load(Ordering::Relaxed)
         && *c.ready_model.lock().unwrap() == Some(model)
         && fits(c, need)
         && c.modalities.load(Ordering::Relaxed) & mods == mods
@@ -545,8 +553,22 @@ mod tests {
             modalities: Default::default(),
             config_sent: Default::default(),
             resuming: Default::default(),
+            restarting: Default::default(),
             since: std::time::Instant::now(),
         })
+    }
+
+    #[test]
+    fn a_restarting_node_gets_no_new_requests() {
+        let (org, pool, model) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let reg = Registry::default();
+        let a = conn(org, pool, Some(model));
+        reg.register(a.clone());
+        assert!(reg.pick(org, pool, model, 0, 0, "weighted_p2c", &[]).is_some());
+        a.in_flight.store(0, Ordering::Relaxed);
+        a.restarting.store(true, Ordering::Relaxed);
+        assert!(reg.pick(org, pool, model, 0, 0, "weighted_p2c", &[]).is_none());
+        assert!(reg.has_ready(org, pool, model)); // still counted as holding the model
     }
 
     #[test]

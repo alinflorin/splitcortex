@@ -74,6 +74,22 @@ export interface Engine {
   ): Promise<GenerateResult>;
 }
 
+/**
+ * The second capability of the engine: turns text into vectors (LiteRT-LM's embedding engine, a different model file
+ * than the chat engine). The node never holds both a chat model and an embedding model. Prefixes, dimension
+ * truncation and ordering are the node's job and live in `embedding.ts`, not here.
+ */
+export interface Embedder {
+  /** Loads the embedding `.litertlm` stored under this name (replacing any loaded model). */
+  load(name: string): Promise<void>;
+  unload(): Promise<void>;
+  readonly loaded: boolean;
+  /** The length of the vectors the loaded model produces (0 when nothing is loaded). */
+  readonly dimension: number;
+  /** One full-length vector per input, same order. Inputs are embedded as given (already prefixed). */
+  embed(inputs: string[]): Promise<{ vectors: number[][]; promptTokens: number }>;
+}
+
 /** The engine plus the policy that picks its settings: admin override, else the device's own setting, else automatic. */
 export interface TunableEngine extends Engine {
   /** Where the engine reports what it decided (shown on the Logs screen). */

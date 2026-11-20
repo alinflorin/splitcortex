@@ -6,8 +6,10 @@
 //! separate on purpose, so a fix to one must be made in the other. **Not run against a real model yet.**
 
 pub mod compute;
+pub mod embed;
 mod ffi;
 
+use embed::{EmbedError, Embedder};
 use ffi::{Api, Handle};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -36,10 +38,29 @@ impl Drop for Loaded {
     }
 }
 
+/// A loaded embedding model (the library's embedding engine, never the chat engine) and the length of its vectors.
+struct LoadedEmbed {
+    api: Arc<Api>,
+    engine: Handle,
+    options: Handle,
+    dimension: u32,
+}
+unsafe impl Send for LoadedEmbed {}
+impl Drop for LoadedEmbed {
+    fn drop(&mut self) {
+        unsafe {
+            (self.api.emb_options_delete)(self.options);
+            (self.api.emb_engine_delete)(self.engine);
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Engine {
     api: Mutex<Option<Arc<Api>>>,
     loaded: Mutex<Option<Loaded>>,
+    /// At most one of `loaded` and `embedder` is set: a pool serves one kind of model.
+    embedder: Mutex<Option<LoadedEmbed>>,
     /// The loaded model takes image and audio input.
     media: AtomicBool,
 }
@@ -447,7 +468,76 @@ impl Engine {
     /// Waits for a running generation to end (it holds the lock), then deletes the engine.
     pub fn unload(&self) {
         *self.loaded.lock().unwrap_or_else(|x| x.into_inner()) = None;
+        *self.embedder.lock().unwrap_or_else(|x| x.into_inner()) = None;
         self.media.store(false, Ordering::SeqCst);
+    }
+
+    /// Loads an embedding model into the embedding engine (unloading whatever is loaded first, for the memory) and
+    /// returns the length of its vectors. `backend` is `cpu` or `gpu`.
+    pub fn load_embedding(
+        &self,
+        path: &Path,
+        backend: &str,
+        cache_dir: &Path,
+    ) -> Result<u32, String> {
+        if backend != "cpu" && backend != "gpu" {
+            return Err("backend must be cpu or gpu".into());
+        }
+        if !path.exists() {
+            return Err("the model file does not exist".into());
+        }
+        let api = self.api()?;
+        std::fs::create_dir_all(cache_dir).map_err(|e| e.to_string())?;
+        self.unload();
+        let (path, backend, cache) = (
+            cstr(&path.to_string_lossy())?,
+            cstr(backend)?,
+            cstr(&cache_dir.to_string_lossy())?,
+        );
+        unsafe {
+            let mut settings: Handle = ptr::null_mut();
+            let st = (api.emb_settings_create)(
+                path.as_ptr(),
+                backend.as_ptr(),
+                ptr::null(),
+                ptr::null(),
+                &mut settings,
+            );
+            if st != 0 {
+                return Err(api.error("embedding engine settings", st));
+            }
+            let _ = (api.emb_settings_cache_dir)(settings, cache.as_ptr());
+            let mut engine: Handle = ptr::null_mut();
+            let st = (api.emb_engine_create)(settings, &mut engine);
+            (api.emb_settings_delete)(settings);
+            if st != 0 {
+                return Err(api.error("embedding model load", st));
+            }
+            let mut options: Handle = ptr::null_mut();
+            let st = (api.emb_options_create)(&mut options);
+            if st != 0 {
+                (api.emb_engine_delete)(engine);
+                return Err(api.error("embedding options", st));
+            }
+            // Unit-length vectors (the default, stated), and a text longer than the model takes is an error, not a
+            // silently shortened or averaged one.
+            (api.emb_options_normalize)(options, true);
+            (api.emb_options_overflow)(options, ffi::OVERFLOW_ERROR);
+            let mut loaded = LoadedEmbed {
+                api: api.clone(),
+                engine,
+                options,
+                dimension: 0,
+            };
+            loaded.dimension = match embedding_dimension(&api, &path) {
+                Some(d) => d,
+                // The file's metadata does not say: embed one text and count.
+                None => probe_dimension(&loaded)?,
+            };
+            let dimension = loaded.dimension;
+            *self.embedder.lock().unwrap_or_else(|x| x.into_inner()) = Some(loaded);
+            Ok(dimension)
+        }
     }
 
     /// The inputs besides text the loaded model accepts (`image`, `audio`; none when text only or nothing is loaded).
@@ -466,6 +556,128 @@ impl Engine {
         let guard = self.loaded.lock().unwrap_or_else(|x| x.into_inner());
         let loaded = guard.as_ref().ok_or("no model is loaded")?;
         run_generation(&loaded.api, loaded.engine, req, cancel, on_text)
+    }
+}
+
+/// The vector length the model file declares (`None` when it does not say).
+fn embedding_dimension(api: &Arc<Api>, path: &CString) -> Option<u32> {
+    unsafe {
+        let mut file: Handle = ptr::null_mut();
+        if (api.loaded_file_create)(path.as_ptr(), &mut file) != 0 {
+            return None;
+        }
+        let mut dim: i32 = 0;
+        let st = (api.loaded_file_embedding_dimension)(file, &mut dim);
+        (api.loaded_file_delete)(file);
+        (st == 0 && dim > 0).then_some(dim as u32)
+    }
+}
+
+fn probe_dimension(l: &LoadedEmbed) -> Result<u32, String> {
+    let v = compute_embeddings(l, &["probe".to_string()]).map_err(|e| e.message)?;
+    match v.first() {
+        Some(v) if !v.is_empty() => Ok(v.len() as u32),
+        _ => Err("the embedding model returned an empty vector".into()),
+    }
+}
+
+/// Embeds every text in one batch call. Texts go in as they are (the caller has written the task prefix).
+fn compute_embeddings(l: &LoadedEmbed, texts: &[String]) -> Result<Vec<Vec<f32>>, EmbedError> {
+    let api = &l.api;
+    let fail = |what: &str, st: ffi::Status| {
+        let message = api.error(what, st);
+        if st == ffi::STATUS_INVALID_ARGUMENT || st == ffi::STATUS_OUT_OF_RANGE {
+            EmbedError::bad_input(message)
+        } else {
+            EmbedError::engine(message)
+        }
+    };
+    // One input per batch item. The input data owns a copy of the text.
+    let mut data: Vec<Handle> = Vec::with_capacity(texts.len());
+    let free = |data: &mut Vec<Handle>| {
+        for h in data.drain(..) {
+            unsafe { (api.input_delete)(h) };
+        }
+    };
+    for t in texts {
+        let mut h: Handle = ptr::null_mut();
+        let st = unsafe {
+            (api.input_create)(
+                ffi::INPUT_TEXT,
+                t.as_ptr() as *const c_void,
+                t.len(),
+                &mut h,
+            )
+        };
+        if st != 0 {
+            free(&mut data);
+            return Err(fail("embedding input", st));
+        }
+        data.push(h);
+    }
+    let items: Vec<*const c_void> = data.iter().map(|h| *h as *const c_void).collect();
+    let batch: Vec<*const *const c_void> = (0..items.len())
+        .map(|i| unsafe { items.as_ptr().add(i) })
+        .collect();
+    let counts = vec![1usize; texts.len()];
+    let mut responses: Handle = ptr::null_mut();
+    let st = unsafe {
+        (api.emb_compute_batch)(
+            l.engine,
+            batch.as_ptr(),
+            counts.as_ptr(),
+            texts.len(),
+            l.options,
+            &mut responses,
+        )
+    };
+    free(&mut data);
+    if st != 0 {
+        return Err(fail("embedding", st));
+    }
+    let result = (|| unsafe {
+        let mut n = 0usize;
+        let st = (api.emb_responses_size)(responses, &mut n);
+        if st != 0 {
+            return Err(fail("embedding result", st));
+        }
+        let mut out = Vec::with_capacity(n);
+        for i in 0..n {
+            let mut r: Handle = ptr::null_mut();
+            let st = (api.emb_responses_at)(responses, i, &mut r);
+            if st != 0 {
+                return Err(fail("embedding result", st));
+            }
+            let (mut len, mut vals) = (0usize, ptr::null::<f32>());
+            let st = (api.emb_response_size)(r, &mut len);
+            if st != 0 {
+                return Err(fail("embedding result", st));
+            }
+            let st = (api.emb_response_values)(r, &mut vals);
+            if st != 0 || (vals.is_null() && len > 0) {
+                return Err(fail("embedding result", st));
+            }
+            // The response owns the floats and dies with the collection: copy them out.
+            out.push(if len == 0 {
+                Vec::new()
+            } else {
+                std::slice::from_raw_parts(vals, len).to_vec()
+            });
+        }
+        Ok(out)
+    })();
+    unsafe { (api.emb_responses_delete)(responses) };
+    result
+}
+
+impl Embedder for Engine {
+    fn embed_batch(&self, texts: &[String]) -> Result<Vec<Vec<f32>>, EmbedError> {
+        // The embedding holds the lock for its whole run: unload waits for it.
+        let guard = self.embedder.lock().unwrap_or_else(|x| x.into_inner());
+        let loaded = guard
+            .as_ref()
+            .ok_or_else(|| EmbedError::engine("no embedding model is loaded"))?;
+        compute_embeddings(loaded, texts)
     }
 }
 

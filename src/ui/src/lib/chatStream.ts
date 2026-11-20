@@ -42,6 +42,8 @@ const modelsSchema = z.object({
   data: z.array(
     z.object({
       id: z.string(),
+      /** Not part of the OpenAI format: `embedding` models are served at `/v1/embeddings`, not in a chat. */
+      kind: z.enum(['chat', 'embedding']).nullish(),
       context_length: z.number().nullish(),
       input_modalities: z.array(z.string()).nullish(),
       /** Most media bytes (decoded) one request may carry. */
@@ -72,7 +74,8 @@ async function failure(res: Response): Promise<GatewayError> {
 export async function listModels(baseUrl: string, key: string, signal?: AbortSignal) {
   const res = await fetch(`${baseUrl}/models`, { headers: headers(key), signal });
   if (!res.ok) throw await failure(res);
-  return modelsSchema.parse(await res.json()).data;
+  // The Playground chats; embedding models have nothing to say.
+  return modelsSchema.parse(await res.json()).data.filter((m) => m.kind !== 'embedding');
 }
 
 /**

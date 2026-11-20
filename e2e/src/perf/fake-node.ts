@@ -4,10 +4,12 @@ import { chacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { hkdf } from '@noble/hashes/hkdf.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import {
   ClientAuthSchema,
   ClientHelloSchema,
+  EmbeddingResultSchema,
+  EmbeddingSchema,
   EnvelopeSchema,
   InferenceChunkSchema,
   InferenceDoneSchema,
@@ -16,6 +18,7 @@ import {
   PongSchema,
   ResumeSchema,
   TelemetrySchema,
+  type EmbeddingRequest,
   type Envelope,
   type InferenceRequest,
 } from './gen/splitcortex/node/v1/node_pb.ts';
@@ -117,7 +120,30 @@ export interface SimOptions {
   firstTokenDelayMs: number;
   /** Pieces per answer when the request sets no max_tokens. */
   defaultTokens: number;
+  /** Time to "embed" a request (any number of inputs), ms. */
+  embedDelayMs?: number;
+  /** Pause between the close and the new connection of a restart, ms (an app starting again). Default 500. */
+  restartDelayMs?: number;
 }
+/** Length of the fake embedding vectors (the node reports it in `ModelState.embedding_dimension`). */
+export const SIM_EMBEDDING_DIMENSION = 64;
+
+/**
+ * A deterministic unit vector for `text` under `task`: the same pair always gives the same vector, a different text or
+ * task gives a different one, `dimensions` (0 = all) truncates and renormalises like a real Matryoshka model.
+ */
+export function fakeEmbedding(text: string, task: string, dimensions = 0): number[] {
+  const full = SIM_EMBEDDING_DIMENSION;
+  const v: number[] = [];
+  for (let block = 0; v.length < full; block++) {
+    const h = createHash('sha256').update(`${task}\n${text.trim()}\n${block}`).digest();
+    for (const byte of h) v.push((byte - 127.5) / 127.5);
+  }
+  const cut = v.slice(0, dimensions > 0 && dimensions < full ? dimensions : full);
+  const norm = Math.sqrt(cut.reduce((s, x) => s + x * x, 0)) || 1;
+  return cut.map((x) => x / norm);
+}
+
 export const DEFAULT_SIM: SimOptions = {
   tokenIntervalMs: 20,
   firstTokenDelayMs: 50,
@@ -132,14 +158,25 @@ export class SimNode {
   /** Requests served to the end, and the pieces they carried (the numbers the metering must agree with). */
   served = 0;
   pieces = 0;
-  private ws: WebSocket;
+  /** How many times the gateway asked this node to restart (it closed and reconnected each time). */
+  restarts = 0;
+  /** Input tokens of the embedding requests served (what the gateway's metering must agree with). */
+  embeddedTokens = 0;
+  private ws!: WebSocket;
   private nonce = randomBytes(32);
   private stage: 'hello' | 'auth' | 'open' = 'hello';
   private modelId = '';
+  private modelKind = '';
+  private stopped = false;
+  private restarting = false;
   private cancelled = new Set<string>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private onUp!: () => void;
   private onFail!: (e: Error) => void;
+  get nodeId(): string {
+    return this.e.nodeId;
+  }
+
   /** Called when the socket closes (dropped by the gateway, killed, or stopped). */
   onClose: () => void = () => {};
 
@@ -152,29 +189,47 @@ export class SimNode {
       this.onFail = rej;
     });
     this.connected.catch(() => {});
-    this.ws = new WebSocket(e.gatewayUrl);
-    this.ws.binaryType = 'arraybuffer';
-    this.ws.onopen = () =>
+    this.open();
+  }
+
+  private open() {
+    this.nonce = randomBytes(32);
+    this.stage = 'hello';
+    this.ws = new WebSocket(this.e.gatewayUrl);
+    const ws = this.ws;
+    ws.binaryType = 'arraybuffer';
+    ws.onopen = () =>
       this.raw({
         case: 'clientHello',
         value: create(ClientHelloSchema, {
           protocolVersion: 1,
-          nodeId: e.nodeId,
+          nodeId: this.e.nodeId,
           nonce: this.nonce,
           appVersion: 'perf-sim',
         }),
       });
-    this.ws.onmessage = (m) => this.onMessage(new Uint8Array(m.data as ArrayBuffer));
-    this.ws.onerror = () => this.onFail(new Error('node socket error'));
-    this.ws.onclose = () => {
+    ws.onmessage = (m) => this.onMessage(new Uint8Array(m.data as ArrayBuffer));
+    ws.onerror = () => this.onFail(new Error('node socket error'));
+    ws.onclose = () => {
       this.onFail(new Error('node socket closed'));
       if (this.timer) clearInterval(this.timer);
+      if (this.restarting && !this.stopped) {
+        // A restart: the app starts again and reconnects with fresh state.
+        this.restarting = false;
+        this.modelId = '';
+        this.modelKind = '';
+        setTimeout(() => {
+          if (!this.stopped) this.open();
+        }, this.sim.restartDelayMs ?? 500);
+        return;
+      }
       this.onClose();
     };
   }
 
   /** Drops the connection without a goodbye (a phone losing the network). */
   kill() {
+    this.stopped = true;
     this.ws.close();
   }
 
@@ -220,7 +275,17 @@ export class SimNode {
         break;
       case 'modelAssignment':
         this.modelId = body.value.modelId;
+        this.modelKind = body.value.kind;
         if (this.modelId) this.modelState(ModelPhase.READY);
+        break;
+      case 'embeddingRequest':
+        void this.embed(body.value);
+        break;
+      case 'restart':
+        // Finish nothing (the simulated work is short), close cleanly and come back, like a node that restarts its app.
+        this.restarts += 1;
+        this.restarting = true;
+        this.ws.close();
         break;
       case 'inferenceRequest':
         void this.serve(body.value);
@@ -236,7 +301,14 @@ export class SimNode {
   private modelState(phase: ModelPhase) {
     this.raw({
       case: 'modelState',
-      value: create(ModelStateSchema, { modelId: this.modelId, phase }),
+      value: create(ModelStateSchema, {
+        modelId: this.modelId,
+        phase,
+        embeddingDimension:
+          this.modelKind === 'embedding' && phase === ModelPhase.READY
+            ? SIM_EMBEDDING_DIMENSION
+            : 0,
+      }),
     });
   }
 
@@ -253,6 +325,25 @@ export class SimNode {
         maxContextTokens: 4096,
       }),
     });
+  }
+
+  private async embed(req: EmbeddingRequest) {
+    await sleep(this.sim.embedDelayMs ?? 5);
+    if (this.ws.readyState !== WebSocket.OPEN) return;
+    const promptTokens = req.inputs.reduce((n, s) => n + Math.ceil(s.length / 4), 0);
+    this.raw({
+      case: 'embeddingResult',
+      value: create(EmbeddingResultSchema, {
+        requestId: req.requestId,
+        embeddings: req.inputs.map((text) =>
+          create(EmbeddingSchema, { values: fakeEmbedding(text, req.task, req.dimensions) }),
+        ),
+        promptTokens,
+        seq: 1,
+      }),
+    });
+    this.served += 1;
+    this.embeddedTokens += promptTokens;
   }
 
   private fail(reason: string) {

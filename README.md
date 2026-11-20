@@ -15,7 +15,7 @@ SplitCortex is a SaaS platform that turns idle compute (phones, Raspberry Pis, l
 
 - You create an **organisation**, add **pools** and enroll **devices** into them. A pool serves exactly one model, and every device in it holds a full copy.
 - Devices connect **outbound** to the gateway, so NAT and mobile networks are not a problem. Enrollment is a short one-time code (or QR) created in the web app and typed or scanned on the device.
-- Clients call the gateway with an **API key** (`/v1/chat/completions`, `/v1/models`), only changing base URL and key. The gateway checks limits, picks a healthy node in the pool, and meters tokens.
+- Clients call the gateway with an **API key** (`/v1/chat/completions`, `/v1/embeddings`, `/v1/models`), only changing base URL and key. The gateway checks limits, picks a healthy node in the pool, and meters tokens.
 - The web app shows usage, node health, models, API keys, limits, benchmarks, live metrics per organisation, pool and device (kept 7 days), and an audit log, and has a Playground to chat with a pool.
 
 The business model is bring-your-own-devices SaaS: customers supply the compute, we run the control plane and gateway. No marketplace or payouts (reasoning in [Business model](#business-model)).

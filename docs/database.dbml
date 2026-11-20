@@ -24,6 +24,11 @@ Enum model_source {
   upload
 }
 
+Enum model_kind {
+  chat
+  embedding
+}
+
 Enum model_status {
   pending
   downloading
@@ -107,6 +112,15 @@ Table enrollments {
   created_at timestamptz [not null, default: `now()`]
 }
 
+// Commands for a connected device (restart). Claimed (deleted) by the gateway instance that holds the node.
+Table node_commands {
+  id uuid [pk, default: `gen_random_uuid()`]
+  node_id uuid [not null]
+  org_id uuid [not null]
+  command text [not null]
+  created_at timestamptz [not null, default: `now()`]
+}
+
 Table node_status {
   node_id uuid [pk]
   connected boolean [not null, default: false]
@@ -172,6 +186,7 @@ Table models {
   org_id uuid [not null]
   name text [not null]
   source model_source [not null]
+  kind model_kind [not null, default: 'chat']
   source_url text
   file_name text [not null]
   status model_status [not null]
@@ -338,6 +353,8 @@ Ref: nodes.pool_id > pools.id [delete: cascade]
 Ref: enrollments.org_id > organisations.id [delete: cascade]
 Ref: enrollments.pool_id > pools.id [delete: cascade]
 Ref: node_status.node_id - nodes.id [delete: cascade]
+Ref: node_commands.node_id > nodes.id [delete: cascade]
+Ref: node_commands.org_id > organisations.id [delete: cascade]
 Ref: benchmarks.org_id > organisations.id [delete: cascade]
 Ref: benchmarks.pool_id > pools.id [delete: cascade]
 Ref: benchmark_results.benchmark_id > benchmarks.id [delete: cascade]

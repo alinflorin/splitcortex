@@ -4,6 +4,9 @@ import { IdSchema, NameSchema } from './common';
 export const ModelSourceSchema = z.enum(['huggingface', 'upload']);
 export const ModelStatusSchema = z.enum(['pending', 'downloading', 'uploading', 'ready', 'failed']);
 export type ModelStatus = z.infer<typeof ModelStatusSchema>;
+/** `chat`: text generation; `embedding`: vectors (one embedding model per pool, served at `/v1/embeddings`). */
+export const ModelKindSchema = z.enum(['chat', 'embedding']);
+export type ModelKind = z.infer<typeof ModelKindSchema>;
 
 /** LiteRT-LM is the only supported engine. */
 export const MODEL_EXTENSIONS = ['.litertlm'] as const;
@@ -15,6 +18,7 @@ export const ModelSchema = z.object({
   orgId: IdSchema,
   name: z.string(),
   source: ModelSourceSchema,
+  kind: ModelKindSchema,
   sourceUrl: z.string().nullable(),
   fileName: z.string(),
   status: ModelStatusSchema,
@@ -31,6 +35,7 @@ const hasModelExtension = (name: string) =>
 
 export const CreateModelFromUrlSchema = z.object({
   name: NameSchema,
+  kind: ModelKindSchema.default('chat'),
   url: z
     .url({ protocol: /^https$/, hostname: /^(?:[a-z0-9-]+\.)*huggingface\.co$/ })
     .refine((u) => hasModelExtension(new URL(u).pathname), 'validation.modelFile'),
@@ -39,6 +44,7 @@ export type CreateModelFromUrlDto = z.infer<typeof CreateModelFromUrlSchema>;
 
 export const CreateModelUploadSchema = z.object({
   name: NameSchema,
+  kind: ModelKindSchema.default('chat'),
   fileName: z
     .string()
     .trim()
@@ -80,6 +86,7 @@ export const PoolModelParamsSchema = z.object({
 export const NodeModelSchema = z.object({
   id: IdSchema,
   name: z.string(),
+  kind: ModelKindSchema,
   fileName: z.string(),
   sizeBytes: z.number().int(),
   /** Hex sha256 of the file when known (mirrored models); the node verifies the download against it. */

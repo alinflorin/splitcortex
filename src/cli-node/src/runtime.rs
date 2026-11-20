@@ -9,14 +9,15 @@ use crate::enroll::{
     StoredEnrollment, get_or_create_identity, http_client, load_enrollment, refresh_enrollment,
     save_enrollment,
 };
-use crate::models::{Assignment, ModelManager, Phase, Status};
+use crate::models::{Assignment, Kind, ModelManager, Phase, Status};
 use crate::proto::{self, envelope::Body};
+use crate::restart::{Action, Restarter};
 use crate::settings::{self, Settings};
 use crate::storage::Dirs;
 use crate::system::{APP_VERSION, Awake, Sampler};
 use anyhow::{Result, anyhow, bail};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
@@ -52,6 +53,8 @@ struct Shared {
     outbox: Mutex<HashMap<String, Outbox>>,
     active: Mutex<HashMap<String, Arc<AtomicBool>>>,
     stats: Mutex<Stats>,
+    /// Embedding requests being answered (they cannot be cancelled half way, only waited for).
+    embeds: AtomicUsize,
     sampler: Sampler,
     awake: Awake,
     /// The node's own "keep awake" setting and the admin override (which wins).
@@ -125,6 +128,41 @@ fn phase(p: Phase) -> proto::ModelPhase {
     }
 }
 
+/// How a run of the node ended.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum End {
+    /// Shut down (signal): exit.
+    Stopped,
+    /// The gateway asked for a restart (`Restart`): the caller starts the process again.
+    Restart,
+}
+
+/// Why a request cannot be taken now, as an `InferenceError` code and message; `None` = take it. `busy` only matters
+/// for chat (one generation at a time; embeddings queue on the engine). Order: restarting, wrong kind of model, busy,
+/// no such model loaded.
+fn refusal(
+    want: Kind,
+    restarting: bool,
+    busy: bool,
+    model_id: &str,
+    model: &Status,
+) -> Option<(&'static str, &'static str)> {
+    if restarting {
+        Some(("restarting", "The node is restarting"))
+    } else if model.phase != Phase::None && model.kind != want {
+        Some((
+            "wrong_model_kind",
+            "This node serves a different kind of model",
+        ))
+    } else if busy {
+        Some(("busy", "The node is already generating"))
+    } else if model_id != model.model_id || model.phase != Phase::Ready {
+        Some(("model_not_ready", "The requested model is not loaded"))
+    } else {
+        None
+    }
+}
+
 /// Waits until the admin approves this device (device routes reject unapproved ones).
 async fn wait_for_approval(dirs: &Dirs, shutdown: &CancellationToken) -> Result<StoredEnrollment> {
     let mut announced = false;
@@ -152,7 +190,7 @@ async fn wait_for_approval(dirs: &Dirs, shutdown: &CancellationToken) -> Result<
 }
 
 /// Runs the node until `shutdown` is cancelled.
-pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<()> {
+pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<End> {
     let enrollment = wait_for_approval(&dirs, &shutdown).await?;
     let Some(mut pinned) = enrollment.gateway.clone() else {
         bail!("The platform has not given this device a gateway yet");
@@ -193,6 +231,7 @@ pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<()> {
         outbox: Mutex::default(),
         active: Mutex::default(),
         stats: Mutex::default(),
+        embeds: AtomicUsize::new(0),
         sampler: Sampler::default(),
         awake: Awake::default(),
         screen: Mutex::new((settings.keep_awake, None)),
@@ -229,6 +268,9 @@ pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<()> {
     let mut telemetry = tokio::time::interval(Duration::from_secs(10));
     let mut watch = tokio::time::interval(Duration::from_secs(5));
     let mut state = ConnState::Idle;
+    let mut restarter = Restarter::default();
+    let mut restart = false;
+    let mut drain = tokio::time::interval(Duration::from_millis(250));
 
     loop {
         tokio::select! {
@@ -271,6 +313,7 @@ pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<()> {
                         name: a.name,
                         size_bytes: a.size_bytes,
                         sha256: a.sha256,
+                        kind: Kind::parse(&a.kind),
                     }),
                     Body::NodeConfig(c) => {
                         let shared = shared.clone();
@@ -279,13 +322,7 @@ pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<()> {
                     Body::InferenceRequest(req) => {
                         let id = req.request_id.clone();
                         lock(&shared.outbox).insert(id.clone(), Outbox::default());
-                        let refuse = if busy {
-                            Some(("busy", "The node is already generating"))
-                        } else if req.model_id != model.model_id || model.phase != Phase::Ready {
-                            Some(("model_not_ready", "The requested model is not loaded"))
-                        } else {
-                            None
-                        };
+                        let refuse = refusal(Kind::Chat, restarter.restarting(), busy, &req.model_id, &model);
                         if let Some((code, message)) = refuse {
                             fail(&shared, &id, code, message);
                             shared.finish_box(id);
@@ -294,6 +331,28 @@ pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<()> {
                             let shared = shared.clone();
                             tokio::spawn(serve(shared, req));
                         }
+                    }
+                    Body::EmbeddingRequest(req) => {
+                        let id = req.request_id.clone();
+                        lock(&shared.outbox).insert(id.clone(), Outbox::default());
+                        if let Some((code, message)) =
+                            refusal(Kind::Embedding, restarter.restarting(), false, &req.model_id, &model)
+                        {
+                            fail(&shared, &id, code, message);
+                            shared.finish_box(id);
+                        } else {
+                            shared.embeds.fetch_add(1, Ordering::SeqCst);
+                            tokio::spawn(serve_embedding(shared.clone(), req));
+                        }
+                    }
+                    Body::Restart(r) => {
+                        if !restarter.restarting() {
+                            info!(
+                                "The platform asked for a restart: finishing running requests (up to {} s)",
+                                r.grace_seconds
+                            );
+                        }
+                        restarter.begin(Instant::now(), Duration::from_secs(r.grace_seconds as u64));
                     }
                     Body::Cancel(c) => {
                         if let Some(flag) = lock(&shared.active).get(&c.request_id) {
@@ -311,11 +370,12 @@ pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<()> {
                     progress_bytes: s.progress_bytes,
                     error: s.error.clone().unwrap_or_default(),
                     // What the loaded model accepts besides text; the gateway routes media only to nodes that list it.
-                    modalities: if s.phase == Phase::Ready {
+                    modalities: if s.phase == Phase::Ready && s.kind == Kind::Chat {
                         shared.engine.modalities().into_iter().map(String::from).collect()
                     } else {
                         Vec::new()
                     },
+                    embedding_dimension: if s.phase == Phase::Ready { s.embedding_dimension } else { 0 },
                 }));
                 if s.phase == Phase::Ready {
                     shared.send_telemetry(); // the gateway routes by context size
@@ -323,6 +383,20 @@ pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<()> {
                 model = s;
             },
             Some(()) = done_rx.recv() => busy = false,
+            _ = drain.tick(), if restarter.restarting() => {
+                let in_flight = lock(&shared.active).len() + shared.embeds.load(Ordering::SeqCst);
+                match restarter.poll(Instant::now(), in_flight) {
+                    Action::Wait => {}
+                    Action::Cancel => {
+                        warn!("Restart: the grace period is over, cancelling {in_flight} running request(s)");
+                        lock(&shared.active).values().for_each(|f| f.store(true, Ordering::SeqCst));
+                    }
+                    Action::Restart => {
+                        restart = true;
+                        break;
+                    }
+                }
+            },
             _ = telemetry.tick() => shared.send_telemetry(),
             _ = watch.tick() => {
                 // No connection for too long while generating: the gateway gave the requests up, so stop wasting power.
@@ -339,16 +413,20 @@ pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<()> {
         }
     }
 
-    info!("Stopping");
+    info!("{}", if restart { "Restarting" } else { "Stopping" });
     lock(&shared.active)
         .values()
         .for_each(|f| f.store(true, Ordering::SeqCst));
     models.stop();
+    if restart {
+        // let the last frames of the finished requests leave before the socket is closed
+        tokio::time::sleep(Duration::from_millis(300)).await;
+    }
     shared.conn.stop().await;
     engine.unload().await;
     let _ = shared.awake.set(false);
     info!("Stopped");
-    Ok(())
+    Ok(if restart { End::Restart } else { End::Stopped })
 }
 
 fn fail(shared: &Shared, id: &str, code: &str, message: &str) {
@@ -360,6 +438,43 @@ fn fail(shared: &Shared, id: &str, code: &str, message: &str) {
             seq,
         })
     });
+}
+
+/// Answers an `EmbeddingRequest` with one `EmbeddingResult` (or an `InferenceError`).
+async fn serve_embedding(shared: Arc<Shared>, req: proto::EmbeddingRequest) {
+    let id = req.request_id.clone();
+    let count = req.inputs.len();
+    let started = Instant::now();
+    let result = shared
+        .engine
+        .embed(req.inputs, req.task, req.dimensions)
+        .await;
+    match result {
+        Ok(vectors) => {
+            shared.emit(&id, |seq| {
+                Body::EmbeddingResult(proto::EmbeddingResult {
+                    request_id: id.clone(),
+                    embeddings: vectors
+                        .into_iter()
+                        .map(|values| proto::Embedding { values })
+                        .collect(),
+                    prompt_tokens: 0, // the library does not report it: the gateway estimates
+                    seq,
+                })
+            });
+            lock(&shared.stats).requests += 1;
+            info!(
+                "Embedding request served: {count} input(s) in {:.1} s",
+                started.elapsed().as_secs_f64()
+            );
+        }
+        Err(e) => {
+            error!("Embedding request failed ({}): {}", e.code, e.message);
+            fail(&shared, &id, e.code, &e.message);
+        }
+    }
+    shared.embeds.fetch_sub(1, Ordering::SeqCst);
+    shared.finish_box(id);
 }
 
 /// The gateway's answer to `Resume`: resend what it missed. Requests it did not list are no longer wanted.
@@ -551,4 +666,84 @@ async fn serve(shared: Arc<Shared>, req: proto::InferenceRequest) {
     lock(&shared.active).remove(&id);
     shared.finish_box(id);
     let _ = shared.done.send(());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ready(kind: Kind) -> Status {
+        Status {
+            phase: Phase::Ready,
+            model_id: "m1".into(),
+            progress_bytes: 0,
+            error: None,
+            kind,
+            embedding_dimension: if kind == Kind::Embedding { 768 } else { 0 },
+        }
+    }
+
+    #[test]
+    fn a_matching_model_is_taken() {
+        assert_eq!(
+            refusal(Kind::Chat, false, false, "m1", &ready(Kind::Chat)),
+            None
+        );
+        assert_eq!(
+            refusal(Kind::Embedding, false, false, "m1", &ready(Kind::Embedding)),
+            None
+        );
+    }
+
+    #[test]
+    fn the_wrong_kind_of_request_is_rejected() {
+        let code = |want, m: &Status| refusal(want, false, false, "m1", m).map(|r| r.0);
+        assert_eq!(
+            code(Kind::Embedding, &ready(Kind::Chat)),
+            Some("wrong_model_kind")
+        );
+        assert_eq!(
+            code(Kind::Chat, &ready(Kind::Embedding)),
+            Some("wrong_model_kind")
+        );
+    }
+
+    #[test]
+    fn a_node_without_the_model_is_not_ready() {
+        let none = Status::none();
+        assert_eq!(
+            refusal(Kind::Embedding, false, false, "m1", &none).map(|r| r.0),
+            Some("model_not_ready")
+        );
+        assert_eq!(
+            refusal(Kind::Chat, false, false, "other", &ready(Kind::Chat)).map(|r| r.0),
+            Some("model_not_ready")
+        );
+        let mut loading = ready(Kind::Embedding);
+        loading.phase = Phase::Loading;
+        assert_eq!(
+            refusal(Kind::Embedding, false, false, "m1", &loading).map(|r| r.0),
+            Some("model_not_ready")
+        );
+    }
+
+    #[test]
+    fn restarting_comes_first_and_busy_only_stops_chat() {
+        assert_eq!(
+            refusal(Kind::Chat, true, true, "m1", &ready(Kind::Embedding)).map(|r| r.0),
+            Some("restarting")
+        );
+        assert_eq!(
+            refusal(Kind::Chat, false, true, "m1", &ready(Kind::Chat)).map(|r| r.0),
+            Some("busy")
+        );
+    }
+
+    #[test]
+    fn the_kind_of_an_assignment_is_read_from_the_wire_string() {
+        assert_eq!(Kind::parse("embedding"), Kind::Embedding);
+        assert_eq!(Kind::parse("chat"), Kind::Chat);
+        assert_eq!(Kind::parse(""), Kind::Chat);
+        assert_eq!(Kind::parse("future"), Kind::Chat);
+    }
 }

@@ -1,5 +1,8 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { createWorkspace, type Workspace } from '../../src/api.ts';
+import { apiUrl } from '../../src/env.ts';
+import { enrollDevice } from '../../src/perf/fake-node.ts';
 import { signIn } from './support.ts';
 
 // What an operator does in the web app, through the real UI. Setup that is not the point of a test goes through the API.
@@ -114,6 +117,101 @@ test('the audit log page lists what was done in the organisation', async ({ page
   await page.getByRole('combobox', { name: 'Outcome' }).click();
   await page.getByRole('option', { name: 'Denied' }).click();
   await expect(page.getByText('Nothing recorded for these filters.')).toBeVisible();
+});
+
+test('the audit log can be exported as CSV and as JSON', async ({ page }) => {
+  const org = await ws.cp.createOrg();
+  created.push(org.id);
+  await ws.cp.createPool(org.id, 'ui-export-pool');
+  await signIn(page);
+  await page.goto(`/organisations/${org.id}/audit`);
+  await expect(page.getByText('Pool created').first()).toBeVisible();
+
+  const csvDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export CSV' }).click();
+  const csv = await csvDownload;
+  expect(csv.suggestedFilename()).toMatch(/^audit-log-\d{4}-\d\d-\d\d\.csv$/);
+  const csvText = await readFile((await csv.path())!, 'utf8');
+  expect(csvText.split('\r\n')[0]).toBe(
+    'occurredAt,source,actorType,actorId,action,entityType,entityId,outcome,ip,metadata',
+  );
+  expect(csvText).toContain('pool.create');
+
+  const jsonDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export JSON' }).click();
+  const json = await jsonDownload;
+  expect(json.suggestedFilename()).toMatch(/^audit-log-\d{4}-\d\d-\d\d\.json$/);
+  const rows = JSON.parse(await readFile((await json.path())!, 'utf8')) as { action: string }[];
+  expect(rows.map((r) => r.action)).toContain('pool.create');
+});
+
+test('adds an embedding model with its type and marks it on the card', async ({ page }) => {
+  const org = await ws.cp.createOrg();
+  created.push(org.id);
+  await signIn(page);
+  await page.goto(`/organisations/${org.id}/models`);
+  await page.getByRole('button', { name: 'Add model' }).first().click();
+  // Chat is the default type.
+  await expect(page.getByRole('radio', { name: 'Chat' })).toBeChecked();
+  await page.getByLabel(/^Name/).fill('ui-embedding');
+  await page
+    .getByLabel(/Hugging Face link/)
+    .fill('https://huggingface.co/e2e-nonexistent/e2e-embed/resolve/main/e2e-embed.litertlm');
+  await page.getByRole('radio', { name: 'Embeddings' }).check();
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  // The file does not exist, so the download fails in the background; the model and its kind are what is checked.
+  await expect(page.getByText('ui-embedding')).toBeVisible();
+  await expect(page.getByText(/^Embeddings ·/)).toBeVisible();
+  const [model] = (await ws.cp.send('GET', `/organisations/${org.id}/models`)).body as {
+    name: string;
+    kind: string;
+  }[];
+  expect(model).toMatchObject({ name: 'ui-embedding', kind: 'embedding' });
+});
+
+test('creates several enrollment codes at once and cancels the unused ones on close', async ({
+  page,
+}) => {
+  const org = await ws.cp.createOrg();
+  created.push(org.id);
+  const pool = await ws.cp.createPool(org.id, 'ui-bulk-pool');
+  await signIn(page);
+  await page.goto(`/organisations/${org.id}/pools/${pool.id}`);
+  await page.getByRole('button', { name: 'Add many devices' }).click();
+  await page.getByLabel('Number of devices').fill('51');
+  await expect(page.getByText('Enter a whole number from 1 to 50.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Create codes' })).toBeDisabled();
+  await page.getByLabel('Number of devices').fill('3');
+  await page.getByRole('button', { name: 'Create codes' }).click();
+
+  const rows = page.getByTestId('bulk-codes').getByText(/^[0-9A-Z]{4}-[0-9A-Z]{6}$/);
+  await expect(rows).toHaveCount(3);
+  await expect(page.getByText('0 of 3 devices enrolled')).toBeVisible();
+  expect(await ws.cp.listEnrollments(org.id, pool.id)).toHaveLength(3);
+
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect
+    .poll(async () => (await ws.cp.listEnrollments(org.id, pool.id)).length, { timeout: 15_000 })
+    .toBe(0);
+});
+
+test('the node page has a Restart button that is disabled while the device is offline', async ({
+  page,
+}) => {
+  const org = await ws.cp.createOrg();
+  created.push(org.id);
+  const pool = await ws.cp.createPool(org.id, 'ui-restart-pool');
+  // Enrolled but never connected: the device exists and is offline.
+  const device = await enrollDevice(
+    apiUrl,
+    await ws.cp.createEnrollmentCode(org.id, pool.id),
+    'ui-offline-device',
+  );
+  await signIn(page);
+  await page.goto(`/organisations/${org.id}/nodes/${device.nodeId}`);
+  await expect(page.getByRole('heading', { name: 'ui-offline-device' })).toBeVisible();
+  // Visible to the owner, but there is nothing to restart.
+  await expect(page.getByRole('button', { name: 'Restart', exact: true })).toBeDisabled();
 });
 
 test('the metrics page renders the charts of an organisation', async ({ page }) => {

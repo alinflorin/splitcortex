@@ -11,6 +11,8 @@ import {
   MessageBar,
   MessageBarBody,
   ProgressBar,
+  Radio,
+  RadioGroup,
   Tab,
   TabList,
   Text,
@@ -28,7 +30,7 @@ import {
   useStartModelUpload,
 } from '../../api/hooks';
 import { MODEL_EXTENSION, modelFromUrlFormSchema, modelUploadFormSchema } from '../../api/schemas';
-import type { ModelFromUrlForm, ModelUploadForm } from '../../api/schemas';
+import type { ModelFromUrlForm, ModelKind, ModelUploadForm } from '../../api/schemas';
 import { useToast } from '../../components/feedback/useToast';
 import { TextField } from '../../components/forms/TextField';
 import { formatBytes } from '../../lib/format';
@@ -57,6 +59,7 @@ export function AddModelDialog({
   const { t, i18n } = useTranslation();
   const toast = useToast();
   const [mode, setMode] = useState<Mode>('url');
+  const [kind, setKind] = useState<ModelKind>('chat');
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState<number | null>(null);
@@ -86,6 +89,7 @@ export function AddModelDialog({
     setFile(null);
     setFileError(null);
     setUploaded(null);
+    setKind('chat');
   };
   const close = () => {
     if (uploading) abort.current?.abort(); // the upload handler cleans the half-created model up
@@ -109,7 +113,7 @@ export function AddModelDialog({
 
   const submitUrl = urlForm.handleSubmit(async (values) => {
     try {
-      await addFromUrl.mutateAsync(values);
+      await addFromUrl.mutateAsync({ ...values, kind });
       toast.success(t('models.added'));
       reset();
       onClose();
@@ -127,6 +131,7 @@ export function AddModelDialog({
     try {
       const plan = await startUpload.mutateAsync({
         name,
+        kind,
         fileName: file.name,
         sizeBytes: file.size,
       });
@@ -165,6 +170,18 @@ export function AddModelDialog({
                 <Tab value="url">{t('models.fromUrl')}</Tab>
                 <Tab value="upload">{t('models.fromUpload')}</Tab>
               </TabList>
+
+              <Field label={t('models.kind')} hint={t('models.kindHint')}>
+                <RadioGroup
+                  layout="horizontal"
+                  value={kind}
+                  disabled={uploading}
+                  onChange={(_, d) => setKind(d.value as ModelKind)}
+                >
+                  <Radio value="chat" label={t('models.kindChat')} />
+                  <Radio value="embedding" label={t('models.kindEmbedding')} />
+                </RadioGroup>
+              </Field>
 
               {mode === 'url' ? (
                 <>

@@ -4,6 +4,7 @@
 //! machine's RAM. A failed load steps back (GPU to CPU, then the default window) instead of failing.
 //! Port of `src/desktop-node/src/engine/compute.ts`.
 
+use super::embed::{EmbedError, embed_request};
 use super::{Engine, GenerateReq};
 use crate::storage::Dirs;
 use std::collections::BTreeMap;
@@ -124,6 +125,71 @@ impl ComputeEngine {
         self.inner.lock().await.path = Some(name.to_string());
         let _g = self.gate.lock().await;
         self.apply(name).await
+    }
+
+    /// Loads the embedding model stored under this file name into the embedding engine (the chat engine is unloaded
+    /// first) and returns the length of its vectors. The backend is the admin's or the node's own choice, else the CPU;
+    /// a GPU that cannot load it falls back to the CPU. There is no context window: it is reported as 0. Chat settings
+    /// changes never reload it.
+    pub async fn load_embedding(&self, name: &str) -> Result<u32, String> {
+        let _g = self.gate.lock().await;
+        let want = {
+            let mut i = self.inner.lock().await;
+            i.path = None; // set_prefs reloads only a chat model
+            i.applied = None;
+            wanted(&i)
+        };
+        self.set_active(None);
+        let gpu = self.caps().await.gpu_available;
+        let first = match want.backend {
+            Some(Backend::Gpu) if gpu => Backend::Gpu,
+            _ => Backend::Cpu,
+        };
+        let mut last = None;
+        for b in [first, Backend::Cpu] {
+            if last.is_some() && b == first {
+                continue;
+            }
+            let e = self.engine.clone();
+            let file = self.dirs.model_path(name).map_err(|e| e.to_string())?;
+            let cache = self.dirs.cache.join("litert");
+            let r =
+                tokio::task::spawn_blocking(move || e.load_embedding(&file, b.as_str(), &cache))
+                    .await
+                    .map_err(|e| e.to_string())?;
+            match r {
+                Ok(dim) => {
+                    self.set_active(Some((b, 0)));
+                    info!(
+                        "Embedding engine loaded on {}, {dim} dimensions",
+                        b.as_str().to_uppercase()
+                    );
+                    return Ok(dim);
+                }
+                Err(e) => {
+                    info!(
+                        "Loading the embedding model on {} failed: {e}",
+                        b.as_str().to_uppercase()
+                    );
+                    last = Some(e);
+                }
+            }
+        }
+        Err(last.unwrap_or_else(|| "The model could not be loaded".into()))
+    }
+
+    /// Answers an embedding request on the loaded embedding model (see `embed::embed_request`).
+    pub async fn embed(
+        &self,
+        inputs: Vec<String>,
+        task: String,
+        dimensions: u32,
+    ) -> Result<Vec<Vec<f32>>, EmbedError> {
+        let _g = self.gate.lock().await;
+        let e = self.engine.clone();
+        tokio::task::spawn_blocking(move || embed_request(&*e, &inputs, &task, dimensions))
+            .await
+            .map_err(|e| EmbedError::engine(e.to_string()))?
     }
 
     pub async fn unload(&self) {

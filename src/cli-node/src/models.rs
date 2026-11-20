@@ -26,6 +26,25 @@ pub struct Assignment {
     pub name: String,
     pub size_bytes: u64,
     pub sha256: String,
+    pub kind: Kind,
+}
+
+/// What a model is for (`ModelAssignment.kind`): "" and "chat" are chat; an unknown value is chat too (older gateways).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Kind {
+    #[default]
+    Chat,
+    Embedding,
+}
+
+impl Kind {
+    pub fn parse(s: &str) -> Kind {
+        if s == "embedding" {
+            Kind::Embedding
+        } else {
+            Kind::Chat
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -43,6 +62,9 @@ pub struct Status {
     pub model_id: String,
     pub progress_bytes: u64,
     pub error: Option<String>,
+    pub kind: Kind,
+    /// Length of the vectors of a ready embedding model, else 0.
+    pub embedding_dimension: u32,
 }
 
 impl Status {
@@ -52,6 +74,8 @@ impl Status {
             model_id: String::new(),
             progress_bytes: 0,
             error: None,
+            kind: Kind::Chat,
+            embedding_dimension: 0,
         }
     }
 }
@@ -137,11 +161,17 @@ impl ModelManager {
     }
 
     fn set(&self, phase: Phase, a: &Assignment, progress: u64) {
+        self.set_with(phase, a, progress, 0);
+    }
+
+    fn set_with(&self, phase: Phase, a: &Assignment, progress: u64, embedding_dimension: u32) {
         self.publish(Status {
             phase,
             model_id: a.model_id.clone(),
             progress_bytes: progress,
             error: None,
+            kind: a.kind,
+            embedding_dimension,
         });
     }
 
@@ -157,6 +187,7 @@ impl ModelManager {
             .clone();
         if !a.model_id.is_empty()
             && cur.model_id == a.model_id
+            && cur.kind == a.kind
             && cur.phase == Phase::Ready
             && self.engine.backend().is_some()
         {
@@ -185,11 +216,22 @@ impl ModelManager {
             }
             self.set(Phase::Loading, &a, a.size_bytes);
             info!("Loading model {}", a.name);
-            self.engine.load(&name).await.map_err(|e| anyhow!(e))?;
+            // An embedding model goes into the embedding engine; loading either kind unloads the other first.
+            let dimension = match a.kind {
+                Kind::Chat => {
+                    self.engine.load(&name).await.map_err(|e| anyhow!(e))?;
+                    0
+                }
+                Kind::Embedding => self
+                    .engine
+                    .load_embedding(&name)
+                    .await
+                    .map_err(|e| anyhow!(e))?,
+            };
             if cancel.is_cancelled() {
                 return Ok(());
             }
-            self.set(Phase::Ready, &a, a.size_bytes);
+            self.set_with(Phase::Ready, &a, a.size_bytes, dimension);
             info!("Model {} is ready", a.name);
             Ok(())
         }
@@ -210,6 +252,8 @@ impl ModelManager {
                 model_id: a.model_id.clone(),
                 progress_bytes: 0,
                 error: Some(e.to_string()),
+                kind: a.kind,
+                embedding_dimension: 0,
             });
         }
     }

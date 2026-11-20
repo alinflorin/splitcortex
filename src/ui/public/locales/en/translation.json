@@ -510,7 +510,12 @@
     "inputs": "Accepts",
     "inputText": "text",
     "input_image": "images",
-    "input_audio": "audio"
+    "input_audio": "audio",
+    "restart": "Restart",
+    "restartTitle": "Restart {{name}}?",
+    "restartMessage": "The app on the device finishes what it is serving, then starts again and reconnects. Requests it cannot finish in a minute are dropped.",
+    "restartSent": "Restart sent.",
+    "restartOffline": "The device must be online to restart."
   },
   "models": {
     "title": "Models",
@@ -546,7 +551,12 @@
       "huggingface": "Hugging Face",
       "upload": "Uploaded"
     },
-    "subtitle": "The model files your pools serve, from Hugging Face or your own upload."
+    "subtitle": "The model files your pools serve, from Hugging Face or your own upload.",
+    "kind": "Type",
+    "kindChat": "Chat",
+    "kindEmbedding": "Embeddings",
+    "kindHint": "Chat models generate text. Embedding models turn text into vectors (for search and similarity) and are served at /v1/embeddings; give them a pool of their own.",
+    "embeddingBadge": "Embeddings"
   },
   "apiKeys": {
     "title": "API keys",
@@ -789,7 +799,8 @@
       "enrollment.create_bulk": "Enrollment codes created in bulk",
       "enrollment.delete": "Enrollment code cancelled",
       "benchmark.run": "Benchmark started",
-      "benchmark.delete": "Benchmark deleted"
+      "benchmark.delete": "Benchmark deleted",
+      "node.restart": "Restart device"
     }
   },
   "metrics": {

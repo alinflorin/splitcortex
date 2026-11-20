@@ -1,7 +1,7 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { describe, expect, it, vi } from 'vitest';
-import type { Engine } from '../engine/types';
+import type { Embedder, Engine } from '../engine/types';
 import { LogBuffer } from '../runtime/log';
 import type { ModelFiles } from './files';
 import { ModelManager, type ModelStatus } from './manager';
@@ -63,6 +63,18 @@ function setup(fileBytes: Uint8Array = FILE) {
     }),
     generate: vi.fn(),
   };
+  const embedder: Embedder = {
+    loaded: false,
+    dimension: 0,
+    load: vi.fn(async () => {
+      (embedder as { loaded: boolean; dimension: number }).loaded = true;
+      (embedder as { dimension: number }).dimension = 768;
+    }),
+    unload: vi.fn(async () => {
+      (embedder as { loaded: boolean }).loaded = false;
+    }),
+    embed: vi.fn(),
+  };
   const ranges: string[] = [];
   const auth: string[] = [];
   const fetchFn = vi.fn(async (_url: string, init: RequestInit) => {
@@ -74,6 +86,7 @@ function setup(fileBytes: Uint8Array = FILE) {
   }) as unknown as typeof fetch;
   const mgr = new ModelManager({
     engine,
+    embedder,
     files,
     log: new LogBuffer(),
     baseUrl: 'https://web.test/api/',
@@ -82,7 +95,7 @@ function setup(fileBytes: Uint8Array = FILE) {
     onStatus: (s) => statuses.push(s),
     fetchFn,
   });
-  return { mgr, engine, statuses, ranges, auth, disk };
+  return { mgr, engine, embedder, statuses, ranges, auth, disk };
 }
 
 describe('ModelManager', () => {
@@ -133,6 +146,26 @@ describe('ModelManager', () => {
     await mgr.apply(assignment());
     expect([...disk.keys()].some((k) => k.startsWith('old.'))).toBe(false);
     expect(engine.unload).toHaveBeenCalled();
+  });
+
+  it('loads an embedding model into the embedder, never the chat engine, and switches kinds one at a time', async () => {
+    const { mgr, engine, embedder, statuses } = setup();
+    await mgr.apply(assignment());
+    expect(engine.loaded).toBe(true);
+    await mgr.apply(assignment({ modelId: 'e1', kind: 'embedding' }));
+    expect(engine.loaded).toBe(false); // the chat model went first
+    expect(embedder.load).toHaveBeenCalledWith('e1.litertlm');
+    expect(statuses.at(-1)).toMatchObject({
+      phase: 'ready',
+      kind: 'embedding',
+      embeddingDimension: 768,
+    });
+    await mgr.apply(assignment({ modelId: 'e1', kind: 'embedding' })); // re-sent: no reload
+    expect(embedder.load).toHaveBeenCalledTimes(1);
+    await mgr.apply(assignment()); // back to chat
+    expect(embedder.loaded).toBe(false);
+    expect(engine.loaded).toBe(true);
+    expect(statuses.at(-1)).toMatchObject({ phase: 'ready', kind: 'chat', embeddingDimension: 0 });
   });
 
   it('removes everything when the pool serves no model, and re-reports an already ready model without reloading', async () => {

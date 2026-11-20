@@ -65,6 +65,11 @@ const RULES: Record<string, Rule> = {
     entityParam: 'nodeId',
     meta: changed,
   },
+  'POST /organisations/:orgId/nodes/:nodeId/restart': {
+    action: 'node.restart',
+    entityType: 'node',
+    entityParam: 'nodeId',
+  },
   'DELETE /organisations/:orgId/nodes/:nodeId': {
     action: 'node.delete',
     entityType: 'node',

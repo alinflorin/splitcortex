@@ -24,7 +24,7 @@ import type { Message } from '@bufbuild/protobuf';
 export const file_splitcortex_node_v1_node: GenFile =
   /*@__PURE__*/
   fileDesc(
-    'Ch5zcGxpdGNvcnRleC9ub2RlL3YxL25vZGUucHJvdG8SE3NwbGl0Y29ydGV4Lm5vZGUudjEi+AcKCEVudmVsb3BlEjgKDGNsaWVudF9oZWxsbxgBIAEoCzIgLnNwbGl0Y29ydGV4Lm5vZGUudjEuQ2xpZW50SGVsbG9IABI4CgxzZXJ2ZXJfaGVsbG8YAiABKAsyIC5zcGxpdGNvcnRleC5ub2RlLnYxLlNlcnZlckhlbGxvSAASNgoLY2xpZW50X2F1dGgYAyABKAsyHy5zcGxpdGNvcnRleC5ub2RlLnYxLkNsaWVudEF1dGhIABIrCgVyZWFkeRgEIAEoCzIaLnNwbGl0Y29ydGV4Lm5vZGUudjEuUmVhZHlIABJAChBtb2RlbF9hc3NpZ25tZW50GAUgASgLMiQuc3BsaXRjb3J0ZXgubm9kZS52MS5Nb2RlbEFzc2lnbm1lbnRIABI2Cgttb2RlbF9zdGF0ZRgGIAEoCzIfLnNwbGl0Y29ydGV4Lm5vZGUudjEuTW9kZWxTdGF0ZUgAEjMKCXRlbGVtZXRyeRgHIAEoCzIeLnNwbGl0Y29ydGV4Lm5vZGUudjEuVGVsZW1ldHJ5SAASKQoEcGluZxgIIAEoCzIZLnNwbGl0Y29ydGV4Lm5vZGUudjEuUGluZ0gAEikKBHBvbmcYCSABKAsyGS5zcGxpdGNvcnRleC5ub2RlLnYxLlBvbmdIABJCChFpbmZlcmVuY2VfcmVxdWVzdBgKIAEoCzIlLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlUmVxdWVzdEgAEj4KD2luZmVyZW5jZV9jaHVuaxgLIAEoCzIjLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlQ2h1bmtIABI8Cg5pbmZlcmVuY2VfZG9uZRgMIAEoCzIiLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlRG9uZUgAEj4KD2luZmVyZW5jZV9lcnJvchgNIAEoCzIjLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlRXJyb3JIABItCgZjYW5jZWwYDiABKAsyGy5zcGxpdGNvcnRleC5ub2RlLnYxLkNhbmNlbEgAEjYKC25vZGVfY29uZmlnGA8gASgLMh8uc3BsaXRjb3J0ZXgubm9kZS52MS5Ob2RlQ29uZmlnSAASLQoGcmVzdW1lGBAgASgLMhsuc3BsaXRjb3J0ZXgubm9kZS52MS5SZXN1bWVIABI0CgpyZXN1bWVfYWNrGBEgASgLMh4uc3BsaXRjb3J0ZXgubm9kZS52MS5SZXN1bWVBY2tIABI4CgxnYXRld2F5X2tleXMYEiABKAsyIC5zcGxpdGNvcnRleC5ub2RlLnYxLkdhdGV3YXlLZXlzSABCBgoEYm9keSJcCgtDbGllbnRIZWxsbxIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEg8KB25vZGVfaWQYAiABKAkSDQoFbm9uY2UYAyABKAwSEwoLYXBwX3ZlcnNpb24YBCABKAkiLwoLU2VydmVySGVsbG8SDQoFbm9uY2UYASABKAwSEQoJc2lnbmF0dXJlGAIgASgMIh8KCkNsaWVudEF1dGgSEQoJc2lnbmF0dXJlGAEgASgMInsKBVJlYWR5EhUKDW1heF9pbl9mbGlnaHQYASABKA0SHQoVcGluZ19pbnRlcnZhbF9zZWNvbmRzGAIgASgNEhgKEG5leHRfZ2F0ZXdheV9rZXkYAyABKAwSIgoabmV4dF9nYXRld2F5X2tleV9zaWduYXR1cmUYBCABKAwiHQoGUmVzdW1lEhMKC3JlcXVlc3RfaWRzGAEgAygJIjcKC1Jlc3VtZUVudHJ5EhIKCnJlcXVlc3RfaWQYASABKAkSFAoMcmVjZWl2ZWRfc2VxGAIgASgNIj4KCVJlc3VtZUFjaxIxCgdlbnRyaWVzGAEgAygLMiAuc3BsaXRjb3J0ZXgubm9kZS52MS5SZXN1bWVFbnRyeSIeCgtHYXRld2F5S2V5cxIPCgdrZXlfaWRzGAEgAygMImgKD01vZGVsQXNzaWdubWVudBIQCghtb2RlbF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCWZpbGVfbmFtZRgDIAEoCRISCgpzaXplX2J5dGVzGAQgASgEEg4KBnNoYTI1NhgFIAEoCSJlCgpOb2RlQ29uZmlnEg8KB2JhY2tlbmQYASABKAkSGgoSbWF4X2NvbnRleHRfdG9rZW5zGAIgASgNEhYKDmtlZXBfc2NyZWVuX29uGAMgASgJEhIKCmVuYWJsZV9tdHAYBCABKAkidQoKTW9kZWxTdGF0ZRIQCghtb2RlbF9pZBgBIAEoCRIuCgVwaGFzZRgCIAEoDjIfLnNwbGl0Y29ydGV4Lm5vZGUudjEuTW9kZWxQaGFzZRIWCg5wcm9ncmVzc19ieXRlcxgDIAEoBBINCgVlcnJvchgEIAEoCSK/AQoJVGVsZW1ldHJ5EhMKC2NwdV9wZXJjZW50GAEgASgBEhYKDm1lbW9yeV91c2VkX21iGAIgASgNEhcKD2JhdHRlcnlfcGVyY2VudBgDIAEoBRIQCghjaGFyZ2luZxgEIAEoCBIVCg10ZW1wZXJhdHVyZV9jGAUgASgBEhYKDnRva2Vuc19wZXJfc2VjGAYgASgBEg8KB2JhY2tlbmQYByABKAkSGgoSbWF4X2NvbnRleHRfdG9rZW5zGAggASgNIhwKBFBpbmcSFAoMdGltZXN0YW1wX21zGAEgASgEIhwKBFBvbmcSFAoMdGltZXN0YW1wX21zGAEgASgEIiwKC0NoYXRNZXNzYWdlEgwKBHJvbGUYASABKAkSDwoHY29udGVudBgCIAEoCSKkAQoQSW5mZXJlbmNlUmVxdWVzdBISCgpyZXF1ZXN0X2lkGAEgASgJEhAKCG1vZGVsX2lkGAIgASgJEjIKCG1lc3NhZ2VzGAMgAygLMiAuc3BsaXRjb3J0ZXgubm9kZS52MS5DaGF0TWVzc2FnZRISCgptYXhfdG9rZW5zGAQgASgNEhMKC3RlbXBlcmF0dXJlGAUgASgCEg0KBXRvcF9wGAYgASgCIj8KDkluZmVyZW5jZUNodW5rEhIKCnJlcXVlc3RfaWQYASABKAkSDAoEdGV4dBgCIAEoCRILCgNzZXEYAyABKA0ieQoNSW5mZXJlbmNlRG9uZRISCgpyZXF1ZXN0X2lkGAEgASgJEhUKDXByb21wdF90b2tlbnMYAiABKA0SGQoRY29tcGxldGlvbl90b2tlbnMYAyABKA0SFQoNZmluaXNoX3JlYXNvbhgEIAEoCRILCgNzZXEYBSABKA0iUAoOSW5mZXJlbmNlRXJyb3ISEgoKcmVxdWVzdF9pZBgBIAEoCRIMCgRjb2RlGAIgASgJEg8KB21lc3NhZ2UYAyABKAkSCwoDc2VxGAQgASgNIhwKBkNhbmNlbBISCgpyZXF1ZXN0X2lkGAEgASgJKqQBCgpNb2RlbFBoYXNlEhsKF01PREVMX1BIQVNFX1VOU1BFQ0lGSUVEEAASFAoQTU9ERUxfUEhBU0VfTk9ORRABEhsKF01PREVMX1BIQVNFX0RPV05MT0FESU5HEAISFwoTTU9ERUxfUEhBU0VfTE9BRElORxADEhUKEU1PREVMX1BIQVNFX1JFQURZEAQSFgoSTU9ERUxfUEhBU0VfRkFJTEVEEAViBnByb3RvMw',
+    'Ch5zcGxpdGNvcnRleC9ub2RlL3YxL25vZGUucHJvdG8SE3NwbGl0Y29ydGV4Lm5vZGUudjEirwkKCEVudmVsb3BlEjgKDGNsaWVudF9oZWxsbxgBIAEoCzIgLnNwbGl0Y29ydGV4Lm5vZGUudjEuQ2xpZW50SGVsbG9IABI4CgxzZXJ2ZXJfaGVsbG8YAiABKAsyIC5zcGxpdGNvcnRleC5ub2RlLnYxLlNlcnZlckhlbGxvSAASNgoLY2xpZW50X2F1dGgYAyABKAsyHy5zcGxpdGNvcnRleC5ub2RlLnYxLkNsaWVudEF1dGhIABIrCgVyZWFkeRgEIAEoCzIaLnNwbGl0Y29ydGV4Lm5vZGUudjEuUmVhZHlIABJAChBtb2RlbF9hc3NpZ25tZW50GAUgASgLMiQuc3BsaXRjb3J0ZXgubm9kZS52MS5Nb2RlbEFzc2lnbm1lbnRIABI2Cgttb2RlbF9zdGF0ZRgGIAEoCzIfLnNwbGl0Y29ydGV4Lm5vZGUudjEuTW9kZWxTdGF0ZUgAEjMKCXRlbGVtZXRyeRgHIAEoCzIeLnNwbGl0Y29ydGV4Lm5vZGUudjEuVGVsZW1ldHJ5SAASKQoEcGluZxgIIAEoCzIZLnNwbGl0Y29ydGV4Lm5vZGUudjEuUGluZ0gAEikKBHBvbmcYCSABKAsyGS5zcGxpdGNvcnRleC5ub2RlLnYxLlBvbmdIABJCChFpbmZlcmVuY2VfcmVxdWVzdBgKIAEoCzIlLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlUmVxdWVzdEgAEj4KD2luZmVyZW5jZV9jaHVuaxgLIAEoCzIjLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlQ2h1bmtIABI8Cg5pbmZlcmVuY2VfZG9uZRgMIAEoCzIiLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlRG9uZUgAEj4KD2luZmVyZW5jZV9lcnJvchgNIAEoCzIjLnNwbGl0Y29ydGV4Lm5vZGUudjEuSW5mZXJlbmNlRXJyb3JIABItCgZjYW5jZWwYDiABKAsyGy5zcGxpdGNvcnRleC5ub2RlLnYxLkNhbmNlbEgAEjYKC25vZGVfY29uZmlnGA8gASgLMh8uc3BsaXRjb3J0ZXgubm9kZS52MS5Ob2RlQ29uZmlnSAASLQoGcmVzdW1lGBAgASgLMhsuc3BsaXRjb3J0ZXgubm9kZS52MS5SZXN1bWVIABI0CgpyZXN1bWVfYWNrGBEgASgLMh4uc3BsaXRjb3J0ZXgubm9kZS52MS5SZXN1bWVBY2tIABI4CgxnYXRld2F5X2tleXMYEiABKAsyIC5zcGxpdGNvcnRleC5ub2RlLnYxLkdhdGV3YXlLZXlzSAASLwoHcmVzdGFydBgTIAEoCzIcLnNwbGl0Y29ydGV4Lm5vZGUudjEuUmVzdGFydEgAEkIKEWVtYmVkZGluZ19yZXF1ZXN0GBQgASgLMiUuc3BsaXRjb3J0ZXgubm9kZS52MS5FbWJlZGRpbmdSZXF1ZXN0SAASQAoQZW1iZWRkaW5nX3Jlc3VsdBgVIAEoCzIkLnNwbGl0Y29ydGV4Lm5vZGUudjEuRW1iZWRkaW5nUmVzdWx0SABCBgoEYm9keSJcCgtDbGllbnRIZWxsbxIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEg8KB25vZGVfaWQYAiABKAkSDQoFbm9uY2UYAyABKAwSEwoLYXBwX3ZlcnNpb24YBCABKAkiLwoLU2VydmVySGVsbG8SDQoFbm9uY2UYASABKAwSEQoJc2lnbmF0dXJlGAIgASgMIh8KCkNsaWVudEF1dGgSEQoJc2lnbmF0dXJlGAEgASgMInsKBVJlYWR5EhUKDW1heF9pbl9mbGlnaHQYASABKA0SHQoVcGluZ19pbnRlcnZhbF9zZWNvbmRzGAIgASgNEhgKEG5leHRfZ2F0ZXdheV9rZXkYAyABKAwSIgoabmV4dF9nYXRld2F5X2tleV9zaWduYXR1cmUYBCABKAwiHQoGUmVzdW1lEhMKC3JlcXVlc3RfaWRzGAEgAygJIjcKC1Jlc3VtZUVudHJ5EhIKCnJlcXVlc3RfaWQYASABKAkSFAoMcmVjZWl2ZWRfc2VxGAIgASgNIj4KCVJlc3VtZUFjaxIxCgdlbnRyaWVzGAEgAygLMiAuc3BsaXRjb3J0ZXgubm9kZS52MS5SZXN1bWVFbnRyeSIeCgtHYXRld2F5S2V5cxIPCgdrZXlfaWRzGAEgAygMInYKD01vZGVsQXNzaWdubWVudBIQCghtb2RlbF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCWZpbGVfbmFtZRgDIAEoCRISCgpzaXplX2J5dGVzGAQgASgEEg4KBnNoYTI1NhgFIAEoCRIMCgRraW5kGAYgASgJImUKCk5vZGVDb25maWcSDwoHYmFja2VuZBgBIAEoCRIaChJtYXhfY29udGV4dF90b2tlbnMYAiABKA0SFgoOa2VlcF9zY3JlZW5fb24YAyABKAkSEgoKZW5hYmxlX210cBgEIAEoCSKmAQoKTW9kZWxTdGF0ZRIQCghtb2RlbF9pZBgBIAEoCRIuCgVwaGFzZRgCIAEoDjIfLnNwbGl0Y29ydGV4Lm5vZGUudjEuTW9kZWxQaGFzZRIWCg5wcm9ncmVzc19ieXRlcxgDIAEoBBINCgVlcnJvchgEIAEoCRISCgptb2RhbGl0aWVzGAUgAygJEhsKE2VtYmVkZGluZ19kaW1lbnNpb24YBiABKA0ivwEKCVRlbGVtZXRyeRITCgtjcHVfcGVyY2VudBgBIAEoARIWCg5tZW1vcnlfdXNlZF9tYhgCIAEoDRIXCg9iYXR0ZXJ5X3BlcmNlbnQYAyABKAUSEAoIY2hhcmdpbmcYBCABKAgSFQoNdGVtcGVyYXR1cmVfYxgFIAEoARIWCg50b2tlbnNfcGVyX3NlYxgGIAEoARIPCgdiYWNrZW5kGAcgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgIIAEoDSIcCgRQaW5nEhQKDHRpbWVzdGFtcF9tcxgBIAEoBCIcCgRQb25nEhQKDHRpbWVzdGFtcF9tcxgBIAEoBCIoCgVNZWRpYRIRCgltaW1lX3R5cGUYASABKAkSDAoEZGF0YRgCIAEoDCJ/CgtDb250ZW50UGFydBIOCgR0ZXh0GAEgASgJSAASKwoFaW1hZ2UYAiABKAsyGi5zcGxpdGNvcnRleC5ub2RlLnYxLk1lZGlhSAASKwoFYXVkaW8YAyABKAsyGi5zcGxpdGNvcnRleC5ub2RlLnYxLk1lZGlhSABCBgoEcGFydCJdCgtDaGF0TWVzc2FnZRIMCgRyb2xlGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSLwoFcGFydHMYAyADKAsyIC5zcGxpdGNvcnRleC5ub2RlLnYxLkNvbnRlbnRQYXJ0IqQBChBJbmZlcmVuY2VSZXF1ZXN0EhIKCnJlcXVlc3RfaWQYASABKAkSEAoIbW9kZWxfaWQYAiABKAkSMgoIbWVzc2FnZXMYAyADKAsyIC5zcGxpdGNvcnRleC5ub2RlLnYxLkNoYXRNZXNzYWdlEhIKCm1heF90b2tlbnMYBCABKA0SEwoLdGVtcGVyYXR1cmUYBSABKAISDQoFdG9wX3AYBiABKAIiPwoOSW5mZXJlbmNlQ2h1bmsSEgoKcmVxdWVzdF9pZBgBIAEoCRIMCgR0ZXh0GAIgASgJEgsKA3NlcRgDIAEoDSJ5Cg1JbmZlcmVuY2VEb25lEhIKCnJlcXVlc3RfaWQYASABKAkSFQoNcHJvbXB0X3Rva2VucxgCIAEoDRIZChFjb21wbGV0aW9uX3Rva2VucxgDIAEoDRIVCg1maW5pc2hfcmVhc29uGAQgASgJEgsKA3NlcRgFIAEoDSJQCg5JbmZlcmVuY2VFcnJvchISCgpyZXF1ZXN0X2lkGAEgASgJEgwKBGNvZGUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRILCgNzZXEYBCABKA0iHAoGQ2FuY2VsEhIKCnJlcXVlc3RfaWQYASABKAkiIAoHUmVzdGFydBIVCg1ncmFjZV9zZWNvbmRzGAEgASgNImoKEEVtYmVkZGluZ1JlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRIQCghtb2RlbF9pZBgCIAEoCRIOCgZpbnB1dHMYAyADKAkSDAoEdGFzaxgEIAEoCRISCgpkaW1lbnNpb25zGAUgASgNIhsKCUVtYmVkZGluZxIOCgZ2YWx1ZXMYASADKAIifQoPRW1iZWRkaW5nUmVzdWx0EhIKCnJlcXVlc3RfaWQYASABKAkSMgoKZW1iZWRkaW5ncxgCIAMoCzIeLnNwbGl0Y29ydGV4Lm5vZGUudjEuRW1iZWRkaW5nEhUKDXByb21wdF90b2tlbnMYAyABKA0SCwoDc2VxGAQgASgNKqQBCgpNb2RlbFBoYXNlEhsKF01PREVMX1BIQVNFX1VOU1BFQ0lGSUVEEAASFAoQTU9ERUxfUEhBU0VfTk9ORRABEhsKF01PREVMX1BIQVNFX0RPV05MT0FESU5HEAISFwoTTU9ERUxfUEhBU0VfTE9BRElORxADEhUKEU1PREVMX1BIQVNFX1JFQURZEAQSFgoSTU9ERUxfUEhBU0VfRkFJTEVEEAViBnByb3RvMw',
   );
 
 /**
@@ -160,6 +160,27 @@ export type Envelope = Message<'splitcortex.node.v1.Envelope'> & {
          */
         value: GatewayKeys;
         case: 'gatewayKeys';
+      }
+    | {
+        /**
+         * @generated from field: splitcortex.node.v1.Restart restart = 19;
+         */
+        value: Restart;
+        case: 'restart';
+      }
+    | {
+        /**
+         * @generated from field: splitcortex.node.v1.EmbeddingRequest embedding_request = 20;
+         */
+        value: EmbeddingRequest;
+        case: 'embeddingRequest';
+      }
+    | {
+        /**
+         * @generated from field: splitcortex.node.v1.EmbeddingResult embedding_result = 21;
+         */
+        value: EmbeddingResult;
+        case: 'embeddingResult';
       }
     | { case: undefined; value?: undefined };
 };
@@ -413,6 +434,14 @@ export type ModelAssignment = Message<'splitcortex.node.v1.ModelAssignment'> & {
    * @generated from field: string sha256 = 5;
    */
   sha256: string;
+
+  /**
+   * What the model is for: "" or "chat" (text generation, `InferenceRequest`) | "embedding" (`EmbeddingRequest`). An
+   * embedding model is loaded into the embedding engine; a node never serves both kinds from one pool.
+   *
+   * @generated from field: string kind = 6;
+   */
+  kind: string;
 };
 
 /**
@@ -495,6 +524,21 @@ export type ModelState = Message<'splitcortex.node.v1.ModelState'> & {
    * @generated from field: string error = 4;
    */
   error: string;
+
+  /**
+   * What the loaded model accepts besides text, set while READY: "image" and/or "audio" (empty = text only). The
+   * gateway only sends a request with media parts to a node that lists the matching input here.
+   *
+   * @generated from field: repeated string modalities = 5;
+   */
+  modalities: string[];
+
+  /**
+   * Set while READY for an embedding model: the length of the vectors it produces (0 = a chat model / unknown).
+   *
+   * @generated from field: uint32 embedding_dimension = 6;
+   */
+  embeddingDimension: number;
 };
 
 /**
@@ -608,6 +652,73 @@ export const PongSchema: GenMessage<Pong> =
   messageDesc(file_splitcortex_node_v1_node, 14);
 
 /**
+ * Media bytes are sent as the client gave them (decoded from base64 by the gateway); the node hands them to the engine.
+ *
+ * @generated from message splitcortex.node.v1.Media
+ */
+export type Media = Message<'splitcortex.node.v1.Media'> & {
+  /**
+   * image/jpeg, image/png, ... | audio/wav, audio/mpeg, audio/flac
+   *
+   * @generated from field: string mime_type = 1;
+   */
+  mimeType: string;
+
+  /**
+   * @generated from field: bytes data = 2;
+   */
+  data: Uint8Array;
+};
+
+/**
+ * Describes the message splitcortex.node.v1.Media.
+ * Use `create(MediaSchema)` to create a new message.
+ */
+export const MediaSchema: GenMessage<Media> =
+  /*@__PURE__*/
+  messageDesc(file_splitcortex_node_v1_node, 15);
+
+/**
+ * @generated from message splitcortex.node.v1.ContentPart
+ */
+export type ContentPart = Message<'splitcortex.node.v1.ContentPart'> & {
+  /**
+   * @generated from oneof splitcortex.node.v1.ContentPart.part
+   */
+  part:
+    | {
+        /**
+         * @generated from field: string text = 1;
+         */
+        value: string;
+        case: 'text';
+      }
+    | {
+        /**
+         * @generated from field: splitcortex.node.v1.Media image = 2;
+         */
+        value: Media;
+        case: 'image';
+      }
+    | {
+        /**
+         * @generated from field: splitcortex.node.v1.Media audio = 3;
+         */
+        value: Media;
+        case: 'audio';
+      }
+    | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message splitcortex.node.v1.ContentPart.
+ * Use `create(ContentPartSchema)` to create a new message.
+ */
+export const ContentPartSchema: GenMessage<ContentPart> =
+  /*@__PURE__*/
+  messageDesc(file_splitcortex_node_v1_node, 16);
+
+/**
  * @generated from message splitcortex.node.v1.ChatMessage
  */
 export type ChatMessage = Message<'splitcortex.node.v1.ChatMessage'> & {
@@ -619,9 +730,19 @@ export type ChatMessage = Message<'splitcortex.node.v1.ChatMessage'> & {
   role: string;
 
   /**
+   * The message's text. Always set (the text parts joined), so a node that predates `parts` still sees the text.
+   *
    * @generated from field: string content = 2;
    */
   content: string;
+
+  /**
+   * Only set when the message contains media: every part in order, text included. A node that reads `parts` ignores
+   * `content` then. Never sent to a node that did not list the media's modality in `ModelState.modalities`.
+   *
+   * @generated from field: repeated splitcortex.node.v1.ContentPart parts = 3;
+   */
+  parts: ContentPart[];
 };
 
 /**
@@ -630,7 +751,7 @@ export type ChatMessage = Message<'splitcortex.node.v1.ChatMessage'> & {
  */
 export const ChatMessageSchema: GenMessage<ChatMessage> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 15);
+  messageDesc(file_splitcortex_node_v1_node, 17);
 
 /**
  * Every message below carries the request id, so many requests share the one socket.
@@ -681,7 +802,7 @@ export type InferenceRequest = Message<'splitcortex.node.v1.InferenceRequest'> &
  */
 export const InferenceRequestSchema: GenMessage<InferenceRequest> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 16);
+  messageDesc(file_splitcortex_node_v1_node, 18);
 
 /**
  * @generated from message splitcortex.node.v1.InferenceChunk
@@ -709,7 +830,7 @@ export type InferenceChunk = Message<'splitcortex.node.v1.InferenceChunk'> & {
  */
 export const InferenceChunkSchema: GenMessage<InferenceChunk> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 17);
+  messageDesc(file_splitcortex_node_v1_node, 19);
 
 /**
  * @generated from message splitcortex.node.v1.InferenceDone
@@ -749,7 +870,7 @@ export type InferenceDone = Message<'splitcortex.node.v1.InferenceDone'> & {
  */
 export const InferenceDoneSchema: GenMessage<InferenceDone> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 18);
+  messageDesc(file_splitcortex_node_v1_node, 20);
 
 /**
  * @generated from message splitcortex.node.v1.InferenceError
@@ -782,7 +903,7 @@ export type InferenceError = Message<'splitcortex.node.v1.InferenceError'> & {
  */
 export const InferenceErrorSchema: GenMessage<InferenceError> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 19);
+  messageDesc(file_splitcortex_node_v1_node, 21);
 
 /**
  * gateway -> node: the client went away, stop generating.
@@ -802,7 +923,133 @@ export type Cancel = Message<'splitcortex.node.v1.Cancel'> & {
  */
 export const CancelSchema: GenMessage<Cancel> =
   /*@__PURE__*/
-  messageDesc(file_splitcortex_node_v1_node, 20);
+  messageDesc(file_splitcortex_node_v1_node, 22);
+
+/**
+ * gateway -> node: restart the app (an admin asked for it in the web app). The node stops taking new requests, lets the
+ * ones it has finish for up to `grace_seconds` (then drops them; the gateway retries or fails them), and then starts
+ * itself again (process, tab or app, per node type), reconnecting with its usual resume. The gateway stops routing to the
+ * node as soon as it sends this.
+ *
+ * @generated from message splitcortex.node.v1.Restart
+ */
+export type Restart = Message<'splitcortex.node.v1.Restart'> & {
+  /**
+   * @generated from field: uint32 grace_seconds = 1;
+   */
+  graceSeconds: number;
+};
+
+/**
+ * Describes the message splitcortex.node.v1.Restart.
+ * Use `create(RestartSchema)` to create a new message.
+ */
+export const RestartSchema: GenMessage<Restart> =
+  /*@__PURE__*/
+  messageDesc(file_splitcortex_node_v1_node, 23);
+
+/**
+ * gateway -> node, for a pool whose model has kind "embedding": embed every input (one vector per input, same order).
+ * Answered by one `EmbeddingResult` or an `InferenceError` with the same request id; there is nothing to stream.
+ *
+ * @generated from message splitcortex.node.v1.EmbeddingRequest
+ */
+export type EmbeddingRequest = Message<'splitcortex.node.v1.EmbeddingRequest'> & {
+  /**
+   * @generated from field: string request_id = 1;
+   */
+  requestId: string;
+
+  /**
+   * @generated from field: string model_id = 2;
+   */
+  modelId: string;
+
+  /**
+   * @generated from field: repeated string inputs = 3;
+   */
+  inputs: string[];
+
+  /**
+   * The kind of text, for models that expect a task prefix (EmbeddingGemma): "" (none) | "query" | "document" |
+   * "classification" | "clustering" | "similarity". The node writes the model's own prefix; the gateway never does.
+   *
+   * @generated from field: string task = 4;
+   */
+  task: string;
+
+  /**
+   * Truncate every vector to this many dimensions (Matryoshka models; the node renormalises). 0 = the full vector.
+   *
+   * @generated from field: uint32 dimensions = 5;
+   */
+  dimensions: number;
+};
+
+/**
+ * Describes the message splitcortex.node.v1.EmbeddingRequest.
+ * Use `create(EmbeddingRequestSchema)` to create a new message.
+ */
+export const EmbeddingRequestSchema: GenMessage<EmbeddingRequest> =
+  /*@__PURE__*/
+  messageDesc(file_splitcortex_node_v1_node, 24);
+
+/**
+ * @generated from message splitcortex.node.v1.Embedding
+ */
+export type Embedding = Message<'splitcortex.node.v1.Embedding'> & {
+  /**
+   * packed
+   *
+   * @generated from field: repeated float values = 1;
+   */
+  values: number[];
+};
+
+/**
+ * Describes the message splitcortex.node.v1.Embedding.
+ * Use `create(EmbeddingSchema)` to create a new message.
+ */
+export const EmbeddingSchema: GenMessage<Embedding> =
+  /*@__PURE__*/
+  messageDesc(file_splitcortex_node_v1_node, 25);
+
+/**
+ * @generated from message splitcortex.node.v1.EmbeddingResult
+ */
+export type EmbeddingResult = Message<'splitcortex.node.v1.EmbeddingResult'> & {
+  /**
+   * @generated from field: string request_id = 1;
+   */
+  requestId: string;
+
+  /**
+   * @generated from field: repeated splitcortex.node.v1.Embedding embeddings = 2;
+   */
+  embeddings: Embedding[];
+
+  /**
+   * tokens of all inputs together; 0 = the node cannot tell (the gateway estimates)
+   *
+   * @generated from field: uint32 prompt_tokens = 3;
+   */
+  promptTokens: number;
+
+  /**
+   * as for the other per-request messages
+   *
+   * @generated from field: uint32 seq = 4;
+   */
+  seq: number;
+};
+
+/**
+ * Describes the message splitcortex.node.v1.EmbeddingResult.
+ * Use `create(EmbeddingResultSchema)` to create a new message.
+ */
+export const EmbeddingResultSchema: GenMessage<EmbeddingResult> =
+  /*@__PURE__*/
+  messageDesc(file_splitcortex_node_v1_node, 26);
 
 /**
  * @generated from enum splitcortex.node.v1.ModelPhase

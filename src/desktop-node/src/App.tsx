@@ -10,6 +10,7 @@ import { TopBar } from './components/TopBar';
 import { UpdateCard } from './components/UpdateCard';
 import { useEnrollment } from './enrollment/store';
 import { runtime } from './runtime';
+import { clearRestartMark, hasRestartMark } from './runtime/host';
 import { loadSettings } from './runtime/settings';
 
 const useStyles = makeStyles({
@@ -44,7 +45,10 @@ export function App() {
     if (!enrollment?.approved) return;
     let alive = true;
     void loadSettings().then((s) => {
-      if (alive && s.connectOnStart) void runtime.start();
+      if (alive && (s.connectOnStart || hasRestartMark())) {
+        clearRestartMark();
+        void runtime.start();
+      }
     });
     return () => {
       alive = false;

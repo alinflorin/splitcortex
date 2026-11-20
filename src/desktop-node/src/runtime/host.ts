@@ -26,7 +26,26 @@ export interface Host {
   /** Calls back when the window is shown again or the network returns (a good moment to reconnect at once). */
   onForeground(cb: () => void): () => void;
   telemetry(): Promise<DeviceTelemetry>;
+  /** Starts the app again (a new process) so it reconnects on its own; rejects when this installation cannot. */
+  restartApp(): Promise<void>;
 }
+
+const RESTART_MARK = 'sc-node-restarted';
+/** Set just before a remote restart: the next start serves again even if "connect on open" is off. */
+export const hasRestartMark = () => {
+  try {
+    return localStorage.getItem(RESTART_MARK) === '1';
+  } catch {
+    return false;
+  }
+};
+export const clearRestartMark = () => {
+  try {
+    localStorage.removeItem(RESTART_MARK);
+  } catch {
+    // storage unavailable: nothing to clear
+  }
+};
 
 export function nativeHost(api: NativeApi = tauriApi): Host {
   return {
@@ -41,5 +60,18 @@ export function nativeHost(api: NativeApi = tauriApi): Host {
       };
     },
     telemetry: () => api.telemetry().catch(() => ({ ...UNKNOWN_TELEMETRY })),
+    async restartApp() {
+      try {
+        localStorage.setItem(RESTART_MARK, '1');
+      } catch {
+        // without storage the node comes back only if "connect on open" is on
+      }
+      try {
+        await api.restartApp();
+      } catch (e) {
+        clearRestartMark();
+        throw e;
+      }
+    },
   };
 }

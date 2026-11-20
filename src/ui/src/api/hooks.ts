@@ -25,6 +25,7 @@ import {
   type ApiKeyForm,
   type Limits,
   type ModelFromUrlForm,
+  type ModelKind,
   type OrgRole,
   type OrganisationForm,
   type PoolForm,
@@ -363,6 +364,15 @@ export function useUpdateNode(orgId: string, nodeId: string) {
   });
 }
 
+/** Asks a connected device to restart its app (it finishes what it is serving first). */
+export function useRestartNode(orgId: string, nodeId: string) {
+  const req = useRequest();
+  return useMutation({
+    mutationFn: () =>
+      req('POST', `/organisations/${orgId}/nodes/${nodeId}/restart`, z.object({ id: z.string() })),
+  });
+}
+
 export function useDeleteNode(orgId: string, nodeId: string) {
   const req = useRequest();
   const qc = useQueryClient();
@@ -446,7 +456,7 @@ export function useAddModelFromUrl(orgId: string) {
   const req = useRequest();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: ModelFromUrlForm) =>
+    mutationFn: (body: ModelFromUrlForm & { kind: ModelKind }) =>
       req('POST', `/organisations/${orgId}/models/from-url`, modelSchema, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.models(orgId) }),
   });
@@ -455,7 +465,7 @@ export function useAddModelFromUrl(orgId: string) {
 export function useStartModelUpload(orgId: string) {
   const req = useRequest();
   return useMutation({
-    mutationFn: (body: { name: string; fileName: string; sizeBytes: number }) =>
+    mutationFn: (body: { name: string; kind: ModelKind; fileName: string; sizeBytes: number }) =>
       req('POST', `/organisations/${orgId}/models/uploads`, modelUploadSchema, body),
   });
 }

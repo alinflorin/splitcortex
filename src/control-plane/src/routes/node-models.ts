@@ -103,6 +103,7 @@ export const nodeModelRoutes: FastifyPluginAsyncZod<{
       return rows.map(({ model: m }) => ({
         id: m.id,
         name: m.name,
+        kind: m.kind,
         fileName: m.fileName,
         sizeBytes: m.sizeBytes!,
         sha256: m.sha256,
