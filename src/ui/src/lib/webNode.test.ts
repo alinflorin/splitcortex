@@ -6,8 +6,8 @@ describe('web node link', () => {
     expect(getWebNodeUrl({ hostname: 'app.stg.splitcortex.com' })).toBe(
       'https://web-node.stg.splitcortex.com',
     );
-    expect(getWebNodeUrl({ hostname: 'app.splitcortex.127.0.0.1.nip.io' })).toBe(
-      'https://web-node.splitcortex.127.0.0.1.nip.io',
+    expect(getWebNodeUrl({ hostname: 'app.local.splitcortex.com' })).toBe(
+      'https://web-node.local.splitcortex.com',
     );
   });
 });

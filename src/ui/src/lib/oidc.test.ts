@@ -5,7 +5,7 @@ describe('getDexAuthority', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it.each([
-    ['app.splitcortex.127.0.0.1.nip.io', 'https://dex.splitcortex.127.0.0.1.nip.io'],
+    ['app.local.splitcortex.com', 'https://dex.local.splitcortex.com'],
     ['app.stg.splitcortex.com', 'https://dex.stg.splitcortex.com'],
     ['app.prd.splitcortex.com', 'https://dex.prd.splitcortex.com'],
   ])('maps %s to %s', (hostname, expected) => {

@@ -60,7 +60,7 @@ export default defineConfig({
     host: true,
     port: 5174,
     // Allow the local dev hostnames (web-node.local.splitcortex.com).
-    allowedHosts: ['.local.splitcortex.com', '.nip.io', 'localhost'],
+    allowedHosts: ['.local.splitcortex.com', 'localhost'],
   },
   test: {
     environment: 'jsdom',
