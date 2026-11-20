@@ -23,7 +23,6 @@
     },
     "plugins": [
       "./plugins/withReleaseSigning",
-      "./plugins/withDevUserCa",
       "./plugins/withGradleSpeed",
       "expo-router",
       "expo-font",

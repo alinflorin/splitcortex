@@ -49,7 +49,7 @@ k8s_yaml(local(
     '--show-only templates/ui-ingress.yaml',
     quiet=True,
 ))
-k8s_resource('ui', resource_deps=['chart'], labels=['apps'], links=['https://app.splitcortex.127.0.0.1.nip.io'])
+k8s_resource('ui', resource_deps=['chart'], labels=['apps'], links=['https://app.local.splitcortex.com'])
 
 # Web node (src/web-node, a browser that serves inference like a phone node). Same shape as the UI: the dev image runs
 # Vite with HMR on 8080 and live_update syncs sources. Its host also routes /api to the control plane (chart values).
@@ -69,7 +69,7 @@ k8s_yaml(local(
     '--show-only templates/web-node-ingress.yaml',
     quiet=True,
 ))
-k8s_resource('web-node', resource_deps=['chart'], labels=['apps'], links=['https://web-node.splitcortex.127.0.0.1.nip.io'])
+k8s_resource('web-node', resource_deps=['chart'], labels=['apps'], links=['https://web-node.local.splitcortex.com'])
 
 # Control plane (src/control-plane, Fastify + Drizzle). The dev image runs `tsx watch`; src edits are synced.
 # Changes under src/control-plane/drizzle (new migrations) are deliberately NOT synced, so they rebuild the image
@@ -109,7 +109,7 @@ k8s_resource('control-plane-audit-prune', resource_deps=['chart'], labels=['apps
 # Metrics retention CronJob (hourly; trigger it manually from the Tilt UI).
 k8s_resource('control-plane-metrics-prune', resource_deps=['chart'], labels=['apps'], auto_init=False)
 k8s_resource('control-plane', resource_deps=['chart', 'control-plane-migrate', 'garage-bootstrap', 'gateway-identity'], labels=['apps'],
-             links=['https://app.splitcortex.127.0.0.1.nip.io/api/docs'])
+             links=['https://app.local.splitcortex.com/api/docs'])
 
 # Gateway (src/gateway, Rust). The dev image runs `cargo watch`; src/ and proto/ are synced and it rebuilds + restarts
 # (a first build in the container takes a few minutes). Needs the migrated database, like the control plane.
@@ -133,4 +133,4 @@ k8s_yaml(local(
 # The identity Job (a Helm hook in a real install) creates the gateway's key Secrets once; a plain Job under Tilt.
 k8s_resource('gateway-identity', resource_deps=['chart'], labels=['apps'])
 k8s_resource('gateway', resource_deps=['chart', 'control-plane-migrate', 'gateway-identity'], labels=['apps'],
-             links=['https://gateway.splitcortex.127.0.0.1.nip.io/v1/models'])
+             links=['https://gateway.local.splitcortex.com/v1/models'])

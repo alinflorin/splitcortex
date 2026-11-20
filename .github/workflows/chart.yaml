@@ -29,7 +29,8 @@ jobs:
         # '' = default values.yaml (local dev)
         env: [dev, stg, prd]
     env:
-      VALUES_ARGS: ${{ matrix.env != 'dev' && format('-f chart/values-{0}.yaml', matrix.env) || '' }}
+      # dev has no values file of its own: the required issuer token is a dummy (stg/prd get theirs by envsubst below).
+      VALUES_ARGS: ${{ matrix.env != 'dev' && format('-f chart/values-{0}.yaml', matrix.env) || '--set cloudflareApiToken=ci-token' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -75,12 +76,12 @@ jobs:
       - name: Substitute deploy-time placeholders (dummy values for validation)
         if: matrix.env != 'dev'
         env:
-          LETSENCRYPT_EMAIL: ci@example.com
+          CLOUDFLARE_TOKEN: ci-cloudflare-token
           GOOGLE_CLIENT_ID: ci-client-id
           GOOGLE_CLIENT_SECRET: ci-client-secret
         run: |
           f="$CHART_DIR/values-${{ matrix.env }}.yaml"
-          envsubst '$LETSENCRYPT_EMAIL $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET' < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+          envsubst '$CLOUDFLARE_TOKEN $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET' < "$f" > "$f.tmp" && mv "$f.tmp" "$f"
 
       - name: Lint
         run: helm lint "$CHART_DIR" --strict $VALUES_ARGS

@@ -66,13 +66,13 @@ SplitCortex: SaaS platform that reuses compute devices (phones, Raspberry Pis, l
 
 ## Domains
 
-| Service  | local                                                             | stg                                                 | prd                                      |
-| -------- | ----------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------- |
-| Dex      | `dex.splitcortex.127.0.0.1.nip.io`                                | `dex.stg.splitcortex.alinflorinciu.qoffice.ro`      | `dex.prd.splitcortex.com`                |
-| Web app  | `app.splitcortex.127.0.0.1.nip.io` (Vite standalone `:5173`)      | `app.stg.splitcortex.alinflorinciu.qoffice.ro`      | `app.prd.splitcortex.com` (assumed)      |
-| Web node | `web-node.splitcortex.127.0.0.1.nip.io` (Vite standalone `:5174`) | `web-node.stg.splitcortex.alinflorinciu.qoffice.ro` | `web-node.prd.splitcortex.com` (assumed) |
+| Service  | local                                                      | stg                            | prd                                      |
+| -------- | ---------------------------------------------------------- | ------------------------------ | ---------------------------------------- |
+| Dex      | `dex.local.splitcortex.com`                                | `dex.stg.splitcortex.com`      | `dex.prd.splitcortex.com`                |
+| Web app  | `app.local.splitcortex.com` (Vite standalone `:5173`)      | `app.stg.splitcortex.com`      | `app.prd.splitcortex.com` (assumed)      |
+| Web node | `web-node.local.splitcortex.com` (Vite standalone `:5174`) | `web-node.stg.splitcortex.com` | `web-node.prd.splitcortex.com` (assumed) |
 
-Control plane at `/api` on the web app and web node hosts (Swagger at `/api/docs`). Staging gateway: `gateway.stg.splitcortex.alinflorinciu.qoffice.ro` (wss `/node`); prd gateway hostname TBD. Local uses `root-ca-issuer`; stg/prd use `letsencrypt` and need DNS to the Traefik load balancer.
+Control plane at `/api` on the web app and web node hosts (Swagger at `/api/docs`). Staging gateway: `gateway.stg.splitcortex.com` (wss `/node`); prd gateway hostname TBD. Every environment uses the one `letsencrypt` issuer with **DNS-01 through Cloudflare** (no self-signed CA, no HTTP-01, no ACME account email): the local wildcard `*.local.splitcortex.com` A record points to `127.0.0.1` in public DNS, so local certificates are publicly trusted and no CA is installed anywhere. `cloudflareApiToken` (Zone:DNS:Edit) is a required chart value: locally in git-ignored `chart/values-local.yaml`, in stg/prd the placeholder `${CLOUDFLARE_TOKEN}` filled from the GitHub secret `CLOUDFLARE_TOKEN`. stg/prd need the zone in that Cloudflare account and DNS to the Traefik load balancer.
 
 ## Commands
 
@@ -104,6 +104,7 @@ CI/CD, release streams, deploy: [docs/commands-and-ci.md](docs/commands-and-ci.m
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
 
 Rules:
+
 - When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. When the answer is under a Markdown heading, `graphify section "<heading>"` prints that section's text, so the .md need not be opened. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.

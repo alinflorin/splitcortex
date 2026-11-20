@@ -31,7 +31,7 @@ jobs:
   deploy:
     name: deploy (${{ inputs.environment }})
     runs-on: ubuntu-latest
-    # Environment secrets: KUBECONFIG (base64 or plain), LETSENCRYPT_EMAIL,
+    # Environment secrets: KUBECONFIG (base64 or plain), CLOUDFLARE_TOKEN (Zone:DNS:Edit),
     # GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (stg Dex Google login).
     # Add required reviewers on the environment for a manual approval gate.
     environment: ${{ inputs.environment }}
@@ -40,7 +40,7 @@ jobs:
       cancel-in-progress: false
     env:
       ENVIRONMENT: ${{ inputs.environment }}
-      LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
+      CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
     steps:
@@ -76,7 +76,7 @@ jobs:
       - name: Substitute deploy-time placeholders
         run: |
           f="chart/values-${ENVIRONMENT}.yaml"
-          envsubst '$LETSENCRYPT_EMAIL $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET' < "$f" > "$RUNNER_TEMP/values.yaml"
+          envsubst '$CLOUDFLARE_TOKEN $GOOGLE_CLIENT_ID $GOOGLE_CLIENT_SECRET' < "$f" > "$RUNNER_TEMP/values.yaml"
 
       - name: Helm upgrade
         run: |

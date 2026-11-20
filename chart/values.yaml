@@ -22,10 +22,14 @@ traefik:
             scheme: https
             permanent: true
 
-# ClusterIssuers (templates/cluster-issuers.yaml). For an external cert-manager set `cert-manager.enabled: false`
-# (its CRDs/webhook must already exist; issuer names `root-ca-issuer`/`letsencrypt` must not clash). To use the
-# external cert-manager's own issuers instead, also set `clusterIssuers.enabled: false` and point
-# `dex.ingress.annotations."cert-manager.io/cluster-issuer"` (and its TLS) at them.
+# The one ClusterIssuer `letsencrypt` (templates/cluster-issuers.yaml): Let's Encrypt production, DNS-01 through Cloudflare,
+# in every environment, no ACME account email. `cloudflareApiToken` (Cloudflare API token, Zone:DNS:Edit on the zone of
+# `global.domain`) is required: locally put it in the git-ignored `values-local.yaml`; stg/prd carry the placeholder
+# `${CLOUDFLARE_TOKEN}` that CI substitutes from a GitHub secret. The token is rendered into the Secret
+# `cloudflare-api-token`. For an external cert-manager set `cert-manager.enabled: false` (its CRDs/webhook must already
+# exist; the issuer name `letsencrypt` must not clash). To use the external cert-manager's own issuers instead, also set
+# `clusterIssuers.enabled: false` and point `dex.ingress.annotations."cert-manager.io/cluster-issuer"` (and its TLS) at them.
+cloudflareApiToken: ""
 clusterIssuers:
   enabled: true
 
@@ -62,7 +66,7 @@ postgres:
 # Base domain of every public host: dex.<domain>, app.<domain>, web-node.<domain>, gateway.<domain>. Host and URL values
 # below (and in values-stg/prd) are rendered with `tpl`, so `{{ .Values.global.domain }}` follows this one setting.
 global:
-  domain: splitcortex.127.0.0.1.nip.io
+  domain: local.splitcortex.com
 
 dex:
   enabled: true
@@ -78,7 +82,7 @@ dex:
     enabled: true
     className: traefik   # IngressClass created by the Traefik subchart (traefik.ingressClass.name)
     annotations:
-      cert-manager.io/cluster-issuer: root-ca-issuer
+      cert-manager.io/cluster-issuer: letsencrypt
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       # <release namespace>-rate-limit-general@kubernetescrd (namespace `splitcortex`)
@@ -176,7 +180,7 @@ ui:
     enabled: true
     className: traefik   # keep equal to ingress.className
     annotations:
-      cert-manager.io/cluster-issuer: root-ca-issuer
+      cert-manager.io/cluster-issuer: letsencrypt
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
@@ -208,7 +212,7 @@ webNode:
     enabled: true
     className: traefik   # keep equal to ingress.className
     annotations:
-      cert-manager.io/cluster-issuer: root-ca-issuer
+      cert-manager.io/cluster-issuer: letsencrypt
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
@@ -386,7 +390,7 @@ gateway:
     enabled: true
     className: traefik   # keep equal to ingress.className
     annotations:
-      cert-manager.io/cluster-issuer: root-ca-issuer
+      cert-manager.io/cluster-issuer: letsencrypt
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-gateway@kubernetescrd

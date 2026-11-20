@@ -2,7 +2,7 @@ import { WebStorageStateStore, type UserManagerSettings } from 'oidc-client-ts';
 
 /**
  * Dex lives next to the web app: `app.<domain>` -> `dex.<domain>` (same scheme-less domain, https).
- *   app.splitcortex.127.0.0.1.nip.io -> https://dex.splitcortex.127.0.0.1.nip.io
+ *   app.local.splitcortex.com -> https://dex.local.splitcortex.com
  *   app.stg.splitcortex.com          -> https://dex.stg.splitcortex.com
  * `VITE_OIDC_AUTHORITY` overrides it (e.g. when the UI runs on plain `localhost`).
  */

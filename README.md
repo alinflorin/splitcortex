@@ -37,7 +37,7 @@ The business model is bring-your-own-devices SaaS: customers supply the compute,
 
 ## Development setup
 
-Everything runs on a local Kubernetes cluster driven by [Tilt](https://tilt.dev), so you get the same stack as staging (TLS, ingress, Dex login, Postgres, object storage). The `nip.io` hostnames resolve to `127.0.0.1`, so no `/etc/hosts` edits are needed.
+Everything runs on a local Kubernetes cluster driven by [Tilt](https://tilt.dev), so you get the same stack as staging (TLS, ingress, Dex login, Postgres, object storage). The `*.local.splitcortex.com` hostnames resolve to `127.0.0.1` in public DNS (one wildcard `A` record in Cloudflare), so no `/etc/hosts` edits are needed, and the certificates are real Let's Encrypt ones (DNS-01 through Cloudflare), so there is no CA to install in browsers or the Android emulator. Before `tilt up`, put `cloudflareApiToken` (Zone:DNS:Edit on `splitcortex.com`) in the git-ignored `chart/values-local.yaml`.
 
 ### Prerequisites
 
@@ -51,7 +51,7 @@ Required for the server side:
 
 Only if you work on those parts:
 
-- Mobile node: JDK, Android SDK, a real Android device or emulator (`scripts/start-emulator.sh`); no Expo Go, local dev builds only
+- Mobile node: JDK, Android SDK, a real Android device or emulator (an emulator reaches the local stack with `adb reverse tcp:443 tcp:443`, since the local hostnames resolve to `127.0.0.1`); no Expo Go, local dev builds only
 
 ### Run the stack
 
@@ -61,15 +61,15 @@ tilt up            # at the repo root
 
 Tilt installs the infrastructure chart first (Traefik, cert-manager, Postgres, Garage, Dex), then builds and live-reloads each service from a dev image. The first gateway build takes a few minutes.
 
-| Service     | Local URL                                              |
-| ----------- | ------------------------------------------------------ |
-| Web app     | https://app.splitcortex.127.0.0.1.nip.io               |
-| Web node    | https://web-node.splitcortex.127.0.0.1.nip.io          |
-| API docs    | https://app.splitcortex.127.0.0.1.nip.io/api/docs      |
-| Gateway     | https://gateway.splitcortex.127.0.0.1.nip.io/v1/models |
-| Dex (login) | https://dex.splitcortex.127.0.0.1.nip.io               |
+| Service     | Local URL                                       |
+| ----------- | ----------------------------------------------- |
+| Web app     | https://app.local.splitcortex.com               |
+| Web node    | https://web-node.local.splitcortex.com          |
+| API docs    | https://app.local.splitcortex.com/api/docs      |
+| Gateway     | https://gateway.local.splitcortex.com/v1/models |
+| Dex (login) | https://dex.local.splitcortex.com               |
 
-TLS uses a throwaway local CA, so the browser warns once (trust or accept it).
+TLS uses real Let's Encrypt certificates, so there is nothing to trust or accept.
 
 **Local login:** create `chart/values-local.yaml` (git-ignored) with your own Dex user. A bcrypt hash of the password goes in:
 
@@ -97,7 +97,7 @@ pnpm test
 pnpm format       # run before committing
 ```
 
-Open the standalone UI as `http://app.splitcortex.127.0.0.1.nip.io:5173` so the Dex redirect matches.
+Open the standalone UI as `http://app.local.splitcortex.com:5173` so the Dex redirect matches.
 
 Control plane database: `pnpm db:generate` after changing the schema (plain SQL migrations, never edit applied ones); migrations run automatically under Tilt. Tests use an in-memory Postgres (PGlite), so no database is needed.
 
@@ -126,21 +126,21 @@ Chart changes: `helm lint chart --strict` and `helm template splitcortex chart`.
 
 GitHub Actions lint, test and build every project. Releases are tag driven and each stream is independent:
 
-| Tag                   | Releases                                                                           |
-| --------------------- | ---------------------------------------------------------------------------------- |
-| `vX.Y.Z`              | chart + web app + control plane + gateway; deploys to stg, prd is promoted by hand |
-| `mobile-node-vX.Y.Z`  | signed Android APK                                                                 |
-| `cli-node-vX.Y.Z`     | CLI binaries                                                                       |
+| Tag                  | Releases                                                                           |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| `vX.Y.Z`             | chart + web app + control plane + gateway; deploys to stg, prd is promoted by hand |
+| `mobile-node-vX.Y.Z` | signed Android APK                                                                 |
+| `cli-node-vX.Y.Z`    | CLI binaries                                                                       |
 
 Tags are created from `VERSIONS.txt` by a workflow. See [docs/commands-and-ci.md](docs/commands-and-ci.md).
 
 ## Environments
 
-| Service   | local                                   | stg                                                 | prd                                      |
-| --------- | --------------------------------------- | --------------------------------------------------- | ---------------------------------------- |
-| Dex (IdP) | `dex.splitcortex.127.0.0.1.nip.io`      | `dex.stg.splitcortex.alinflorinciu.qoffice.ro`      | `dex.prd.splitcortex.com`                |
-| Web app   | `app.splitcortex.127.0.0.1.nip.io`      | `app.stg.splitcortex.alinflorinciu.qoffice.ro`      | `app.prd.splitcortex.com` (assumed)      |
-| Web node  | `web-node.splitcortex.127.0.0.1.nip.io` | `web-node.stg.splitcortex.alinflorinciu.qoffice.ro` | `web-node.prd.splitcortex.com` (assumed) |
+| Service   | local                            | stg                            | prd                                      |
+| --------- | -------------------------------- | ------------------------------ | ---------------------------------------- |
+| Dex (IdP) | `dex.local.splitcortex.com`      | `dex.stg.splitcortex.com`      | `dex.prd.splitcortex.com`                |
+| Web app   | `app.local.splitcortex.com`      | `app.stg.splitcortex.com`      | `app.prd.splitcortex.com` (assumed)      |
+| Web node  | `web-node.local.splitcortex.com` | `web-node.stg.splitcortex.com` | `web-node.prd.splitcortex.com` (assumed) |
 
 The control plane is served at `/api` on the web app host. Staging and production need DNS pointing at the Traefik load balancer.
 

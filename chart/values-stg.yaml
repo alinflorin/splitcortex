@@ -1,19 +1,14 @@
 global:
-  domain: stg.splitcortex.alinflorinciu.qoffice.ro
+  domain: stg.splitcortex.com
 
-# Enables the `letsencrypt` ClusterIssuer (Let's Encrypt production).
-# Placeholder substituted at deploy time (`envsubst '$LETSENCRYPT_EMAIL'`, from a CI variable); never commit the real value.
-letsencryptEmail: "${LETSENCRYPT_EMAIL}"
+# `letsencrypt` ClusterIssuer (Let's Encrypt production, DNS-01 through Cloudflare; the zone of `global.domain` must be in
+# that Cloudflare account). Placeholder substituted at deploy time (`envsubst`, GitHub secret CLOUDFLARE_TOKEN); never
+# commit the real value.
+cloudflareApiToken: "${CLOUDFLARE_TOKEN}"
 
 dex:
   # Google client credentials are placeholders substituted at deploy time (`envsubst`, GitHub environment secrets
   # GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET); never commit the real values.
-  ingress:
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt
-      traefik.ingress.kubernetes.io/router.entrypoints: websecure
-      traefik.ingress.kubernetes.io/router.tls: "true"
-      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
   config:
     connectors:
       - type: google
@@ -36,23 +31,14 @@ dex:
 ui:
   image:
     repository: ghcr.io/alinflorin/splitcortex-ui
-  ingress:
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt
 
 webNode:
   image:
     repository: ghcr.io/alinflorin/splitcortex-web-node
-  ingress:
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt
 
 gateway:
   image:
     repository: ghcr.io/alinflorin/splitcortex-gateway
-  ingress:
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt
 
 controlPlane:
   image:
