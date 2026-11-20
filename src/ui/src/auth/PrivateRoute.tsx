@@ -3,6 +3,7 @@ import { Button, MessageBar, MessageBarBody, Spinner } from '@fluentui/react-com
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
+import { endSignOut, isSigningOut } from './signOut';
 
 /** Layout route: renders children only for signed-in users, otherwise sends the user to Dex. */
 export function PrivateRoute() {
@@ -17,7 +18,11 @@ export function PrivateRoute() {
   const hasRefreshToken = !!user?.refresh_token;
   const returnTo = location.pathname + location.search;
 
+  // Leaving this page ends a sign-out that started on it.
+  useEffect(() => endSignOut, []);
+
   useEffect(() => {
+    if (isSigningOut(location.pathname)) return;
     if (isLoading || isAuthenticated || activeNavigator || error || redirecting.current) return;
     redirecting.current = true;
     const toDex = () => {
@@ -42,6 +47,7 @@ export function PrivateRoute() {
     signinSilent,
     hasRefreshToken,
     returnTo,
+    location.pathname,
   ]);
 
   if (isAuthenticated) return <Outlet />;

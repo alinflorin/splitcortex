@@ -14,7 +14,8 @@ import {
 import { Person24Regular, Settings24Regular, SignOut24Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from 'react-oidc-context';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { startSignOut } from '../../auth/signOut';
 import { useCurrentUser } from '../../auth/useCurrentUser';
 import { LanguageSubmenu, ThemeSubmenu } from './PreferencesMenu';
 
@@ -39,6 +40,7 @@ export function UserMenu() {
   const styles = useStyles();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useAuth();
   const user = useCurrentUser();
 
@@ -90,8 +92,8 @@ export function UserMenu() {
             <MenuItem
               icon={<SignOut24Regular />}
               onClick={() => {
-                navigate('/');
-                void auth.removeUser();
+                startSignOut(location.pathname);
+                void auth.removeUser().then(() => navigate('/'));
               }}
             >
               {t('auth.signOut')}

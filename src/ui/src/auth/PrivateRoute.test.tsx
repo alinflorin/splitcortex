@@ -5,6 +5,7 @@ import { useAuth } from 'react-oidc-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { en, renderApp } from '../test/render';
 import { PrivateRoute } from './PrivateRoute';
+import { endSignOut, startSignOut } from './signOut';
 
 vi.mock('react-oidc-context', () => ({ useAuth: vi.fn() }));
 
@@ -52,6 +53,15 @@ describe('PrivateRoute', () => {
     expect(signinRedirect).toHaveBeenCalledWith({ state: { returnTo: '/settings?tab=1' } });
     expect(screen.getByText(en.auth.redirecting)).toBeInTheDocument();
     expect(screen.queryByText('secret')).toBeNull();
+  });
+
+  it('does not send the user to Dex while signing out from this page', async () => {
+    startSignOut('/settings');
+    mockAuth({});
+    await renderApp(routes, '/settings');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(signinRedirect).not.toHaveBeenCalled();
+    endSignOut();
   });
 
   it('renews an expired session with the refresh token instead of going to Dex', async () => {

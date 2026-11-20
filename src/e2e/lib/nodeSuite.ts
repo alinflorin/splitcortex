@@ -180,8 +180,9 @@ async function checkNodePage(page: Page, orgId: string, poolId: string, nodeId: 
   ]) {
     await expect(page.getByText(card, { exact: true }).first(), card).toBeVisible();
   }
-  // What the device runs on, as the node reported it (the engine is loaded by now).
-  await expect(page.getByText('Running on')).toBeVisible();
+  // What the device runs on, as the node reports it once the model is downloaded and the engine loaded. "Online" only
+  // means connected, so wait for it (several nodes load their models at the same time).
+  await expect(page.getByText('Running on')).toBeVisible({ timeout: 5 * 60_000 });
   await expect(page.getByText(/^(CPU|GPU)$/).first()).toBeVisible();
   await expect(page.getByText('Key fingerprint')).toBeVisible();
   await expect(page.getByText('Could not load data')).toHaveCount(0);
