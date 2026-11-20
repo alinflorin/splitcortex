@@ -25,6 +25,7 @@ import { CardList, ItemCard } from '../../components/cards/cards';
 import { useToast } from '../../components/feedback/useToast';
 import { NodeStatusBadge } from '../../components/status/StatusBadge';
 import { formatAgo } from '../../lib/format';
+import { BulkEnrollDialog } from './BulkEnrollDialog';
 import { EnrollDeviceDialog } from './EnrollDeviceDialog';
 import { ModelCard } from './ModelCard';
 
@@ -53,6 +54,7 @@ export function PoolNodes({ pool, admin = false }: { pool: Pool; admin?: boolean
   const navigate = useNavigate();
   const query = useNodes(pool.orgId, pool.id);
   const [enrolling, setEnrolling] = useState(false);
+  const [bulk, setBulk] = useState(false);
 
   return (
     <>
@@ -63,6 +65,10 @@ export function PoolNodes({ pool, admin = false }: { pool: Pool; admin?: boolean
               {t('enroll.add')}
             </Button>
             <EnrollDeviceDialog pool={pool} open={enrolling} onClose={() => setEnrolling(false)} />
+            <Button icon={<Add20Regular />} onClick={() => setBulk(true)}>
+              {t('bulkEnroll.add')}
+            </Button>
+            <BulkEnrollDialog pool={pool} open={bulk} onClose={() => setBulk(false)} />
           </>
         )}
         {/* the apps and their install steps live on the home page; a new tab keeps this page where it is */}

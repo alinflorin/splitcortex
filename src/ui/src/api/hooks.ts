@@ -2,7 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useAuth } from 'react-oidc-context';
 import { z } from 'zod';
 import { useFreshToken } from '../auth/useFreshToken';
-import { ApiError, putPart, request } from './client';
+import { ApiError, putPart, request, requestBlob } from './client';
 import type { Method } from './client';
 import {
   apiKeyRequest,
@@ -10,7 +10,9 @@ import {
   auditPageSchema,
   benchmarkSchema,
   createdApiKeySchema,
+  createdBulkEnrollmentsSchema,
   createdEnrollmentSchema,
+  enrollmentSchema,
   memberSchema,
   modelSchema,
   modelUploadSchema,
@@ -27,6 +29,7 @@ import {
   type OrganisationForm,
   type PoolForm,
 } from './schemas';
+import { saveFile } from '../lib/saveFile';
 import type { PutPart } from '../lib/uploadParts';
 
 /**
@@ -297,6 +300,29 @@ export function useAuditLogs(orgId: string, params: AuditParams, enabled = true)
   });
 }
 
+/** Downloads the audit log (same filters as the list) as a CSV or JSON file. */
+export function useExportAuditLogs(orgId: string) {
+  const getToken = useFreshToken();
+  return useMutation({
+    mutationFn: async ({ params, format }: { params: AuditParams; format: 'csv' | 'json' }) => {
+      const qs = new URLSearchParams(
+        Object.entries({ ...params, format }).filter(
+          (e): e is [string, string] => e[1] !== undefined,
+        ),
+      ).toString();
+      const path = `/organisations/${orgId}/audit-logs/export?${qs}`;
+      let blob: Blob;
+      try {
+        blob = await requestBlob(await getToken(), path);
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status !== 401) throw err;
+        blob = await requestBlob(await getToken(true), path);
+      }
+      saveFile(blob, `audit-log-${new Date().toISOString().slice(0, 10)}.${format}`);
+    },
+  });
+}
+
 // ---- Nodes ----------------------------------------------------------------------------------------------------
 
 export function useNodes(orgId: string, poolId: string) {
@@ -361,6 +387,32 @@ export function useCreateEnrollment(orgId: string, poolId: string) {
         createdEnrollmentSchema,
         {},
       ),
+  });
+}
+
+/** Several codes at once (one per device); every code is returned only here. */
+export function useCreateBulkEnrollments(orgId: string, poolId: string) {
+  const req = useRequest();
+  return useMutation({
+    mutationFn: (count: number) =>
+      req(
+        'POST',
+        `/organisations/${orgId}/pools/${poolId}/enrollments/bulk`,
+        createdBulkEnrollmentsSchema,
+        { count },
+      ),
+  });
+}
+
+/** Codes of the pool that are still unused and unexpired (a used code disappears). */
+export function useActiveEnrollments(orgId: string, poolId: string, enabled: boolean) {
+  const req = useRequest();
+  return useQuery({
+    enabled: req.ready && enabled,
+    queryKey: ['organisations', orgId, 'pools', poolId, 'enrollments'] as const,
+    queryFn: () =>
+      req('GET', `/organisations/${orgId}/pools/${poolId}/enrollments`, z.array(enrollmentSchema)),
+    refetchInterval: 3000,
   });
 }
 
@@ -519,6 +571,16 @@ export function useUpdateApiKeyLimits(orgId: string) {
   return useMutation({
     mutationFn: ({ keyId, limits }: { keyId: string; limits: Limits }) =>
       req('PATCH', `/organisations/${orgId}/api-keys/${keyId}`, apiKeySchema, { limits }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.apiKeys(orgId) }),
+  });
+}
+
+export function useUpdateApiKeyExpiry(orgId: string) {
+  const req = useRequest();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ keyId, expiresAt }: { keyId: string; expiresAt: string | null }) =>
+      req('PATCH', `/organisations/${orgId}/api-keys/${keyId}`, apiKeySchema, { expiresAt }),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.apiKeys(orgId) }),
   });
 }

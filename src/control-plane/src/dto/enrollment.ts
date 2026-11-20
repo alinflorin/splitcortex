@@ -26,6 +26,14 @@ export const CreatedEnrollmentSchema = z.object({
 });
 export type CreatedEnrollmentDto = z.infer<typeof CreatedEnrollmentSchema>;
 
+/** Several codes at once, one per device. */
+export const MAX_BULK_ENROLLMENTS = 50;
+export const BulkEnrollmentSchema = z.object({
+  count: z.number().int().min(1, 'validation.min').max(MAX_BULK_ENROLLMENTS, 'validation.max'),
+});
+export const CreatedBulkEnrollmentsSchema = z.object({ items: z.array(CreatedEnrollmentSchema) });
+export type CreatedBulkEnrollmentsDto = z.infer<typeof CreatedBulkEnrollmentsSchema>;
+
 export const EnrollmentParamsSchema = z.object({ orgId: IdSchema, enrollmentId: IdSchema });
 
 // --- Device protocol (unauthenticated; the PAKE authenticates both sides) ---

@@ -139,5 +139,7 @@ describe('api key helpers', () => {
     expect(apiKeyState(key(), now)).toBe('active');
     expect(apiKeyState(key({ expiresAt: '2026-01-01T00:00:00.000Z' }), now)).toBe('expired');
     expect(apiKeyState(key({ revokedAt: '2026-01-01T00:00:00.000Z' }), now)).toBe('revoked');
+    expect(apiKeyState(key({ expiresAt: '2026-06-05T00:00:00.000Z' }), now)).toBe('expiring');
+    expect(apiKeyState(key({ expiresAt: '2026-09-01T00:00:00.000Z' }), now)).toBe('active');
   });
 });

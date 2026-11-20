@@ -132,7 +132,25 @@ export function MetricsView({
             )}
             <CardList variant="grid">
               <ChartCard
+                title={t('metrics.measuredTokensPerSec')}
+                subtitle={t('metrics.measuredHint')}
+                series={[
+                  line(t('metrics.measuredTokensPerSec'), m.nodes, (n) => n.measuredTokensPerSec),
+                ]}
+              />
+              <ChartCard
+                title={t('metrics.failureRate')}
+                subtitle={t('metrics.failureRateHint')}
+                format={pct}
+                series={[
+                  line(t('metrics.failureRate'), m.nodes, (n) =>
+                    n.requests > 0 ? (n.failures / n.requests) * 100 : null,
+                  ),
+                ]}
+              />
+              <ChartCard
                 title={t('metrics.tokensPerSec')}
+                subtitle={t('metrics.reportedHint')}
                 series={[line(t('metrics.tokensPerSec'), m.nodes, (n) => n.tokensPerSec)]}
               />
               <ChartCard

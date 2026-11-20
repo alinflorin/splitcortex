@@ -32,18 +32,32 @@ export async function request<T>(
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) {
-    let message = res.statusText;
-    try {
-      const err = (await res.json()) as { message?: string };
-      if (err.message) message = err.message;
-    } catch {
-      // not JSON
-    }
-    throw new ApiError(res.status, message);
-  }
+  if (!res.ok) throw await failure(res);
   if (!schema) return undefined as T;
   return schema.parse(await res.json());
+}
+
+async function failure(res: Response): Promise<ApiError> {
+  let message = res.statusText;
+  try {
+    const err = (await res.json()) as { message?: string };
+    if (err.message) message = err.message;
+  } catch {
+    // not JSON
+  }
+  return new ApiError(res.status, message);
+}
+
+/** GET a file (CSV, JSON export...): the authenticated body as a Blob. */
+export async function requestBlob(token: string | undefined, path: string): Promise<Blob> {
+  const res = await fetch(`${base()}/api${path}`, {
+    headers: {
+      'Accept-Language': i18n.language || 'en',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) throw await failure(res);
+  return res.blob();
 }
 
 /**

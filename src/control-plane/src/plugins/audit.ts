@@ -125,6 +125,12 @@ const RULES: Record<string, Rule> = {
     action: 'enrollment.create',
     entityType: 'enrollment',
   },
+  'POST /organisations/:orgId/pools/:poolId/enrollments/bulk': {
+    action: 'enrollment.create_bulk',
+    entityType: 'pool',
+    entityParam: 'poolId',
+    meta: (b) => ({ count: b.count }),
+  },
   'DELETE /organisations/:orgId/enrollments/:enrollmentId': {
     action: 'enrollment.delete',
     entityType: 'enrollment',

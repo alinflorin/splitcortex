@@ -146,6 +146,38 @@ describe('enrollment', () => {
     expect(await t.db.select().from(enrollments).where(eq(enrollments.orgId, org))).toHaveLength(0);
   });
 
+  it('creates several codes at once, each enrolling its own device', async () => {
+    const { org, pool } = await setup('e-bulk');
+    const url = `/organisations/${org}/pools/${pool}/enrollments/bulk`;
+    const made = await call('POST', url, 'own@k.io', { count: 5 });
+    expect(made.statusCode).toBe(201);
+    const items = made.json<{ items: { enrollment: { id: string }; code: string }[] }>().items;
+    expect(items).toHaveLength(5);
+    expect(new Set(items.map((i) => i.code.slice(0, 4))).size).toBe(5); // distinct lookup ids
+    expect(new Set(items.map((i) => i.code)).size).toBe(5);
+    expect(await t.db.select().from(enrollments).where(eq(enrollments.orgId, org))).toHaveLength(5);
+
+    const a = await enrol(items[0]!.code);
+    const b = await enrol(items[1]!.code);
+    expect(a.body.nodeId).not.toBe(b.body.nodeId);
+    expect(await t.db.select().from(enrollments).where(eq(enrollments.orgId, org))).toHaveLength(3);
+
+    for (const count of [0, 51, 1.5])
+      expect((await call('POST', url, 'own@k.io', { count })).statusCode).toBe(400);
+    expect((await call('POST', url, 'own@k.io', {})).statusCode).toBe(400);
+    expect(
+      (
+        await call(
+          'POST',
+          `/organisations/${org}/pools/${crypto.randomUUID()}/enrollments/bulk`,
+          'own@k.io',
+          { count: 2 },
+        )
+      ).statusCode,
+    ).toBe(404);
+    expect((await call('POST', url, 'out@k.io', { count: 2 })).statusCode).toBe(404);
+  });
+
   it('puts the device in pending when the pool requires approval', async () => {
     const { org, pool } = await setup('e-appr', true);
     const { code } = (await create(org, pool)).json<{ code: string }>();

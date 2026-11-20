@@ -40,7 +40,11 @@ export type CreatedApiKeyDto = z.infer<typeof CreatedApiKeySchema>;
 
 export const ApiKeyParamsSchema = z.object({ orgId: IdSchema, keyId: IdSchema });
 
+/** Change limits and/or the expiry (a new time, or null for never); at least one is required. */
 export const UpdateApiKeySchema = z
-  .object({ limits: UpdateLimitsSchema })
-  .refine((v) => v.limits !== undefined, 'validation.required');
+  .object({
+    limits: UpdateLimitsSchema.optional(),
+    expiresAt: z.iso.datetime().nullable().optional(),
+  })
+  .refine((v) => v.limits !== undefined || v.expiresAt !== undefined, 'validation.required');
 export type UpdateApiKeyDto = z.infer<typeof UpdateApiKeySchema>;

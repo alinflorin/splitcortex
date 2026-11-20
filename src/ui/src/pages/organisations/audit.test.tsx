@@ -1,10 +1,14 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Outlet, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Organisation } from '../../api/schemas';
 import { NO_LIMITS } from '../../api/schemas';
 import { renderWithApi, stubApi } from '../../test/renderWithApi';
+import { saveFile } from '../../lib/saveFile';
 import { AuditPage } from './AuditPage';
+
+vi.mock('../../lib/saveFile', () => ({ saveFile: vi.fn() }));
 
 vi.mock('react-oidc-context', () => ({
   useAuth: () => ({ user: { access_token: 'tok', profile: { sub: 's' } } }),
@@ -70,6 +74,18 @@ describe('audit log page', () => {
     expect(screen.getByText(/own@x.io/)).toBeInTheDocument();
     expect(screen.getByText(/reason: bad_signature/)).toBeInTheDocument();
     expect(screen.getByText('Denied')).toBeInTheDocument();
+  });
+
+  it('downloads the filtered log as CSV', async () => {
+    const calls = stubApi({
+      'GET /api/organisations/o1/audit-logs?limit=30': { items: [], nextCursor: null },
+      'GET /api/organisations/o1/audit-logs/export?format=csv': 'occurredAt,source',
+    });
+    await renderIn('admin');
+    await userEvent.click(await screen.findByRole('button', { name: 'Export CSV' }));
+    await waitFor(() => expect(saveFile).toHaveBeenCalled());
+    expect(vi.mocked(saveFile).mock.calls[0]![1]).toMatch(/^audit-log-\d{4}-\d\d-\d\d\.csv$/);
+    expect(calls.some((c) => c.key.includes('/audit-logs/export?format=csv'))).toBe(true);
   });
 
   it('sends plain members away without calling the API', async () => {

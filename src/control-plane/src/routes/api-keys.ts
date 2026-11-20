@@ -148,7 +148,8 @@ export const apiKeyRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
       onRequest: app.authenticate,
       schema: {
         tags: ['api keys'],
-        summary: 'Change the rate limits of an API key (admin or owner); null clears a limit',
+        summary:
+          'Change the rate limits and/or expiry of an API key (admin or owner); null clears either',
         security: [{ dex: [] }, { bearer: [] }],
         params: ApiKeyParamsSchema,
         body: UpdateApiKeySchema,
@@ -158,17 +159,34 @@ export const apiKeyRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
           401: ErrorSchema,
           403: ErrorSchema,
           404: ErrorSchema,
+          409: ErrorSchema,
         },
       },
     },
     async (req) => {
       const { orgId, keyId } = req.params;
       await requireOrgRole(app, db, req, orgId, 'admin');
+      const { limits, expiresAt } = req.body;
+      const expires =
+        expiresAt === undefined ? undefined : expiresAt === null ? null : new Date(expiresAt);
+      if (expires && expires.getTime() <= Date.now())
+        throw app.httpErrors.badRequest('errors.expiryInPast');
       const result = await db.transaction(async (tx) => {
+        const [existing] = await tx
+          .select({ revokedAt: apiKeys.revokedAt })
+          .from(apiKeys)
+          .where(and(eq(apiKeys.id, keyId), eq(apiKeys.orgId, orgId)))
+          .for('update');
+        if (!existing) return null;
+        // A revoked key stays revoked: changing its expiry must not look like bringing it back.
+        if (existing.revokedAt) return 'revoked' as const;
         const [key] = await tx
           .update(apiKeys)
-          .set(limitColumns(req.body.limits ?? {}))
-          .where(and(eq(apiKeys.id, keyId), eq(apiKeys.orgId, orgId)))
+          .set({
+            ...(limits && limitColumns(limits)),
+            ...(expires !== undefined && { expiresAt: expires }),
+          })
+          .where(eq(apiKeys.id, keyId))
           .returning();
         if (!key) return null;
         const seq = await recordConfigChange(tx, { entityType: 'api_key', entityId: keyId, orgId });
@@ -179,6 +197,7 @@ export const apiKeyRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db 
         return { seq, key, poolIds: links.map((l) => l.poolId) };
       });
       if (!result) throw app.httpErrors.notFound('errors.apiKeyNotFound');
+      if (result === 'revoked') throw app.httpErrors.conflict('errors.apiKeyRevoked');
       await notifyConfigChange(db, result.seq);
       return toDto(result.key, result.poolIds);
     },

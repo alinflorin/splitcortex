@@ -158,6 +158,7 @@ async fn serve(app: Arc<AppState>, mut socket: WebSocket) -> Result<(), &'static
         ready_model: Mutex::new(None),
         assigned: Mutex::new(None),
         tps_bits: Default::default(),
+        perf: app.registry.perf_for(node_id),
         assignment_sent: Default::default(),
         ctx_tokens: Default::default(),
         modalities: Default::default(),
@@ -499,6 +500,7 @@ pub async fn reconcile_loop(app: Arc<AppState>) {
     loop {
         let wake = app.changed.notified();
         let _ = tokio::time::timeout(Duration::from_secs(10), wake).await;
+        app.registry.prune_perf();
         for conn in app.registry.all() {
             let rec = app.cache.read().unwrap().nodes.get(&conn.node_id).cloned();
             match rec {

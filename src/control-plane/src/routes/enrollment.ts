@@ -1,7 +1,9 @@
-import { and, eq, gt, lt, lte, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, lt, lte, sql } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import {
+  BulkEnrollmentSchema,
+  CreatedBulkEnrollmentsSchema,
   CreatedEnrollmentSchema,
   EnrollCompleteResponseSchema,
   EnrollCompleteSchema,
@@ -14,6 +16,7 @@ import {
   ErrorSchema,
   PoolNodesParamsSchema,
   type EnrollResponsePlain,
+  type CreatedEnrollmentDto,
   type EnrollmentDto,
 } from '../dto';
 import { requireOrgRole } from '../access';
@@ -60,6 +63,54 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
 }> = async (app, { db, gateway }) => {
   // --- Admin side (web app) ---
 
+  /** Creates `count` codes for a pool of the organisation; the pool must exist (404 otherwise). */
+  async function issueCodes(orgId: string, poolId: string, email: string, count: number) {
+    const [pool] = await db
+      .select({ id: pools.id })
+      .from(pools)
+      .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)));
+    if (!pool) throw app.httpErrors.notFound('errors.poolNotFound');
+    // Expired codes free their lookup id.
+    await db.delete(enrollments).where(lte(enrollments.expiresAt, new Date()));
+    const created: CreatedEnrollmentDto[] = [];
+    try {
+      while (created.length < count) {
+        let row: typeof enrollments.$inferSelect | undefined;
+        let code = '';
+        for (let i = 0; i < 20 && !row; i++) {
+          const { lookupId, secret } = generateCode();
+          [row] = await db
+            .insert(enrollments)
+            .values({
+              orgId,
+              poolId,
+              createdBy: email,
+              lookupId,
+              secret,
+              expiresAt: new Date(Date.now() + ENROLLMENT_TTL_MS),
+              maxAttempts: MAX_ATTEMPTS,
+            })
+            .onConflictDoNothing({ target: enrollments.lookupId })
+            .returning();
+          code = formatCode(lookupId, secret);
+        }
+        if (!row) throw app.httpErrors.serviceUnavailable('errors.codeAllocation');
+        created.push({ enrollment: toDto(row), code });
+      }
+    } catch (err) {
+      // All or nothing: do not leave live codes behind that nobody received.
+      if (created.length > 0)
+        await db.delete(enrollments).where(
+          inArray(
+            enrollments.id,
+            created.map((c) => c.enrollment.id),
+          ),
+        );
+      throw err;
+    }
+    return created;
+  }
+
   app.post(
     '/organisations/:orgId/pools/:poolId/enrollments',
     {
@@ -86,30 +137,36 @@ export const enrollmentRoutes: FastifyPluginAsyncZod<{
         .from(pools)
         .where(and(eq(pools.id, poolId), eq(pools.orgId, orgId)));
       if (!pool) throw app.httpErrors.notFound('errors.poolNotFound');
-      // Expired codes free their lookup id.
-      await db.delete(enrollments).where(lte(enrollments.expiresAt, new Date()));
-      for (let i = 0; i < 20; i++) {
-        const { lookupId, secret } = generateCode();
-        const rows = await db
-          .insert(enrollments)
-          .values({
-            orgId,
-            poolId,
-            createdBy: req.user!.email,
-            lookupId,
-            secret,
-            expiresAt: new Date(Date.now() + ENROLLMENT_TTL_MS),
-            maxAttempts: MAX_ATTEMPTS,
-          })
-          .onConflictDoNothing({ target: enrollments.lookupId })
-          .returning();
-        if (rows[0]) {
-          return reply
-            .code(201)
-            .send({ enrollment: toDto(rows[0]), code: formatCode(lookupId, secret) });
-        }
-      }
-      throw app.httpErrors.serviceUnavailable('errors.codeAllocation');
+      const [created] = await issueCodes(orgId, poolId, req.user!.email, 1);
+      return reply.code(201).send(created!);
+    },
+  );
+
+  app.post(
+    '/organisations/:orgId/pools/:poolId/enrollments/bulk',
+    {
+      onRequest: app.authenticate,
+      schema: {
+        tags: ['enrollment'],
+        summary:
+          'Create several enrollment codes for a pool at once (admin or owner), one per device. Same rules as a single code: returned once, valid ~10 minutes, single use.',
+        security: [{ dex: [] }, { bearer: [] }],
+        params: PoolNodesParamsSchema,
+        body: BulkEnrollmentSchema,
+        response: {
+          201: CreatedBulkEnrollmentsSchema,
+          400: ErrorSchema,
+          401: ErrorSchema,
+          403: ErrorSchema,
+          404: ErrorSchema,
+        },
+      },
+    },
+    async (req, reply) => {
+      const { orgId, poolId } = req.params;
+      await requireOrgRole(app, db, req, orgId, 'admin');
+      const items = await issueCodes(orgId, poolId, req.user!.email, req.body.count);
+      return reply.code(201).send({ items });
     },
   );
 

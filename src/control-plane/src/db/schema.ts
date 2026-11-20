@@ -456,6 +456,12 @@ export const nodeMetrics = pgTable(
     temperatureC: doublePrecision('temperature_c'),
     inFlight: integer('in_flight').notNull().default(0),
     tokensPerSec: doublePrecision('tokens_per_sec'),
+    /** Measured by the gateway from the requests the node served (additive): requests ended, those the node failed,
+     *  and the tokens/time of the generation phase of finished ones (measured tokens/s = gen_tokens / gen_ms). */
+    requests: integer('requests').notNull().default(0),
+    failures: integer('failures').notNull().default(0),
+    genTokens: bigint('gen_tokens', { mode: 'number' }).notNull().default(0),
+    genMs: bigint('gen_ms', { mode: 'number' }).notNull().default(0),
   },
   (t) => [
     primaryKey({ columns: [t.bucket, t.nodeId] }),

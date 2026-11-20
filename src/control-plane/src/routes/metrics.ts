@@ -174,6 +174,10 @@ export const metricsRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db
           tps: sql<
             string | null
           >`avg(${nodeMetrics.tokensPerSec}) filter (where ${nodeMetrics.tokensPerSec} > 0)`,
+          requests: sql<string>`sum(${nodeMetrics.requests})`,
+          failures: sql<string>`sum(${nodeMetrics.failures})`,
+          genTokens: sql<string>`sum(${nodeMetrics.genTokens})`,
+          genMs: sql<string>`sum(${nodeMetrics.genMs})`,
         })
         .from(nodeMetrics)
         .where(
@@ -202,6 +206,11 @@ export const metricsRoutes: FastifyPluginAsyncZod<{ db: Db }> = async (app, { db
           temperatureC: num(r.temp),
           inFlight: Number(r.inFlight),
           tokensPerSec: num(r.tps),
+          requests: Number(r.requests),
+          failures: Number(r.failures),
+          // tokens per second over the whole step: total tokens / total generation time
+          measuredTokensPerSec:
+            Number(r.genMs) > 0 ? (Number(r.genTokens) * 1000) / Number(r.genMs) : null,
         })),
       };
     },

@@ -109,6 +109,9 @@ export const metricsSchema = z.object({
       temperatureC: z.number().nullable(),
       inFlight: z.number(),
       tokensPerSec: z.number().nullable(),
+      requests: z.number(),
+      failures: z.number(),
+      measuredTokensPerSec: z.number().nullable(),
     }),
   ),
 });
@@ -318,12 +321,29 @@ export function apiKeyRequest(form: ApiKeyForm, now = Date.now(), limits?: Limit
   };
 }
 
-export type ApiKeyState = 'active' | 'revoked' | 'expired';
+/** A key whose expiry is closer than this is flagged "expiring" in the list. */
+export const API_KEY_EXPIRING_SOON_DAYS = 7;
+
+export type ApiKeyState = 'active' | 'expiring' | 'revoked' | 'expired';
 export function apiKeyState(key: ApiKey, now = Date.now()): ApiKeyState {
   if (key.revokedAt) return 'revoked';
-  if (key.expiresAt && new Date(key.expiresAt).getTime() <= now) return 'expired';
+  if (key.expiresAt) {
+    const left = new Date(key.expiresAt).getTime() - now;
+    if (left <= 0) return 'expired';
+    if (left <= API_KEY_EXPIRING_SOON_DAYS * 86_400_000) return 'expiring';
+  }
   return 'active';
 }
+
+/** New expiry for a key: absolute time from the form's choice, or null for never. */
+export function apiKeyExpiryFromChoice(
+  choice: (typeof API_KEY_EXPIRIES)[number],
+  now = Date.now(),
+): string | null {
+  return choice === 'never' ? null : new Date(now + Number(choice) * 86_400_000).toISOString();
+}
+
+export const MAX_BULK_ENROLLMENTS = 50;
 
 export const enrollmentSchema = z.object({
   id: z.string(),
@@ -339,6 +359,8 @@ export type Enrollment = z.infer<typeof enrollmentSchema>;
 /** The code is only returned by the create call. */
 export const createdEnrollmentSchema = z.object({ enrollment: enrollmentSchema, code: z.string() });
 export type CreatedEnrollment = z.infer<typeof createdEnrollmentSchema>;
+
+export const createdBulkEnrollmentsSchema = z.object({ items: z.array(createdEnrollmentSchema) });
 
 export const benchmarkResultSchema = z.object({
   nodeId: z.string(),

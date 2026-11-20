@@ -64,12 +64,51 @@ pub struct NodeSample {
     pub tokens_per_sec: Option<f64>,
 }
 
+/// What one node served in a minute, measured by the gateway (additive).
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub struct PerfRow {
+    pub requests: i32,
+    pub failures: i32,
+    /// Tokens generated and the time spent generating them (after the first one) by requests that finished; their
+    /// ratio over any period is the measured tokens/s.
+    pub gen_tokens: i64,
+    pub gen_ms: i64,
+}
+
+impl PerfRow {
+    fn merge(&mut self, o: &PerfRow) {
+        self.requests += o.requests;
+        self.failures += o.failures;
+        self.gen_tokens += o.gen_tokens;
+        self.gen_ms += o.gen_ms;
+    }
+}
+
+type PerfKey = (i64, Uuid);
+type PerfVal = (Uuid, Uuid, PerfRow);
+
 #[derive(Default)]
 struct Inner {
     pools: HashMap<(i64, Uuid, Uuid), PoolRow>,
     /// The last report of the minute per node, with its organisation and pool.
     nodes: HashMap<(i64, Uuid), (Uuid, Uuid, NodeSample)>,
+    /// Requests, failures and generation speed per node and minute.
+    perf: HashMap<PerfKey, PerfVal>,
     dropped: u64,
+}
+
+/// Everything taken out of the buffer for one flush.
+#[derive(Default)]
+struct Batch {
+    pools: HashMap<(i64, Uuid, Uuid), PoolRow>,
+    nodes: HashMap<(i64, Uuid), (Uuid, Uuid, NodeSample)>,
+    perf: HashMap<PerfKey, PerfVal>,
+}
+
+impl Batch {
+    fn len(&self) -> usize {
+        self.pools.len() + self.nodes.len() + self.perf.len()
+    }
 }
 
 #[derive(Default)]
@@ -131,13 +170,30 @@ impl Metrics {
         inner.nodes.insert((m, node), (org, pool, s));
     }
 
-    #[allow(clippy::type_complexity)]
-    fn take(
-        &self,
-    ) -> (
-        HashMap<(i64, Uuid, Uuid), PoolRow>,
-        HashMap<(i64, Uuid), (Uuid, Uuid, NodeSample)>,
-    ) {
+    /// A request a node served ended: `ok` false = the node failed it (a client that went away does not call this).
+    /// `gen` is (tokens, time) of the generation phase when the request finished and was long enough to measure.
+    pub fn node_request(&self, org: Uuid, pool: Uuid, node: Uuid, ok: bool, gen: Option<(u32, Duration)>) {
+        let m = minute();
+        let mut inner = self.inner.lock().unwrap();
+        if inner.perf.len() >= MAX_NODE_ROWS && !inner.perf.contains_key(&(m, node)) {
+            if let Some(oldest) = inner.perf.keys().map(|k| k.0).min() {
+                let before = inner.perf.len();
+                inner.perf.retain(|k, _| k.0 != oldest);
+                inner.dropped += (before - inner.perf.len()) as u64;
+            }
+        }
+        let row = &mut inner.perf.entry((m, node)).or_insert((org, pool, PerfRow::default())).2;
+        row.requests += 1;
+        if !ok {
+            row.failures += 1;
+        }
+        if let Some((tokens, took)) = gen {
+            row.gen_tokens += tokens as i64;
+            row.gen_ms += took.as_millis() as i64;
+        }
+    }
+
+    fn take(&self) -> Batch {
         let mut inner = self.inner.lock().unwrap();
         if inner.dropped > 0 {
             warn!(
@@ -146,25 +202,36 @@ impl Metrics {
             );
             inner.dropped = 0;
         }
-        (std::mem::take(&mut inner.pools), std::mem::take(&mut inner.nodes))
+        Batch {
+            pools: std::mem::take(&mut inner.pools),
+            nodes: std::mem::take(&mut inner.nodes),
+            perf: std::mem::take(&mut inner.perf),
+        }
     }
 
     /// Puts a failed batch back; newer values of the same row win for nodes, counters add up for pools.
-    #[allow(clippy::type_complexity)]
-    fn put_back(
-        &self,
-        pools: HashMap<(i64, Uuid, Uuid), PoolRow>,
-        nodes: HashMap<(i64, Uuid), (Uuid, Uuid, NodeSample)>,
-    ) {
+    fn put_back(&self, batch: Batch) {
         let mut inner = self.inner.lock().unwrap();
-        for (k, v) in pools {
+        for (k, v) in batch.perf {
+            if inner.perf.len() >= MAX_NODE_ROWS && !inner.perf.contains_key(&k) {
+                inner.dropped += 1;
+                continue;
+            }
+            inner
+                .perf
+                .entry(k)
+                .or_insert((v.0, v.1, PerfRow::default()))
+                .2
+                .merge(&v.2);
+        }
+        for (k, v) in batch.pools {
             if inner.pools.len() >= MAX_POOL_ROWS && !inner.pools.contains_key(&k) {
                 inner.dropped += 1;
                 continue;
             }
             inner.pools.entry(k).or_default().merge(&v);
         }
-        for (k, v) in nodes {
+        for (k, v) in batch.nodes {
             if inner.nodes.len() >= MAX_NODE_ROWS && !inner.nodes.contains_key(&k) {
                 inner.dropped += 1;
                 continue;
@@ -175,15 +242,15 @@ impl Metrics {
 
     /// One flush attempt (one transaction). On failure the rows go back into the buffer.
     pub async fn flush(&self, db: &PgPool) -> bool {
-        let (pools, nodes) = self.take();
-        if pools.is_empty() && nodes.is_empty() {
+        let batch = self.take();
+        if batch.len() == 0 {
             return true;
         }
-        match write(db, &pools, &nodes).await {
+        match write(db, &batch).await {
             Ok(()) => true,
             Err(e) => {
-                warn!(rows = pools.len() + nodes.len(), "metrics flush failed: {e}");
-                self.put_back(pools, nodes);
+                warn!(rows = batch.len(), "metrics flush failed: {e}");
+                self.put_back(batch);
                 false
             }
         }
@@ -194,13 +261,9 @@ fn at(secs: i64) -> DateTime<Utc> {
     Utc.timestamp_opt(secs, 0).single().unwrap_or_else(Utc::now)
 }
 
-async fn write(
-    db: &PgPool,
-    pools: &HashMap<(i64, Uuid, Uuid), PoolRow>,
-    nodes: &HashMap<(i64, Uuid), (Uuid, Uuid, NodeSample)>,
-) -> Result<(), sqlx::Error> {
+async fn write(db: &PgPool, batch: &Batch) -> Result<(), sqlx::Error> {
     let mut tx = db.begin().await?;
-    for ((m, org, pool), r) in pools {
+    for ((m, org, pool), r) in &batch.pools {
         // Several instances (and a retry) add to the same row; histograms add bucket by bucket. An organisation
         // deleted meanwhile would violate the foreign key: that row is dropped, not the batch.
         sqlx::query(
@@ -224,7 +287,30 @@ async fn write(
         .execute(&mut *tx)
         .await?;
     }
-    for ((m, node), (org, pool, s)) in nodes {
+    for ((m, node), (org, pool, p)) in &batch.perf {
+        // Additive: several instances serve different requests of the same node-minute (a forwarded one counts where
+        // the node is). A row that only exists for these numbers has no telemetry columns yet; the next report fills them.
+        sqlx::query(
+            "insert into node_metrics (bucket, node_id, org_id, pool_id, requests, failures, gen_tokens, gen_ms) \
+             select $1, $2, $3, $4, $5, $6, $7, $8 where exists (select 1 from organisations where id = $3) \
+             on conflict (bucket, node_id) do update set \
+             requests = node_metrics.requests + excluded.requests, \
+             failures = node_metrics.failures + excluded.failures, \
+             gen_tokens = node_metrics.gen_tokens + excluded.gen_tokens, \
+             gen_ms = node_metrics.gen_ms + excluded.gen_ms",
+        )
+        .bind(at(*m))
+        .bind(node)
+        .bind(org)
+        .bind(pool)
+        .bind(p.requests)
+        .bind(p.failures)
+        .bind(p.gen_tokens)
+        .bind(p.gen_ms)
+        .execute(&mut *tx)
+        .await?;
+    }
+    for ((m, node), (org, pool, s)) in &batch.nodes {
         sqlx::query(
             "insert into node_metrics (bucket, node_id, org_id, pool_id, cpu_percent, memory_used_mb, battery_percent, charging, \
              temperature_c, in_flight, tokens_per_sec) \
@@ -288,7 +374,7 @@ mod tests {
         m.unavailable(o2, p);
         m.in_flight(o1, p, 3);
         m.in_flight(o1, p, 1);
-        let (pools, _) = m.take();
+        let pools = m.take().pools;
         assert_eq!(pools.len(), 2, "organisations are separate rows");
         let a = pools.iter().find(|(k, _)| k.1 == o1).unwrap().1;
         assert_eq!((a.latency[0], a.latency[5], a.ttft[0]), (1, 1, 1));
@@ -301,10 +387,10 @@ mod tests {
         let m = Metrics::default();
         let (o, p) = (Uuid::new_v4(), Uuid::new_v4());
         m.request(o, p, Duration::from_millis(10), None);
-        let (pools, nodes) = m.take();
+        let batch = m.take();
         m.request(o, p, Duration::from_millis(10), None);
-        m.put_back(pools, nodes);
-        let (pools, _) = m.take();
+        m.put_back(batch);
+        let pools = m.take().pools;
         assert_eq!(pools.values().next().unwrap().latency[0], 2);
     }
 
@@ -330,8 +416,31 @@ mod tests {
                 ..Default::default()
             },
         );
-        let (_, nodes) = m.take();
+        let nodes = m.take().nodes;
         assert_eq!(nodes.len(), 1);
         assert_eq!(nodes.values().next().unwrap().2.in_flight, 2);
+    }
+
+    #[test]
+    fn node_requests_add_up_and_survive_a_failed_flush() {
+        let m = Metrics::default();
+        let (o, p, n) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        m.node_request(o, p, n, true, Some((100, Duration::from_millis(5000))));
+        m.node_request(o, p, n, false, None);
+        let batch = m.take();
+        m.node_request(o, p, n, true, Some((50, Duration::from_millis(1000))));
+        m.put_back(batch);
+        let perf = m.take().perf;
+        assert_eq!(perf.len(), 1, "one row per node and minute");
+        let row = perf.values().next().unwrap().2;
+        assert_eq!(
+            row,
+            PerfRow {
+                requests: 3,
+                failures: 1,
+                gen_tokens: 150,
+                gen_ms: 6000
+            }
+        );
     }
 }

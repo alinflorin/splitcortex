@@ -314,6 +314,53 @@ describe('device enrollment', () => {
     );
   });
 
+  it('creates several codes, shows which are used, and cancels the unused on close', async () => {
+    const enr = (id: string, code: string) => ({
+      enrollment: { ...created.enrollment, id },
+      code,
+    });
+    const items = [enr('e1', 'AAAA-111111'), enr('e2', 'BBBB-222222'), enr('e3', 'CCCC-333333')];
+    const calls = stubApi({
+      'GET /api/organisations/o1/pools/p1/nodes': [],
+      'POST /api/organisations/o1/pools/p1/enrollments/bulk': { items },
+      // e1 was used already: only e2 and e3 are still active
+      'GET /api/organisations/o1/pools/p1/enrollments': [
+        items[1]!.enrollment,
+        items[2]!.enrollment,
+      ],
+      'DELETE /api/organisations/o1/enrollments/e2': null,
+      'DELETE /api/organisations/o1/enrollments/e3': null,
+    });
+    const user = userEvent.setup();
+    await renderWithApi(<PoolNodes pool={pool} admin />);
+    await user.click(await screen.findByRole('button', { name: 'Add many devices' }));
+    const count = await screen.findByLabelText('Number of devices');
+    await user.clear(count);
+    await user.type(count, '3');
+    await user.click(screen.getByRole('button', { name: 'Create codes' }));
+    expect(await screen.findByText('AAAA-111111')).toBeInTheDocument();
+    expect(calls.find((c) => c.key.endsWith('/enrollments/bulk'))!.body).toEqual({ count: 3 });
+    expect(await screen.findByText('1 of 3 devices enrolled')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => {
+      expect(calls.some((c) => c.key === 'DELETE /api/organisations/o1/enrollments/e2')).toBe(true);
+      expect(calls.some((c) => c.key === 'DELETE /api/organisations/o1/enrollments/e3')).toBe(true);
+    });
+    expect(calls.some((c) => c.key === 'DELETE /api/organisations/o1/enrollments/e1')).toBe(false);
+  });
+
+  it('rejects a device count outside 1..50 before calling the API', async () => {
+    const calls = stubApi({ 'GET /api/organisations/o1/pools/p1/nodes': [] });
+    const user = userEvent.setup();
+    await renderWithApi(<PoolNodes pool={pool} admin />);
+    await user.click(await screen.findByRole('button', { name: 'Add many devices' }));
+    const count = await screen.findByLabelText('Number of devices');
+    await user.clear(count);
+    await user.type(count, '51');
+    expect(screen.getByRole('button', { name: 'Create codes' })).toBeDisabled();
+    expect(calls.some((c) => c.key.includes('/bulk'))).toBe(false);
+  });
+
   it('does not offer enrollment to non-admins', async () => {
     stubApi({ 'GET /api/organisations/o1/pools/p1/nodes': [] });
     await renderWithApi(<PoolNodes pool={pool} />);

@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { Badge, Body1, Button, makeStyles, tokens } from '@fluentui/react-components';
 import type { BadgeProps } from '@fluentui/react-components';
-import { Add24Regular, Delete20Regular, Gauge20Regular } from '@fluentui/react-icons';
+import {
+  Add24Regular,
+  CalendarClock20Regular,
+  Delete20Regular,
+  Gauge20Regular,
+} from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useApiKeys, usePools, useRevokeApiKey } from '../../api/hooks';
 import { apiKeyState } from '../../api/schemas';
@@ -12,6 +17,7 @@ import { CardList, ItemCard, Stat, StatRow } from '../../components/cards/cards'
 import { useConfirm } from '../../components/feedback/useConfirm';
 import { useToast } from '../../components/feedback/useToast';
 import { isAdmin } from '../../lib/roles';
+import { ApiKeyExpiryDialog } from './ApiKeyExpiryDialog';
 import { ApiKeyLimitsDialog } from './ApiKeyLimitsDialog';
 import { ApiKeyFormDialog } from './ApiKeyFormDialog';
 import { ApiKeySecretDialog } from './ApiKeySecretDialog';
@@ -23,6 +29,7 @@ const useStyles = makeStyles({
 
 const STATE_COLOR: Record<ApiKeyState, BadgeProps['color']> = {
   active: 'success',
+  expiring: 'warning',
   revoked: 'danger',
   expired: 'subtle',
 };
@@ -40,6 +47,7 @@ export function ApiKeysPage() {
   const [creating, setCreating] = useState(false);
   const [secret, setSecret] = useState<string | null>(null);
   const [limiting, setLimiting] = useState<ApiKey | null>(null);
+  const [expiring, setExpiring] = useState<ApiKey | null>(null);
 
   // Keys are admin-only on the server; show nothing to plain members instead of an error.
   if (!admin) return <Body1 className={styles.muted}>{t('apiKeys.adminOnly')}</Body1>;
@@ -114,20 +122,30 @@ export function ApiKeysPage() {
                       </Badge>
                     }
                     actions={
-                      state === 'active' && (
+                      state !== 'revoked' && (
                         <>
                           <Button
                             appearance="subtle"
-                            icon={<Gauge20Regular />}
-                            aria-label={t('limits.edit')}
-                            onClick={() => setLimiting(k)}
+                            icon={<CalendarClock20Regular />}
+                            aria-label={t('apiKeys.changeExpiry')}
+                            onClick={() => setExpiring(k)}
                           />
-                          <Button
-                            appearance="subtle"
-                            icon={<Delete20Regular />}
-                            aria-label={t('apiKeys.revoke')}
-                            onClick={() => void onRevoke(k)}
-                          />
+                          {state !== 'expired' && (
+                            <>
+                              <Button
+                                appearance="subtle"
+                                icon={<Gauge20Regular />}
+                                aria-label={t('limits.edit')}
+                                onClick={() => setLimiting(k)}
+                              />
+                              <Button
+                                appearance="subtle"
+                                icon={<Delete20Regular />}
+                                aria-label={t('apiKeys.revoke')}
+                                onClick={() => void onRevoke(k)}
+                              />
+                            </>
+                          )}
                         </>
                       )
                     }
@@ -164,6 +182,7 @@ export function ApiKeysPage() {
       />
       <ApiKeySecretDialog secret={secret} onClose={() => setSecret(null)} />
       <ApiKeyLimitsDialog orgId={org.id} target={limiting} onClose={() => setLimiting(null)} />
+      <ApiKeyExpiryDialog orgId={org.id} target={expiring} onClose={() => setExpiring(null)} />
     </>
   );
 }

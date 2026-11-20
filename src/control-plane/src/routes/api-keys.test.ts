@@ -124,6 +124,38 @@ describe('api keys', () => {
     );
   });
 
+  it('changes and clears the expiry, and refuses revoked keys', async () => {
+    const { org } = await setup('keys-expiry');
+    const url = `/organisations/${org}/api-keys`;
+    const { key } = (await call('POST', url, 'adm@k.io', { name: 'e', scope: 'org' })).json();
+    const later = new Date(Date.now() + 86_400_000).toISOString();
+
+    const set = await call('PATCH', `${url}/${key.id}`, 'adm@k.io', { expiresAt: later });
+    expect(set.statusCode).toBe(200);
+    expect(set.json().expiresAt).toBe(later);
+
+    const past = await call('PATCH', `${url}/${key.id}`, 'adm@k.io', {
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    });
+    expect(past.statusCode).toBe(400);
+
+    const cleared = await call('PATCH', `${url}/${key.id}`, 'adm@k.io', { expiresAt: null });
+    expect(cleared.json().expiresAt).toBeNull();
+    expect((await call('PATCH', `${url}/${key.id}`, 'adm@k.io', {})).statusCode).toBe(400);
+
+    // limits and expiry can change together, and an expiry-only change keeps the limits
+    await call('PATCH', `${url}/${key.id}`, 'adm@k.io', { limits: { requestsPerMinute: 5 } });
+    const both = await call('PATCH', `${url}/${key.id}`, 'adm@k.io', { expiresAt: later });
+    expect(both.json().limits.requestsPerMinute).toBe(5);
+
+    await call('DELETE', `${url}/${key.id}`, 'adm@k.io');
+    const revoked = await call('PATCH', `${url}/${key.id}`, 'adm@k.io', { expiresAt: later });
+    expect(revoked.statusCode).toBe(409);
+    expect(
+      (await call('PATCH', `${url}/${key.id}`, 'mem@k.io', { expiresAt: later })).statusCode,
+    ).toBe(403);
+  });
+
   it('drops a deleted pool from key scopes and records the change', async () => {
     const { org, a, b } = await setup('keys-7');
     const url = `/organisations/${org}/api-keys`;

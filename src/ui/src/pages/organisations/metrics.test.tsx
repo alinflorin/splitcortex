@@ -52,6 +52,9 @@ const node = {
   temperatureC: 31,
   inFlight: 1.5,
   tokensPerSec: 22,
+  requests: 10,
+  failures: 2,
+  measuredTokensPerSec: 18.5,
 };
 
 function stubMetrics(body: unknown) {
@@ -81,6 +84,9 @@ describe('metrics page', () => {
     renderTab();
     expect((await screen.findAllByText('Request duration')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Devices reporting').length).toBeGreaterThan(0);
+    // what the gateway measured next to what devices report
+    expect(screen.getAllByText('Tokens per second (measured)').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Failure rate').length).toBeGreaterThan(0);
     expect((await screen.findAllByTestId('line')).length).toBeGreaterThan(3);
     expect(await screen.findAllByTestId('bars')).not.toHaveLength(0);
     expect(urls.find((u) => u.includes('/metrics?'))).toMatch(

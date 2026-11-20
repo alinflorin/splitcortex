@@ -508,6 +508,44 @@ struct Run {
     ttft: Option<Duration>,
 }
 
+/// A completion shorter than this says little about generation speed (start-up cost dominates).
+const MIN_SPEED_SAMPLE_TOKENS: u32 = 8;
+const MIN_SPEED_SAMPLE_TIME: Duration = Duration::from_millis(250);
+
+impl Run {
+    /// What the node did with this request, for routing and for the per-node numbers: a failure when it errored or
+    /// dropped, a speed sample when it finished normally. A client that went away says nothing about the node.
+    fn record_node_outcome(&self) {
+        if self.error {
+            self.node.perf.record_failure();
+            self.app
+                .metrics
+                .node_request(self.org, self.pool, self.node.node_id, false, None);
+        } else if self.finished {
+            let gen = self.ttft.and_then(|t| {
+                let took = self.started.elapsed().checked_sub(t)?;
+                (self.tokens_out >= MIN_SPEED_SAMPLE_TOKENS && took >= MIN_SPEED_SAMPLE_TIME)
+                    // the first token ends the wait, so it is not part of the generation time
+                    .then_some((self.tokens_out - 1, took))
+            });
+            self.node
+                .perf
+                .record_success(gen.map(|(n, d)| n as f64 / d.as_secs_f64()));
+            self.app
+                .metrics
+                .node_request(self.org, self.pool, self.node.node_id, true, gen);
+        }
+    }
+
+    /// The node failed before producing anything (the request is retried elsewhere, so it is not recorded as usage).
+    fn node_failed_early(&self) {
+        self.node.perf.record_failure();
+        self.app
+            .metrics
+            .node_request(self.org, self.pool, self.node.node_id, false, None);
+    }
+}
+
 impl Drop for Run {
     fn drop(&mut self) {
         self.app.registry.finish_request(&self.request_id, &self.node);
@@ -535,6 +573,7 @@ impl Drop for Run {
             let _ = node.tx.try_send(Outbound::Send(cancel));
         }
         if self.record {
+            self.record_node_outcome();
             self.app
                 .metrics
                 .request(self.org, self.pool, self.started.elapsed(), self.ttft);
@@ -775,6 +814,7 @@ pub async fn chat_core(
             // The node dropped or failed before the first token: retry once on another node.
             None | Some(NodeEvent::Disconnected) | Some(NodeEvent::Error { .. }) => {
                 run.record = false;
+                run.node_failed_early();
                 tried.push(node.node_id);
                 last = ApiError::new(
                     StatusCode::BAD_GATEWAY,

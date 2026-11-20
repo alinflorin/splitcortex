@@ -57,6 +57,11 @@ export const NodeMetricPointSchema = z.object({
   /** Average number of requests running on the selected nodes together. */
   inFlight: z.number(),
   tokensPerSec: z.number().nullable(),
+  /** What the gateway measured from requests the nodes served in the step (not what the devices report). */
+  requests: z.number().int(),
+  failures: z.number().int(),
+  /** Generation speed of finished requests (tokens / generation time); null without enough samples. */
+  measuredTokensPerSec: z.number().nullable(),
 });
 export type NodeMetricPointDto = z.infer<typeof NodeMetricPointSchema>;
 

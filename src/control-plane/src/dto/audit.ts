@@ -16,6 +16,11 @@ export const AuditQuerySchema = z.object({
 });
 export type AuditQuery = z.input<typeof AuditQuerySchema>;
 
+/** Same filters as the list, no paging; `format` picks the file type. */
+export const AuditExportQuerySchema = AuditQuerySchema.omit({ limit: true, cursor: true }).extend({
+  format: z.enum(['csv', 'json']).default('csv'),
+});
+
 export const AuditEntrySchema = z.object({
   id: z.uuid(),
   occurredAt: z.iso.datetime(),

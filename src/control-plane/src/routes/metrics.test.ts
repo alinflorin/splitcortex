@@ -131,6 +131,55 @@ describe('metrics', () => {
     ).toBe(400);
   });
 
+  it('reports what the gateway measured: requests, failures and generation speed', async () => {
+    const o = await mkOrg('own@q.io', 'met-perf');
+    const pool = crypto.randomUUID();
+    const [n1, n2] = [crypto.randomUUID(), crypto.randomUUID()];
+    const base = { orgId: o, poolId: pool };
+    await t.db.insert(nodeMetrics).values([
+      // 100 tokens in 5 s and 300 tokens in 5 s: 400 tokens / 10 s = 40 tokens/s over the step, not the mean of rates
+      {
+        ...base,
+        bucket: minute(2),
+        nodeId: n1,
+        requests: 4,
+        failures: 1,
+        genTokens: 100,
+        genMs: 5000,
+      },
+      {
+        ...base,
+        bucket: minute(2),
+        nodeId: n2,
+        requests: 6,
+        failures: 0,
+        genTokens: 300,
+        genMs: 5000,
+      },
+      { ...base, bucket: minute(1), nodeId: n1, requests: 2, failures: 2, genTokens: 0, genMs: 0 },
+    ]);
+    const url = `/organisations/${o}/metrics?step=1h&from=${minute(30).toISOString()}&to=${new Date(Date.now() + 60_000).toISOString()}`;
+    const all = (await call('GET', url, 'own@q.io')).json<MetricsDto>();
+    expect(all.nodes.reduce((s, p) => s + p.requests, 0)).toBe(12);
+    expect(all.nodes.reduce((s, p) => s + p.failures, 0)).toBe(3);
+    expect(
+      all.nodes.find((p) => p.measuredTokensPerSec !== null)!.measuredTokensPerSec,
+    ).toBeCloseTo(40);
+    // one node only
+    const one = (await call('GET', `${url}&nodeId=${n2}`, 'own@q.io')).json<MetricsDto>();
+    expect(one.nodes.reduce((s, p) => s + p.requests, 0)).toBe(6);
+    expect(one.nodes[0]!.measuredTokensPerSec).toBeCloseTo(60);
+    // no finished request in a period: no speed rather than zero
+    const none = (
+      await call(
+        'GET',
+        `/organisations/${o}/metrics?step=1m&from=${minute(1).toISOString()}&to=${new Date(Date.now() + 60_000).toISOString()}`,
+        'own@q.io',
+      )
+    ).json<MetricsDto>();
+    expect(none.nodes.every((p) => p.measuredTokensPerSec === null)).toBe(true);
+  });
+
   it('prunes rows older than the retention window', async () => {
     const o = await mkOrg('own@p.io', 'met-prune');
     const pool = crypto.randomUUID();

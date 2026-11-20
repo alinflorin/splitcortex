@@ -115,6 +115,53 @@ describe('audit logs', () => {
     ).toBe(400);
   });
 
+  it('exports the filtered log as CSV or JSON, across batches, for admins only', async () => {
+    const org = (
+      await call('POST', '/organisations', 'own@e.io', { name: 'E', slug: 'aud-e' })
+    ).json<{ id: string }>().id;
+    await call('POST', `/organisations/${org}/members`, 'own@e.io', {
+      email: 'mem@e.io',
+      role: 'member',
+    });
+    const base = Date.now() - 3_600_000;
+    await t.db.insert(auditLogs).values(
+      Array.from({ length: 2100 }, (_, i) => ({
+        orgId: org,
+        source: 'gateway',
+        actorType: 'system',
+        actorId: i === 0 ? '=HYPERLINK("x")' : null,
+        action: 'limit.reached',
+        outcome: 'denied',
+        occurredAt: new Date(base + i),
+        metadata: { n: i },
+      })),
+    );
+
+    const url = `/organisations/${org}/audit-logs/export`;
+    const csv = await call('GET', `${url}?action=limit.`, 'own@e.io');
+    expect(csv.statusCode).toBe(200);
+    expect(csv.headers['content-type']).toContain('text/csv');
+    expect(csv.headers['content-disposition']).toMatch(/attachment; filename="audit-log-.*\.csv"/);
+    const lines = csv.body.trimEnd().split('\r\n');
+    expect(lines[0]).toBe(
+      'occurredAt,source,actorType,actorId,action,entityType,entityId,outcome,ip,metadata',
+    );
+    expect(lines).toHaveLength(2101); // header + every row, more than one batch
+    // spreadsheet formulas are neutralised
+    expect(csv.body).toContain(`"'=HYPERLINK(""x"")"`);
+
+    const json = await call('GET', `${url}?format=json&action=limit.&outcome=denied`, 'own@e.io');
+    const rows = JSON.parse(json.body) as { occurredAt: string; metadata: { n: number } }[];
+    expect(rows).toHaveLength(2100);
+    expect(rows[0]!.metadata.n).toBe(2099); // newest first
+    expect(
+      JSON.parse((await call('GET', `${url}?format=json&action=nothing.`, 'own@e.io')).body),
+    ).toEqual([]);
+
+    expect((await call('GET', url, 'mem@e.io')).statusCode).toBe(403);
+    expect((await call('GET', url, 'out@e.io')).statusCode).toBe(404);
+  });
+
   it('prunes rows past the retention window', async () => {
     const org = (
       await call('POST', '/organisations', 'own@d.io', { name: 'D', slug: 'aud-d' })

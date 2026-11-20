@@ -26,6 +26,10 @@ Hard rules in [CLAUDE.md](../CLAUDE.md).
 - **Phone** (`src/mobile-node/src/enrollment/`: `crypto.ts` is the byte-compatible device half, `client.ts`, `identity.ts`, `store.ts`): key generated on first use with `@noble/curves`, kept in `expo-secure-store` (Keystore-backed encryption), **not hardware-resident non-exportable** (Ed25519 isn't available via Expo keystore APIs). `src/polyfills.ts` supplies `crypto.getRandomValues` from `expo-crypto`. The noble/pake packages are ESM-only, so Jest's `transformIgnorePatterns` lists `@noble|@cipherman`. Run on real Android devices by the owner. The web, desktop and CLI nodes port the same device half.
 - **Library**: `@cipherman/pake-js` (pure JS on `@noble/curves`, no WASM so it runs on Hermes; passes draft-20 vectors per its README; single maintainer, pre-1.0, **not independently audited**). `cpace-ts` rejected (needs WebAssembly). Fallback if unusable: TLS with CA validation plus mandatory admin approval (weaker first-contact trust).
 
+## Bulk codes (built)
+
+`POST /organisations/:orgId/pools/:poolId/enrollments/bulk` `{count}` (1..50, admin or owner) creates that many ordinary codes at once: each single use, 3 attempts, **10 minutes** (the rule is unchanged on purpose), distinct lookup ids, all or nothing (a failure deletes the codes it already made). Audited as `enrollment.create_bulk` (`count` in the metadata). The web app's _Add many devices_ dialog lists the codes, shows how many were used (it polls the pool's active codes: a used code disappears), copies all, downloads a CSV, and cancels the unused ones on close.
+
 ## Open
 
-Bulk code generation for many devices; whether the key pair also signs messages and model manifests.
+Whether the key pair also signs messages and model manifests.

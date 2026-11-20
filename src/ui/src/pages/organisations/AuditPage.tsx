@@ -10,9 +10,10 @@ import {
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
+import { ArrowDownload20Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router-dom';
-import { useAuditLogs } from '../../api/hooks';
+import { useAuditLogs, useExportAuditLogs } from '../../api/hooks';
 import type { AuditParams } from '../../api/hooks';
 import type { AuditEntry } from '../../api/schemas';
 import { QueryBoundary } from '../../components/QueryBoundary';
@@ -75,6 +76,7 @@ export function AuditPage() {
     outcome: outcome === 'all' ? undefined : outcome,
   };
   const query = useAuditLogs(org.id, params, admin);
+  const exporter = useExportAuditLogs(org.id);
   // Members have no access (the server answers 403); do not even show the page.
   if (!admin) return <Navigate to={`/organisations/${org.id}`} replace />;
 
@@ -83,7 +85,25 @@ export function AuditPage() {
 
   return (
     <>
-      <PageHeader eyebrow={org.name} title={t('audit.title')} subtitle={t('audit.subtitle')} />
+      <PageHeader
+        eyebrow={org.name}
+        title={t('audit.title')}
+        subtitle={t('audit.subtitle')}
+        actions={
+          <>
+            {(['csv', 'json'] as const).map((format) => (
+              <Button
+                key={format}
+                icon={<ArrowDownload20Regular />}
+                disabled={exporter.isPending}
+                onClick={() => exporter.mutate({ params, format })}
+              >
+                {t(`audit.export_${format}`)}
+              </Button>
+            ))}
+          </>
+        }
+      />
       <div className={styles.filters}>
         <Field label={t('audit.category')}>
           <Dropdown

@@ -58,6 +58,72 @@ pub fn modality_names(mods: u32) -> Vec<&'static str> {
     v
 }
 
+/// What the gateway itself measured about a node from the requests it served: how fast it generates and how often it
+/// fails. Both are exponentially weighted averages, so they follow the device (a phone that heats up slows down) and
+/// forget old problems. Kept per node (not per connection) so a reconnect does not wipe a bad record.
+#[derive(Default)]
+pub struct NodePerf {
+    /// Generation speed (tokens/s) over completed requests, f64 bits; 0 = no sample yet.
+    tps_bits: AtomicU64,
+    /// Failure rate 0..1, f64 bits.
+    fail_bits: AtomicU64,
+    /// Outcomes seen, saturating at `u32::MAX`.
+    outcomes: AtomicU32,
+    /// Unix seconds of the last update, to forget nodes that stay away.
+    touched: AtomicU64,
+}
+
+const TPS_ALPHA: f64 = 0.3;
+const FAIL_ALPHA: f64 = 0.2;
+/// How much a failure rate of 1.0 inflates a node's routing score (0.5 → 3x worse).
+const FAILURE_WEIGHT: f64 = 4.0;
+/// Nodes unseen for this long lose their record.
+const PERF_FORGET_SECS: u64 = 3600;
+
+fn unix_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+impl NodePerf {
+    pub fn tps(&self) -> f64 {
+        f64::from_bits(self.tps_bits.load(Ordering::Relaxed))
+    }
+    pub fn failure_rate(&self) -> f64 {
+        f64::from_bits(self.fail_bits.load(Ordering::Relaxed))
+    }
+    #[cfg(test)]
+    pub fn outcomes(&self) -> u32 {
+        self.outcomes.load(Ordering::Relaxed)
+    }
+
+    fn mix(bits: &AtomicU64, sample: f64, alpha: f64, first: bool) {
+        let old = f64::from_bits(bits.load(Ordering::Relaxed));
+        let new = if first { sample } else { old + alpha * (sample - old) };
+        bits.store(new.to_bits(), Ordering::Relaxed);
+    }
+
+    /// A request finished normally; `tps` is its generation speed when the sample is long enough to trust.
+    pub fn record_success(&self, tps: Option<f64>) {
+        let first = self.outcomes.fetch_add(1, Ordering::Relaxed) == 0;
+        Self::mix(&self.fail_bits, 0.0, FAIL_ALPHA, first);
+        if let Some(t) = tps.filter(|t| t.is_finite() && *t > 0.0) {
+            let none_yet = self.tps() <= 0.0;
+            Self::mix(&self.tps_bits, t, TPS_ALPHA, none_yet);
+        }
+        self.touched.store(unix_secs(), Ordering::Relaxed);
+    }
+
+    /// The node failed a request (error event, or it dropped before finishing). A client that goes away is not one.
+    pub fn record_failure(&self) {
+        let first = self.outcomes.fetch_add(1, Ordering::Relaxed) == 0;
+        Self::mix(&self.fail_bits, 1.0, FAIL_ALPHA, first);
+        self.touched.store(unix_secs(), Ordering::Relaxed);
+    }
+}
+
 pub struct NodeConn {
     pub conn_id: Uuid,
     pub node_id: Uuid,
@@ -85,6 +151,8 @@ pub struct NodeConn {
     pub resuming: std::sync::atomic::AtomicBool,
     /// When this connection was accepted.
     pub since: std::time::Instant,
+    /// Measured speed and failure rate of the node (shared by its successive connections).
+    pub perf: Arc<NodePerf>,
 }
 
 impl NodeConn {
@@ -99,6 +167,12 @@ impl NodeConn {
     }
     pub fn load(&self) -> u32 {
         self.in_flight.load(Ordering::Relaxed)
+    }
+    /// Tokens/s to route by: what the gateway measured, else what the node reports; None = unknown.
+    pub fn speed(&self) -> Option<f64> {
+        let measured = self.perf.tps();
+        let reported = self.tps();
+        [measured, reported].into_iter().find(|v| v.is_finite() && *v > 0.0)
     }
 }
 
@@ -122,11 +196,26 @@ pub struct Registry {
     nodes: RwLock<HashMap<Uuid, Arc<NodeConn>>>,
     requests: Mutex<HashMap<String, Pending>>,
     rr: AtomicUsize,
+    perf: Mutex<HashMap<Uuid, Arc<NodePerf>>>,
 }
 
 impl Registry {
     /// Registers a connection; a newer connection of the same node replaces (and closes) the older one. Requests that
     /// were already streaming stay open for the node to resume; returns how many (the caller schedules their expiry).
+    /// The performance record of a node, created on first use.
+    pub fn perf_for(&self, node_id: Uuid) -> Arc<NodePerf> {
+        self.perf.lock().unwrap().entry(node_id).or_default().clone()
+    }
+
+    /// Forgets the records of nodes that are not connected and have not been updated for an hour.
+    pub fn prune_perf(&self) {
+        let connected = self.nodes.read().unwrap();
+        let now = unix_secs();
+        self.perf.lock().unwrap().retain(|id, p| {
+            connected.contains_key(id) || now.saturating_sub(p.touched.load(Ordering::Relaxed)) < PERF_FORGET_SECS
+        });
+    }
+
     pub fn register(&self, conn: Arc<NodeConn>) -> usize {
         let node_id = conn.node_id;
         let old = self.nodes.write().unwrap().insert(conn.node_id, conn);
@@ -258,6 +347,14 @@ impl Registry {
         if cands.is_empty() {
             return None;
         }
+        // A node with no speed on record is assumed as fast as the average of the others, so it gets traffic and
+        // therefore a measurement; assuming it slow would starve it forever.
+        let known: Vec<f64> = cands.iter().filter_map(|c| c.speed()).collect();
+        let fallback = if known.is_empty() {
+            1.0
+        } else {
+            known.iter().sum::<f64>() / known.len() as f64
+        };
         let mut rng = rand::rng();
         let chosen = match balancing {
             "round_robin" => {
@@ -271,7 +368,7 @@ impl Registry {
             _ => {
                 let a = cands[rng.random_range(0..cands.len())];
                 let b = cands[rng.random_range(0..cands.len())];
-                if score(a) <= score(b) {
+                if score(a, fallback) <= score(b, fallback) {
                     a
                 } else {
                     b
@@ -419,9 +516,10 @@ fn eligible(c: &NodeConn, org: Uuid, pool: Uuid, model: Uuid, need: u32, mods: u
         && c.modalities.load(Ordering::Relaxed) & mods == mods
 }
 
-fn score(c: &NodeConn) -> f64 {
-    let speed = if c.tps() > 0.0 { c.tps() } else { 1.0 };
-    (c.load() as f64 + 1.0) / speed
+/// Lower is better: queue length per unit of speed, inflated by the node's recent failure rate.
+fn score(c: &NodeConn, fallback_speed: f64) -> f64 {
+    let speed = c.speed().unwrap_or(fallback_speed);
+    (c.load() as f64 + 1.0) / speed * (1.0 + FAILURE_WEIGHT * c.perf.failure_rate())
 }
 
 #[cfg(test)]
@@ -441,6 +539,7 @@ mod tests {
             ready_model: Mutex::new(model),
             assigned: Mutex::new(model),
             tps_bits: Default::default(),
+            perf: Default::default(),
             assignment_sent: Default::default(),
             ctx_tokens: Default::default(),
             modalities: Default::default(),
@@ -469,6 +568,102 @@ mod tests {
         assert!(reg
             .pick(org, pool, model, 0, 0, "least_in_flight", &[ready.node_id])
             .is_none());
+    }
+
+    #[test]
+    fn perf_averages_follow_the_node() {
+        let p = NodePerf::default();
+        assert_eq!((p.tps(), p.failure_rate(), p.outcomes()), (0.0, 0.0, 0));
+        p.record_success(Some(20.0));
+        assert_eq!(p.tps(), 20.0, "the first sample is taken as is");
+        p.record_success(Some(10.0));
+        assert!(
+            (p.tps() - 17.0).abs() < 1e-9,
+            "then it moves 30% of the way: {}",
+            p.tps()
+        );
+        p.record_success(None); // too short to measure speed: only counts as an outcome
+        assert!((p.tps() - 17.0).abs() < 1e-9);
+        p.record_failure();
+        assert!((p.failure_rate() - 0.2).abs() < 1e-9);
+        for _ in 0..30 {
+            p.record_success(None);
+        }
+        assert!(p.failure_rate() < 0.001, "old failures are forgotten");
+        assert_eq!(p.outcomes(), 34);
+    }
+
+    #[test]
+    fn routing_prefers_fast_and_reliable_nodes_and_still_tries_unknown_ones() {
+        let (org, pool, model) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let fast = conn(org, pool, Some(model));
+        let slow = conn(org, pool, Some(model));
+        let flaky = conn(org, pool, Some(model));
+        let new = conn(org, pool, Some(model));
+        fast.perf.record_success(Some(40.0));
+        slow.perf.record_success(Some(10.0));
+        flaky.perf.record_success(Some(40.0));
+        for _ in 0..4 {
+            flaky.perf.record_failure();
+        }
+        // measured speed beats what the node says about itself
+        slow.tps_bits.store(500.0f64.to_bits(), Ordering::Relaxed);
+        assert_eq!(slow.speed(), Some(10.0));
+        let fallback = 30.0;
+        assert!(score(&fast, fallback) < score(&slow, fallback));
+        assert!(
+            score(&fast, fallback) < score(&flaky, fallback),
+            "same speed, but it fails"
+        );
+        // no speed on record: assumed average, so it is neither starved nor preferred
+        assert_eq!(new.speed(), None);
+        assert!((score(&new, fallback) - 1.0 / fallback).abs() < 1e-9);
+        // load still counts
+        fast.in_flight.store(3, Ordering::Relaxed);
+        assert!(score(&fast, fallback) > score(&new, fallback));
+    }
+
+    #[test]
+    fn a_failing_node_gets_clearly_less_traffic() {
+        let (org, pool, model) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let reg = Registry::default();
+        let good = conn(org, pool, Some(model));
+        let bad = conn(org, pool, Some(model));
+        good.perf.record_success(Some(20.0));
+        bad.perf.record_success(Some(20.0));
+        for _ in 0..6 {
+            bad.perf.record_failure();
+        }
+        reg.register(good.clone());
+        reg.register(bad.clone());
+        let mut to_good = 0;
+        for _ in 0..400 {
+            let got = reg.pick(org, pool, model, 0, 0, "weighted_p2c", &[]).unwrap();
+            if got.node_id == good.node_id {
+                to_good += 1;
+            }
+            got.in_flight.fetch_sub(1, Ordering::AcqRel);
+        }
+        // two random choices: the failing node only wins when both draws are it (about a quarter of the time)
+        assert!(to_good > 260, "the reliable node got {to_good} of 400");
+    }
+
+    #[test]
+    fn perf_survives_a_reconnect_and_is_forgotten_after_an_hour() {
+        let reg = Registry::default();
+        let id = Uuid::new_v4();
+        reg.perf_for(id).record_failure();
+        assert!(Arc::ptr_eq(&reg.perf_for(id), &reg.perf_for(id)));
+        assert!(reg.perf_for(id).failure_rate() > 0.0);
+        reg.prune_perf();
+        assert!(reg.perf_for(id).failure_rate() > 0.0, "recent: kept");
+        reg.perf_for(id).touched.store(1, Ordering::Relaxed);
+        reg.prune_perf();
+        assert_eq!(
+            reg.perf_for(id).failure_rate(),
+            0.0,
+            "stale and not connected: forgotten"
+        );
     }
 
     #[test]
