@@ -7,6 +7,7 @@ import type { Db } from '../db/client';
 import { models } from '../db/schema';
 import type { ModelStorage } from '../storage/types';
 import { isAllowedHfHost } from './hf';
+import { httpsFetch } from './https-fetch';
 
 export interface MirrorDeps {
   db: Db;
@@ -58,7 +59,7 @@ async function fetchFromHuggingFace(
 /** Claims one pending model (safe across instances) and mirrors it. Returns false when there was nothing to do. */
 export async function mirrorNext(deps: MirrorDeps): Promise<boolean> {
   const { db, storage } = deps;
-  const fetchFn = deps.fetch ?? fetch;
+  const fetchFn = deps.fetch ?? httpsFetch;
 
   await db
     .update(models)
