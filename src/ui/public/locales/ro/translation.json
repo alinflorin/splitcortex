@@ -8,7 +8,8 @@
     "about": "Despre",
     "toggle": "Comută navigarea",
     "organisations": "Organizații",
-    "playground": "Spațiu de test"
+    "playground": "Spațiu de test",
+    "contact": "Contact"
   },
   "auth": {
     "signIn": "Autentificare",
@@ -831,5 +832,97 @@
     "nodesReporting": "Dispozitive active",
     "lowest": "Cea mai mică dintre dispozitive",
     "highest": "Cea mai mare dintre dispozitive"
+  },
+  "legal": {
+    "updated": "Ultima actualizare: 21 noiembrie 2026",
+    "eyebrow": "Legal",
+    "terms": {
+      "title": "Termeni și condiții",
+      "subtitle": "Regulile de folosire a SplitCortex.",
+      "sections": [
+        {
+          "title": "Acceptare",
+          "body": "Prin crearea unui cont sau folosirea SplitCortex accepți acești termeni. Dacă folosești serviciul pentru o organizație, confirmi că o poți angaja."
+        },
+        {
+          "title": "Serviciul",
+          "body": "SplitCortex oferă un plan de control și un gateway care direcționează cereri compatibile OpenAI către dispozitivele pe care organizația ta le înrolează. Dispozitivele le aduci și le administrezi tu."
+        },
+        {
+          "title": "Contul și cheile tale",
+          "body": "Ești responsabil pentru activitatea din contul tău și pentru păstrarea în siguranță a cheilor API și a credențialelor dispozitivelor. Revocă orice cheie sau dispozitiv despre care crezi că a fost compromis."
+        },
+        {
+          "title": "Utilizare acceptabilă",
+          "body": "Nu folosi serviciul pentru a încălca legea, a ataca pe alții, a abuza platforma sau a ocoli limitele. Putem suspenda accesul care pune în pericol serviciul sau alți utilizatori."
+        },
+        {
+          "title": "Conținutul tău",
+          "body": "Păstrezi toate drepturile asupra modelelor, prompturilor și răspunsurilor. Nu citim și nu stocăm prompturi sau răspunsuri dincolo de ce e necesar pentru a direcționa o cerere."
+        },
+        {
+          "title": "Disponibilitate",
+          "body": "Serviciul este oferit ca atare, fără garanția disponibilității. Dispozitivele aparțin organizațiilor și pot ieși oricând din rețea."
+        },
+        {
+          "title": "Modificări și contact",
+          "body": "Putem actualiza acești termeni și vom publica versiunea nouă pe această pagină. Întrebări: vezi pagina Contact."
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Politica de confidențialitate",
+      "subtitle": "Ce date prelucrăm și cum.",
+      "sections": [
+        {
+          "title": "Ce colectăm",
+          "body": "Datele contului de la furnizorul de autentificare (nume, email), datele organizației și ale membrilor, plus setările pe care le configurezi pentru pool-uri, chei și dispozitive."
+        },
+        {
+          "title": "Utilizare și metrici",
+          "body": "Înregistrăm numărul de tokeni, de cereri și latența per cheie, pool și organizație, pentru rapoarte de consum și grafice. Metricile se păstrează 7 zile, iar intrările din jurnalul de audit 90 de zile."
+        },
+        {
+          "title": "Ce nu stocăm niciodată",
+          "body": "Prompturile, răspunsurile și materialul cheilor nu sunt niciodată înregistrate sau stocate. Cheile API se păstrează doar ca hash și se afișează o singură dată."
+        },
+        {
+          "title": "Dispozitive",
+          "body": "Fiecare dispozitiv are propria pereche de chei; cheia privată nu părăsește dispozitivul. Stocăm cheia publică, starea și telemetria, precum încărcarea și temperatura."
+        },
+        {
+          "title": "Partajare",
+          "body": "Nu vindem date. Datele sunt partajate doar cu furnizorii de infrastructură necesari serviciului și atunci când legea o cere."
+        },
+        {
+          "title": "Drepturile tale",
+          "body": "Poți cere acces, corectare sau ștergerea datelor. Proprietarii organizațiilor pot elimina oricând membri, chei și dispozitive."
+        },
+        {
+          "title": "Contact",
+          "body": "Pentru întrebări despre confidențialitate, vezi pagina Contact."
+        }
+      ]
+    },
+    "linksTitle": "Legal și contact",
+    "linksSubtitle": "Detaliile legale și cum ne poți contacta.",
+    "open": "Citește"
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "title": "Contactează-ne",
+    "subtitle": "Întrebări, feedback sau suport. Această pagină este deocamdată un exemplu.",
+    "email": {
+      "title": "Email",
+      "body": "hello@example.com"
+    },
+    "address": {
+      "title": "Adresă",
+      "body": "Strada Exemplu 123, București, România"
+    },
+    "hours": {
+      "title": "Program suport",
+      "body": "Luni–Vineri, 09:00–17:00"
+    }
   }
 }

@@ -3,9 +3,11 @@ import {
   ArrowRight24Regular,
   Code24Regular,
   Eye24Regular,
+  Document24Regular,
   Globe24Regular,
   Key24Regular,
   LockClosed24Regular,
+  Mail24Regular,
   PlugDisconnected24Regular,
   People24Regular,
   Phone24Regular,
@@ -149,6 +151,12 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalXXS,
     color: tokens.colorNeutralForeground2,
   },
+  legalLink: {
+    color: 'inherit',
+    textDecoration: 'none',
+    display: 'flex',
+    '& > *': { flexGrow: 1 },
+  },
   nodeChip: { alignSelf: 'flex-start' },
 });
 
@@ -206,6 +214,12 @@ export function About() {
     { key: 'mobile', icon: <Phone24Regular /> },
     { key: 'cli', icon: <Code24Regular /> },
     { key: 'web', icon: <Globe24Regular /> },
+  ] as const;
+
+  const legal = [
+    { to: '/terms', key: 'legal.terms', icon: <Document24Regular /> },
+    { to: '/privacy', key: 'legal.privacy', icon: <LockClosed24Regular /> },
+    { to: '/contact', key: 'contact', icon: <Mail24Regular /> },
   ] as const;
 
   return (
@@ -299,6 +313,16 @@ export function About() {
               title={t(`about.nodes.items.${key}.title`)}
               body={t(`about.nodes.items.${key}.body`)}
             />
+          ))}
+        </CardGrid>
+      </Section>
+
+      <Section title={t('legal.linksTitle')} subtitle={t('legal.linksSubtitle')}>
+        <CardGrid>
+          {legal.map(({ to, key, icon }) => (
+            <Link key={to} to={to} className={styles.legalLink}>
+              <FeatureCard icon={icon} title={t(`${key}.title`)} body={t(`${key}.subtitle`)} />
+            </Link>
           ))}
         </CardGrid>
       </Section>

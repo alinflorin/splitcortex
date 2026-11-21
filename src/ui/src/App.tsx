@@ -2,7 +2,9 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { PrivateRoute } from './auth/PrivateRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { About } from './pages/About';
+import { Contact } from './pages/Contact';
 import { Home } from './pages/Home';
+import { Privacy, Terms } from './pages/Legal';
 import { NotFound } from './pages/NotFound';
 import { ApiKeysPage } from './pages/organisations/ApiKeysPage';
 import { MembersTab } from './pages/organisations/MembersTab';
@@ -25,6 +27,9 @@ export function App() {
       <Route element={<AppLayout />}>
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
+        <Route path="terms" element={<Terms />} />
+        <Route path="privacy" element={<Privacy />} />
+        <Route path="contact" element={<Contact />} />
         <Route element={<PrivateRoute />}>
           <Route path="user-settings" element={<UserSettings />} />
           <Route path="playground" element={<Playground />} />

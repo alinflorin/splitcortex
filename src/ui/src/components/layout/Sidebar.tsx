@@ -16,6 +16,8 @@ import {
   Chat24Regular,
   Info24Filled,
   Info24Regular,
+  Mail24Filled,
+  Mail24Regular,
   bundleIcon,
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
@@ -27,12 +29,14 @@ const HomeIcon = bundleIcon(Home24Filled, Home24Regular);
 const OrgIcon = bundleIcon(Building24Filled, Building24Regular);
 const ChatIcon = bundleIcon(Chat24Filled, Chat24Regular);
 const InfoIcon = bundleIcon(Info24Filled, Info24Regular);
+const MailIcon = bundleIcon(Mail24Filled, Mail24Regular);
 
 const ITEMS = [
   { to: '/', key: 'home', Icon: HomeIcon },
   { to: '/organisations', key: 'organisations', Icon: OrgIcon },
   { to: '/playground', key: 'playground', Icon: ChatIcon },
   { to: '/about', key: 'about', Icon: InfoIcon },
+  { to: '/contact', key: 'contact', Icon: MailIcon },
 ] as const;
 
 const useStyles = makeStyles({

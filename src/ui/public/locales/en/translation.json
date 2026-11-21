@@ -8,7 +8,8 @@
     "about": "About",
     "toggle": "Toggle navigation",
     "organisations": "Organisations",
-    "playground": "Playground"
+    "playground": "Playground",
+    "contact": "Contact"
   },
   "auth": {
     "signIn": "Sign in",
@@ -831,5 +832,97 @@
     "nodesReporting": "Devices reporting",
     "lowest": "Lowest among devices",
     "highest": "Highest among devices"
+  },
+  "legal": {
+    "updated": "Last updated: 21 November 2026",
+    "eyebrow": "Legal",
+    "terms": {
+      "title": "Terms of Service",
+      "subtitle": "The rules for using SplitCortex.",
+      "sections": [
+        {
+          "title": "Acceptance",
+          "body": "By creating an account or using SplitCortex you agree to these terms. If you use the service for an organisation, you confirm you may bind it."
+        },
+        {
+          "title": "The service",
+          "body": "SplitCortex provides a control plane and a gateway that route OpenAI-compatible requests to devices your organisation enrolls. You bring and operate the devices."
+        },
+        {
+          "title": "Your account and keys",
+          "body": "You are responsible for activity under your account and for keeping API keys and device credentials safe. Revoke any key or device you suspect is compromised."
+        },
+        {
+          "title": "Acceptable use",
+          "body": "Do not use the service to break the law, attack others, abuse the platform or evade limits. We may suspend access that puts the service or other users at risk."
+        },
+        {
+          "title": "Your content",
+          "body": "You keep all rights to your models, prompts and completions. We do not read or store prompts or completions beyond what is needed to route a request."
+        },
+        {
+          "title": "Availability",
+          "body": "The service is provided as is, without a guarantee of uptime. Devices are owned by their organisations and may go offline at any time."
+        },
+        {
+          "title": "Changes and contact",
+          "body": "We may update these terms and will publish the new version on this page. Questions: see the Contact page."
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "subtitle": "What data we handle and how.",
+      "sections": [
+        {
+          "title": "What we collect",
+          "body": "Account details from the sign-in provider (name, email), organisation and membership data, and the settings you configure for pools, keys and devices."
+        },
+        {
+          "title": "Usage and metrics",
+          "body": "We record token counts, request counts and latency per key, pool and organisation for usage reporting and charts. Metrics are kept for 7 days and audit entries for 90 days."
+        },
+        {
+          "title": "What we never store",
+          "body": "Prompts, completions and key material are never logged or stored. API keys are kept only as hashes and shown once."
+        },
+        {
+          "title": "Devices",
+          "body": "Each device has its own key pair; the private key never leaves the device. We store the public key, status and telemetry such as load and temperature."
+        },
+        {
+          "title": "Sharing",
+          "body": "We do not sell data. Data is shared only with infrastructure providers needed to run the service, and where the law requires it."
+        },
+        {
+          "title": "Your rights",
+          "body": "You can ask to access, correct or delete your data. Organisation owners can remove members, keys and devices at any time."
+        },
+        {
+          "title": "Contact",
+          "body": "For privacy questions, see the Contact page."
+        }
+      ]
+    },
+    "linksTitle": "Legal and contact",
+    "linksSubtitle": "The fine print, and how to reach us.",
+    "open": "Read"
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "title": "Get in touch",
+    "subtitle": "Questions, feedback or support. This page is a placeholder for now.",
+    "email": {
+      "title": "Email",
+      "body": "hello@example.com"
+    },
+    "address": {
+      "title": "Address",
+      "body": "123 Example Street, Bucharest, Romania"
+    },
+    "hours": {
+      "title": "Support hours",
+      "body": "Mon–Fri, 09:00–17:00"
+    }
   }
 }
