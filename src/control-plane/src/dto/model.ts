@@ -38,7 +38,11 @@ export const CreateModelFromUrlSchema = z.object({
   kind: ModelKindSchema.default('chat'),
   url: z
     .url({ protocol: /^https$/, hostname: /^(?:[a-z0-9-]+\.)*huggingface\.co$/ })
-    .refine((u) => hasModelExtension(new URL(u).pathname), 'validation.modelFile'),
+    // zod runs this even when `.url()` failed, and `new URL` throws on what is not a URL: check it parses first.
+    .refine(
+      (u) => URL.canParse(u) && hasModelExtension(new URL(u).pathname),
+      'validation.modelFile',
+    ),
 });
 export type CreateModelFromUrlDto = z.infer<typeof CreateModelFromUrlSchema>;
 

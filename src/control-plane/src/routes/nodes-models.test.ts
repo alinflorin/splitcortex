@@ -410,6 +410,15 @@ describe('models', () => {
       (await add('https://huggingface.co.evil.com/a/b/resolve/main/m.litertlm')).statusCode,
     ).toBe(400);
     expect((await add('https://huggingface.co/a/b/resolve/main/model.bin')).statusCode).toBe(400);
+    // Not a URL at all: a validation error, never a crash (the file check must not throw on it).
+    for (const junk of [
+      'not a url',
+      '',
+      'huggingface.co/a/b/m.litertlm',
+      '//huggingface.co/m.litertlm',
+    ]) {
+      expect((await add(junk)).statusCode, junk).toBe(400);
+    }
     const ok = await add('https://huggingface.co/a/b/blob/main/m.litertlm');
     expect(ok.statusCode).toBe(201);
     expect(ok.json()).toMatchObject({

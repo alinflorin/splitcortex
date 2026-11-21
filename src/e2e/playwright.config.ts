@@ -36,7 +36,7 @@ export default defineConfig({
     {
       name: 'api',
       dependencies: ['setup'],
-      testMatch: /(control-plane|gateway)\.spec\.ts/,
+      testMatch: /(control-plane|gateway|api-security)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
     {
@@ -74,6 +74,24 @@ export default defineConfig({
       dependencies: ['setup'],
       testMatch: /nodes-cli\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
+    },
+    // Several devices in one pool (CLI nodes, plus a browser tab for the mixed pool): balancing, failure, the device API.
+    // Its own pools and key, so it runs next to the other node projects. Needs the CLI node release, like nodes-cli.
+    {
+      name: 'nodes-multi',
+      dependencies: ['setup'],
+      testMatch: /nodes-multi\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            '--enable-unsafe-webgpu',
+            '--enable-features=Vulkan,WebGPU',
+            '--use-angle=swiftshader',
+            '--use-webgpu-adapter=swiftshader',
+          ],
+        },
+      },
     },
     // The emulator is one device: Android is its own project (and CI job).
     {

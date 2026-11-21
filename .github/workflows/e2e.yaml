@@ -92,6 +92,9 @@ jobs:
           - name: cli node
             projects: --project=nodes-cli
             node-types: cli
+          - name: multi node
+            projects: --project=nodes-multi
+            node-types: none
           - name: android node
             projects: --project=nodes-android
             node-types: android
