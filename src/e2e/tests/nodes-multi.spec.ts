@@ -109,9 +109,9 @@ async function online(id: string, timeout = 15 * 60_000) {
     })
     .toBe('online');
 }
-async function offline(id: string) {
+async function offline(id: string, timeout = 90_000) {
   await expect
-    .poll(() => statusOf(id), { timeout: 90_000, intervals: [2_000], message: 'still online' })
+    .poll(() => statusOf(id), { timeout, intervals: [2_000], message: 'still online' })
     .not.toBe('online');
 }
 
@@ -343,12 +343,13 @@ test('a device that dies is dropped at once; the pool keeps serving; it comes ba
 });
 
 test('a dropped connection (not a dead process) is picked up again', async () => {
-  // Pause the process: its socket stays open but nothing is answered, so pings stop and the gateway lets it go.
+  // Pause the process: its socket stays open but nothing is answered. The gateway pings every 20 s and drops a peer
+  // it has not heard from for 60 s, so this takes about a minute and a half: that is the point, not a hang.
   const pid = n2.pid;
   test.skip(!pid, 'no process');
   process.kill(pid!, 'SIGSTOP');
   try {
-    await offline(n2.nodeId);
+    await offline(n2.nodeId, 4 * 60_000);
     expect((await ask()).status, 'the other device answers').toBe(200);
   } finally {
     process.kill(pid!, 'SIGCONT');
@@ -639,17 +640,20 @@ test('mixed devices: a browser tab and a command-line node share one pool', asyn
 });
 
 test('the audit log has the device events, with no prompt in them', async () => {
-  const audit = async (action: string) =>
-    (
-      await api<{ items: { action: string; metadata: unknown }[] }>(
-        page,
-        'GET',
-        org(`/audit-logs?action=${action}&limit=100`),
-      )
-    ).body.items;
+  // No `action` at all means every action (an empty `action=` is not "no filter").
+  const audit = async (action?: string) => {
+    const res = await api<{ items: { action: string; metadata: unknown }[] }>(
+      page,
+      'GET',
+      org(`/audit-logs?limit=100${action ? `&action=${action}` : ''}`),
+    );
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    return res.body.items;
+  };
   expect((await audit('node.enroll')).length).toBeGreaterThan(0);
   expect((await audit('node.delete')).length).toBeGreaterThan(0);
-  const everything = JSON.stringify(await audit(''));
+  const everything = JSON.stringify(await audit());
+  expect(everything.length).toBeGreaterThan(2);
   expect(everything).not.toContain('Count from one to ten');
   expect(everything).not.toContain(apiKey);
 });
