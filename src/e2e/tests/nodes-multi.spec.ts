@@ -115,6 +115,20 @@ async function offline(id: string) {
     .not.toBe('online');
 }
 
+/**
+ * Waits until the device has loaded its model. "Online" is only the connection: a device still loading gets no traffic,
+ * so a balancing test must wait for every device or it measures who loaded first. The page's "Running on" is this value.
+ */
+async function loaded(id: string, timeout = 10 * 60_000) {
+  await expect
+    .poll(async () => (await nodeOf(id)).live?.backend ?? null, {
+      timeout,
+      intervals: [3_000],
+      message: `node ${id} never loaded its model`,
+    })
+    .not.toBeNull();
+}
+
 /** Waits until the pool answers (the model is loaded on at least one device). */
 async function serving(timeout = 10 * 60_000, key = apiKey) {
   await expect
@@ -203,6 +217,7 @@ test('two devices in one pool come online, both serve, load is shared', async ()
   await join(n1);
   await join(n2);
   await Promise.all([online(n1.nodeId), online(n2.nodeId)]);
+  await Promise.all([loaded(n1.nodeId), loaded(n2.nodeId)]);
   await serving();
   // The pool lists both, and the page counts them.
   expect((await poolNodes(page, orgId, poolId)).filter((n) => n.status === 'online')).toHaveLength(
