@@ -12,6 +12,9 @@ use std::path::{Path, PathBuf};
 pub struct Dirs {
     pub data: PathBuf,
     pub cache: PathBuf,
+    /// Where the model files live when it is not `<data>/models` (`SPLITCORTEX_MODELS_DIR`, else the `modelsDir`
+    /// setting). Only the models move: the device key and the state stay in `data`.
+    pub models_dir: Option<PathBuf>,
 }
 
 impl Dirs {
@@ -21,18 +24,37 @@ impl Dirs {
             return Ok(Dirs {
                 data: home.join("data"),
                 cache: home.join("cache"),
-            });
+                models_dir: None,
+            }
+            .with_models_dir());
         }
         let d = directories::ProjectDirs::from("com", "splitcortex", "splitcortex-node")
             .ok_or_else(|| anyhow!("cannot find a home directory"))?;
         Ok(Dirs {
             data: d.data_dir().to_path_buf(),
             cache: d.cache_dir().to_path_buf(),
-        })
+            models_dir: None,
+        }
+        .with_models_dir())
+    }
+
+    /// Applies the models folder choice: `SPLITCORTEX_MODELS_DIR` wins over the `modelsDir` setting; neither = default.
+    fn with_models_dir(mut self) -> Dirs {
+        let from_env = std::env::var_os("SPLITCORTEX_MODELS_DIR")
+            .map(PathBuf::from)
+            .filter(|p| !p.as_os_str().is_empty());
+        self.models_dir = from_env.or_else(|| {
+            let s: crate::settings::Settings = self.read_json(crate::settings::FILE)?;
+            Some(PathBuf::from(s.models_dir)).filter(|p| !p.as_os_str().is_empty())
+        });
+        self
     }
 
     pub fn models(&self) -> Result<PathBuf> {
-        let dir = self.data.join("models");
+        let dir = self
+            .models_dir
+            .clone()
+            .unwrap_or_else(|| self.data.join("models"));
         fs::create_dir_all(&dir).with_context(|| format!("cannot create {}", dir.display()))?;
         Ok(dir)
     }
@@ -141,13 +163,31 @@ pub fn sha256_of(path: &Path) -> std::io::Result<String> {
     Ok(h.finalize().iter().map(|b| format!("{b:02x}")).collect())
 }
 
-/// Every stored model file (and partial download).
+/// A file this node made: `<model id>.litertlm` (data, or a partial download) or `<model id>.ok` (finished marker),
+/// the id being a UUID. The models folder can be one the user chose, so nothing else in it is ever listed or deleted.
+pub fn is_model_file(name: &str) -> bool {
+    let Some(id) = name
+        .strip_suffix(".litertlm")
+        .or_else(|| name.strip_suffix(".ok"))
+    else {
+        return false;
+    };
+    let groups: Vec<&str> = id.split('-').collect();
+    groups.len() == 5
+        && groups
+            .iter()
+            .zip([8, 4, 4, 4, 12])
+            .all(|(g, n)| g.len() == n && g.bytes().all(|b| b.is_ascii_hexdigit()))
+}
+
+/// Every model file this node stored (and partial download).
 pub fn list_models(dirs: &Dirs) -> Result<Vec<String>> {
     let mut out = Vec::new();
     for e in fs::read_dir(dirs.models()?)? {
         let e = e?;
         if let Some(n) = e.file_name().to_str()
             && valid_name(n)
+            && is_model_file(n)
         {
             out.push(n.to_string());
         }
@@ -178,6 +218,44 @@ mod tests {
     }
 
     #[test]
+    fn only_files_the_node_made_count_as_models() {
+        let id = "0b9d2f4e-6c1a-4f3b-9a7e-1d2c3b4a5f60";
+        assert!(is_model_file(&format!("{id}.litertlm")));
+        assert!(is_model_file(&format!("{id}.ok")));
+        for other in [
+            "notes.txt",
+            "model.litertlm",
+            "gemma-3n.litertlm",
+            ".ok",
+            "0b9d2f4e-6c1a-4f3b-9a7e-1d2c3b4a5f6.litertlm",
+            "0b9d2f4e-6c1a-4f3b-9a7e-1d2c3b4a5f60.part",
+            "0b9d2f4e-6c1a-4f3b-9a7e-1d2c3b4a5f6g.ok",
+        ] {
+            assert!(!is_model_file(other), "{other}");
+        }
+    }
+
+    #[test]
+    fn a_chosen_models_folder_is_used_and_foreign_files_in_it_are_left_alone() {
+        let home = std::env::temp_dir().join(format!("sc-cli-models-{}", std::process::id()));
+        let elsewhere = home.join("big-disk").join("models");
+        let dirs = Dirs {
+            data: home.join("data"),
+            cache: home.join("cache"),
+            models_dir: Some(elsewhere.clone()),
+        };
+        assert_eq!(dirs.models().unwrap(), elsewhere);
+        let id = "0b9d2f4e-6c1a-4f3b-9a7e-1d2c3b4a5f60";
+        fs::write(elsewhere.join(format!("{id}.litertlm")), b"x").unwrap();
+        fs::write(elsewhere.join("holiday.litertlm"), b"mine").unwrap();
+        fs::write(elsewhere.join("notes.txt"), b"mine").unwrap();
+        assert_eq!(list_models(&dirs).unwrap(), vec![format!("{id}.litertlm")]);
+        // The state did not move.
+        assert!(!home.join("data").join("models").exists());
+        fs::remove_dir_all(home).unwrap();
+    }
+
+    #[test]
     fn sha256_streams_a_file() {
         let dir = std::env::temp_dir().join(format!("sc-cli-sha-{}", std::process::id()));
         fs::create_dir_all(&dir).unwrap();
@@ -196,6 +274,7 @@ mod tests {
         let dirs = Dirs {
             data: home.join("data"),
             cache: home.join("cache"),
+            models_dir: None,
         };
         dirs.write_json("x.json", &vec![1, 2, 3]).unwrap();
         assert_eq!(dirs.read_json::<Vec<i32>>("x.json"), Some(vec![1, 2, 3]));

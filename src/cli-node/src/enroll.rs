@@ -326,6 +326,7 @@ mod tests {
         let dirs = Dirs {
             data: home.join("data"),
             cache: home.join("cache"),
+            models_dir: None,
         };
         let a = get_or_create_identity(&dirs).unwrap();
         let b = get_or_create_identity(&dirs).unwrap();

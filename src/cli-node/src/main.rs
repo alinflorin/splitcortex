@@ -15,7 +15,7 @@ mod storage;
 mod system;
 mod update;
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use std::io::Write;
 use storage::Dirs;
@@ -65,6 +65,10 @@ enum Command {
         /// The web app's address `join` enrolls against (saved)
         #[arg(long)]
         url: Option<String>,
+        /// Folder for the model files (absolute path, saved; empty = the default inside the data folder).
+        /// `SPLITCORTEX_MODELS_DIR` overrides it. Models already downloaded stay where they are.
+        #[arg(long)]
+        models_dir: Option<String>,
     },
     /// Install the newest release (`--check` only looks)
     Update {
@@ -235,6 +239,7 @@ async fn main() -> Result<()> {
             context,
             keep_awake,
             url,
+            models_dir,
         } => {
             let mut s: settings::Settings = dirs.read_json(settings::FILE).unwrap_or_default();
             if let Some(c) = compute {
@@ -260,6 +265,19 @@ async fn main() -> Result<()> {
                 }
                 s.app_url = u.trim().to_string();
             }
+            if let Some(d) = models_dir {
+                let d = d.trim();
+                if !d.is_empty() {
+                    let path = std::path::Path::new(d);
+                    // A relative path would mean something else for a service than for this shell.
+                    if !path.is_absolute() {
+                        bail!("the models folder must be an absolute path");
+                    }
+                    std::fs::create_dir_all(path)
+                        .with_context(|| format!("cannot create {}", path.display()))?;
+                }
+                s.models_dir = d.to_string();
+            }
             dirs.write_json(settings::FILE, &s)?;
             println!("compute:     {}", s.compute);
             println!(
@@ -271,6 +289,14 @@ async fn main() -> Result<()> {
                 }
             );
             println!("keep awake:  {}", s.keep_awake);
+            println!(
+                "models in:   {}",
+                if s.models_dir.is_empty() {
+                    "default (inside the data folder)"
+                } else {
+                    &s.models_dir
+                }
+            );
             println!(
                 "web app:     {}",
                 if s.app_url.is_empty() {
