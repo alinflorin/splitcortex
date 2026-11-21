@@ -76,7 +76,8 @@ async function newKey(pools: string[], limits: object = {}) {
     name: `e2e-multi-${uniq()}`,
     scope: 'pools',
     poolIds: pools,
-    limits,
+    // An empty `limits` is refused (it needs at least one), so only send it when there is one.
+    ...(Object.keys(limits).length ? { limits } : {}),
   });
   expect(res.status, JSON.stringify(res.body)).toBe(201);
   keyIds.push(res.body.key.id);
