@@ -34,8 +34,13 @@ function isCurrent(file: string, asset: Asset): boolean {
 }
 
 async function gh(url: string): Promise<Response> {
+  // Anonymous calls to the GitHub API are limited to 60 an hour: a token (when there is one) lifts that.
+  const token = process.env.GITHUB_TOKEN?.trim();
   const res = await fetch(url, {
-    headers: { 'user-agent': 'splitcortex-e2e' },
+    headers: {
+      'user-agent': 'splitcortex-e2e',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
     redirect: 'follow',
   });
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
@@ -81,7 +86,17 @@ function cliTarget(): string {
  * other node projects running at the same time, share the folder. The unpacking happens in a private folder that is
  * moved into place, so nobody sees a half-unpacked one.
  */
-export async function cliNodeBinary(): Promise<string> {
+export function cliNodeBinary(): Promise<string> {
+  // Every node action asks for the binary: look the release up once per process, not once per action.
+  cliBinary ??= unpackCliNode().catch((e) => {
+    cliBinary = undefined; // a failure (offline, rate limit) is not remembered
+    throw e;
+  });
+  return cliBinary;
+}
+let cliBinary: Promise<string> | undefined;
+
+async function unpackCliNode(): Promise<string> {
   const version = optional('E2E_CLI_VERSION');
   const tag = tagOf('cli-node', version);
   const target = cliTarget();

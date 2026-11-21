@@ -125,3 +125,43 @@ export async function openai(
     timeout: 5 * 60_000,
   });
 }
+
+/**
+ * A tiny model through the upload API (no Hugging Face): a pool can serve it and a device downloads it, but nothing
+ * can run it. Returns the model id. Names are unique per organisation.
+ */
+export async function uploadTinyModel(
+  page: Page,
+  org: string,
+  name: string,
+  kind: 'chat' | 'embedding' = 'chat',
+): Promise<string> {
+  const size = 4096;
+  const start = await api<{ model: { id: string } }>(
+    page,
+    'POST',
+    `/organisations/${org}/models/uploads`,
+    { name, fileName: `${name}.litertlm`, sizeBytes: size, kind },
+  );
+  expect(start.status, JSON.stringify(start.body)).toBe(201);
+  const id = start.body.model.id;
+  // 4 KiB is one part, far below the part size: the part is the whole file.
+  const part = await page.request.fetch(
+    `${baseUrl()}/api/organisations/${org}/models/${id}/parts/1`,
+    {
+      method: 'PUT',
+      data: Buffer.alloc(size, 7),
+      headers: {
+        authorization: `Bearer ${await accessToken(page)}`,
+        'content-type': 'application/octet-stream',
+      },
+    },
+  );
+  expect(part.status(), await part.text()).toBe(200);
+  const { etag } = (await part.json()) as { etag: string };
+  const done = await api(page, 'POST', `/organisations/${org}/models/${id}/complete`, {
+    parts: [{ partNumber: 1, etag }],
+  });
+  expect(done.status, JSON.stringify(done.body)).toBe(200);
+  return id;
+}

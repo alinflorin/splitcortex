@@ -36,7 +36,7 @@ export default defineConfig({
     {
       name: 'api',
       dependencies: ['setup'],
-      testMatch: /(control-plane|gateway|api-security)\.spec\.ts/,
+      testMatch: /(control-plane|gateway|api-security|api-edge)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
     {

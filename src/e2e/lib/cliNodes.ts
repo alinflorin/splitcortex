@@ -1,4 +1,4 @@
-import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
+import { execFileSync, spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { createPrivateKey, sign } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -65,6 +65,16 @@ export class CliNode {
   /** `splitcortex-node config ...` (settings the device keeps itself; an admin override wins). */
   async config(...args: string[]): Promise<void> {
     execFileSync(await cliNodeBinary(), ['config', ...args], { env: this.env(), stdio: 'pipe' });
+  }
+
+  /** Runs `splitcortex-node <args>` to the end: the exit code and what it printed (stdout and stderr together). */
+  async exec(...args: string[]): Promise<{ code: number; out: string }> {
+    const r = spawnSync(await cliNodeBinary(), args, {
+      env: this.env(),
+      encoding: 'utf8',
+      timeout: 60_000,
+    });
+    return { code: r.status ?? -1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
   }
 
   async start(): Promise<void> {

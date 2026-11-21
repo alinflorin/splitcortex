@@ -1,5 +1,16 @@
+import { existsSync, mkdtempSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join as pathJoin } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { api, gateway, poolNodes, uniq, userPage, type OpenAIError } from '../lib/api';
+import {
+  api,
+  gateway,
+  poolNodes,
+  uniq,
+  uploadTinyModel,
+  userPage,
+  type OpenAIError,
+} from '../lib/api';
 import { accessToken } from '../lib/auth';
 import { CliNode, nodeAuthHeader } from '../lib/cliNodes';
 import { webNode } from '../lib/drivers/web';
@@ -16,6 +27,7 @@ test.setTimeout(30 * 60_000);
 
 interface NodeFull {
   id: string;
+  name: string;
   status: string;
   approved: boolean;
   computeBackend: string | null;
@@ -45,6 +57,7 @@ let poolId: string;
 let approvalPoolId: string;
 let apiKey: string;
 const keyIds: string[] = [];
+const modelIds: string[] = [];
 const poolIds: string[] = [];
 const cli: CliNode[] = [];
 const newCli = () => {
@@ -62,11 +75,11 @@ const chat = (extra: object = {}) => ({
 const ask = (key = apiKey, extra: object = {}) =>
   gateway<OpenAIError>(page, key, 'POST', '/chat/completions', chat(extra));
 
-async function newPool(name: string, extra: object = {}): Promise<string> {
+async function newPool(name: string, extra: object = {}, modelId = chatModel.id): Promise<string> {
   const pool = await api<{ id: string }>(page, 'POST', org('/pools'), { name, ...extra });
   expect(pool.status, JSON.stringify(pool.body)).toBe(201);
   poolIds.push(pool.body.id);
-  const set = await api(page, 'PUT', org(`/pools/${pool.body.id}/models/${chatModel.id}`));
+  const set = await api(page, 'PUT', org(`/pools/${pool.body.id}/models/${modelId}`));
   expect(set.status).toBe(204);
   return pool.body.id;
 }
@@ -97,12 +110,12 @@ async function join(node: CliNode, pool = poolId) {
 }
 
 const nodeOf = async (id: string) => (await api<NodeFull>(page, 'GET', org(`/nodes/${id}`))).body;
-const statusOf = async (id: string) =>
-  (await poolNodes(page, orgId, poolId)).find((n) => n.id === id)?.status;
+const statusOf = async (id: string, pool = poolId) =>
+  (await poolNodes(page, orgId, pool)).find((n) => n.id === id)?.status;
 
-async function online(id: string, timeout = 15 * 60_000) {
+async function online(id: string, timeout = 15 * 60_000, pool = poolId) {
   await expect
-    .poll(() => statusOf(id), {
+    .poll(() => statusOf(id, pool), {
       timeout,
       intervals: [3_000],
       message: `node ${id} never came online`,
@@ -207,6 +220,7 @@ test.afterAll(async () => {
   for (const n of cli) await n.dispose();
   for (const id of keyIds) await api(page, 'DELETE', org(`/api-keys/${id}`));
   for (const id of poolIds) await api(page, 'DELETE', org(`/pools/${id}`));
+  for (const id of modelIds) await api(page, 'DELETE', org(`/models/${id}`));
   await page.context().close();
 });
 
@@ -637,6 +651,466 @@ test('mixed devices: a browser tab and a command-line node share one pool', asyn
     .toBe(true);
   await webNode.stop();
   await cliNode.kill();
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// What the customer's integration relies on
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Concurrent requests, so both devices are busy at once. */
+const burst = (key: string, n: number, extra: object = {}) =>
+  Promise.all(Array.from({ length: n }, () => ask(key, { max_tokens: 24, ...extra })));
+
+test('every balancing choice reaches both devices', async () => {
+  await Promise.all([online(n1.nodeId), online(n2.nodeId)]);
+  await Promise.all([loaded(n1.nodeId), loaded(n2.nodeId)]);
+  await serving();
+  for (const balancingType of ['least_in_flight', 'random'] as const) {
+    expect(
+      (await api(page, 'PATCH', org(`/pools/${poolId}`), { balancingType })).status,
+      balancingType,
+    ).toBe(200);
+    const base = [await served(n1.nodeId), await served(n2.nodeId)];
+    // Busy devices are what "least in flight" compares: send them in bursts. "Random" needs only many requests.
+    for (let round = 0; round < 3; round++) {
+      const replies = await burst(apiKey, 8);
+      for (const r of replies) expect([200, 429, 503], balancingType).toContain(r.status);
+    }
+    await expect
+      .poll(
+        async () =>
+          (await served(n1.nodeId)) - base[0]! > 0 && (await served(n2.nodeId)) - base[1]! > 0,
+        {
+          timeout: 4 * 60_000,
+          intervals: [10_000],
+          message: `${balancingType}: one device took nothing`,
+        },
+      )
+      .toBe(true);
+  }
+  expect(
+    (await api(page, 'PATCH', org(`/pools/${poolId}`), { balancingType: 'weighted_p2c' })).status,
+  ).toBe(200);
+});
+
+test('a client that hangs up mid-answer frees the device', async () => {
+  const inFlight = async () =>
+    ((await nodeOf(n1.nodeId)).live?.inFlight ?? 0) +
+    ((await nodeOf(n2.nodeId)).live?.inFlight ?? 0);
+  await serving();
+  await expect.poll(inFlight, { timeout: 60_000, intervals: [2_000] }).toBe(0);
+  const controller = new AbortController();
+  const res = await fetch(`${baseUrl()}/v1/chat/completions`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+    body: JSON.stringify(chat({ stream: true, max_tokens: 1000 })),
+    signal: controller.signal,
+  });
+  expect(res.status).toBe(200);
+  const reader = res.body!.getReader();
+  await reader.read(); // the first piece is on its way
+  // The device reports it is busy with the answer...
+  await expect
+    .poll(inFlight, {
+      timeout: 30_000,
+      intervals: [1_000],
+      message: 'the answer never showed as running',
+    })
+    .toBeGreaterThan(0);
+  // ...the client leaves...
+  controller.abort();
+  await reader.cancel().catch(() => undefined);
+  // ...and the device is told to stop: it is free again long before 1000 tokens could have been generated.
+  await expect
+    .poll(inFlight, { timeout: 30_000, intervals: [1_000], message: 'the device kept generating' })
+    .toBe(0);
+  expect((await ask()).status, 'and it serves the next one').toBe(200);
+});
+
+test('a short reply says it was cut, a conversation keeps its roles, the numbers add up', async () => {
+  await serving();
+  const cut = await gateway<{
+    choices: { finish_reason: string; message: { role: string; content: string } }[];
+    usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  }>(page, apiKey, 'POST', '/chat/completions', chat({ max_tokens: 3 }));
+  expect(cut.status).toBe(200);
+  expect(cut.body.choices[0]!.finish_reason).toBe('length');
+  expect(cut.body.choices[0]!.message.role).toBe('assistant');
+  const u = cut.body.usage;
+  expect(u.prompt_tokens).toBeGreaterThan(0);
+  expect(u.completion_tokens).toBeGreaterThan(0);
+  expect(u.completion_tokens).toBeLessThanOrEqual(4);
+  expect(u.total_tokens).toBe(u.prompt_tokens + u.completion_tokens);
+
+  // A system message, an earlier answer and non-ASCII text are all part of the conversation.
+  const convo = await ask(apiKey, {
+    max_tokens: 24,
+    messages: [
+      { role: 'system', content: 'You answer in one short sentence.' },
+      { role: 'user', content: 'Salut! Ce faci?' },
+      { role: 'assistant', content: 'Bine, mulțumesc.' },
+      { role: 'user', content: [{ type: 'text', text: 'Și tu, ce faci azi?' }] },
+    ],
+  });
+  expect(convo.status).toBe(200);
+
+  // A streamed answer: JSON pieces, an assistant role first, a finish reason last, then [DONE].
+  const res = await fetch(`${baseUrl()}/v1/chat/completions`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+    body: JSON.stringify(chat({ stream: true, max_tokens: 12 })),
+  });
+  const lines = (await res.text()).split('\n').filter((l) => l.startsWith('data: '));
+  expect(lines.at(-1)).toBe('data: [DONE]');
+  const chunks = lines.slice(0, -1).map(
+    (l) =>
+      JSON.parse(l.slice(6)) as {
+        choices: { delta: { role?: string; content?: string }; finish_reason: string | null }[];
+      },
+  );
+  expect(chunks[0]!.choices[0]!.delta.role).toBe('assistant');
+  expect(chunks.at(-1)!.choices[0]!.finish_reason).toBeTruthy();
+  expect(chunks.map((c) => c.choices[0]!.delta.content ?? '').join('').length).toBeGreaterThan(0);
+
+  // What was generated is on the organisation's usage (written in batches, so poll).
+  await expect
+    .poll(
+      async () =>
+        (await api<{ totals: { tokensOut: number } }>(page, 'GET', org('/usage'))).body.totals
+          .tokensOut,
+      { timeout: 3 * 60_000, intervals: [10_000] },
+    )
+    .toBeGreaterThanOrEqual(u.completion_tokens);
+});
+
+test('a prompt that cannot fit the device is refused with the numbers', async () => {
+  const pool = await newPool(`e2e-multi-ctx-${uniq()}`);
+  const key = await newKey([pool]);
+  const small = newCli();
+  await small.enroll(await code(pool));
+  await small.config('--context', '512');
+  await small.start();
+  await online(small.nodeId, 15 * 60_000, pool);
+  await expect
+    .poll(async () => (await nodeOf(small.nodeId)).live?.maxContextTokens ?? null, {
+      timeout: 10 * 60_000,
+      intervals: [3_000],
+      message: 'the device never loaded with its small window',
+    })
+    .toBe(512);
+  await expect
+    .poll(async () => (await ask(key.secret)).status, { timeout: 5 * 60_000, intervals: [3_000] })
+    .toBe(200);
+
+  const words = (n: number) => 'word '.repeat(n); // 5 characters ≈ 1.25 tokens
+  const fits = await ask(key.secret, {
+    max_tokens: 16,
+    messages: [{ role: 'user', content: words(320) }], // 1600 chars ≈ 400 tokens
+  });
+  expect(fits.status, JSON.stringify(fits.body)).toBe(200);
+
+  const long = await ask(key.secret, {
+    max_tokens: 16,
+    messages: [{ role: 'user', content: words(480) }], // 2400 chars ≈ 600 tokens
+  });
+  expect(long.status).toBe(400);
+  expect(long.body.error.code).toBe('context_length_exceeded');
+  expect(long.body.error.message).toContain('512');
+
+  const greedy = await ask(key.secret, { max_tokens: 4096 });
+  expect(greedy.status).toBe(400);
+  expect(greedy.body.error.code).toBe('context_length_exceeded');
+  // Said in Romanian when asked in Romanian, same code.
+  const ro = await gateway<OpenAIError>(
+    page,
+    key.secret,
+    'POST',
+    '/chat/completions',
+    chat({ max_tokens: 4096 }),
+    { 'accept-language': 'ro' },
+  );
+  expect(ro.body.error.code).toBe('context_length_exceeded');
+  expect(ro.body.error.message).not.toBe(greedy.body.error.message);
+  // The device is idle (its last report may still show the answer of a moment ago, so wait for the next one) and
+  // still serves; the refusals above came back at once, from the gateway, without a device being asked.
+  await expect
+    .poll(async () => (await nodeOf(small.nodeId)).live?.inFlight ?? 0, {
+      timeout: 60_000,
+      intervals: [2_000],
+      message: 'the device never reported itself idle',
+    })
+    .toBe(0);
+  expect((await ask(key.secret)).status).toBe(200);
+  await small.kill();
+});
+
+test('embeddings on a real device: sizes, encodings, tasks, order, meaning', async () => {
+  test.setTimeout(40 * 60_000);
+  const pool = await newPool(`e2e-multi-emb-${uniq()}`, {}, embedModel.id);
+  const key = await newKey([pool]);
+  const node = newCli();
+  await node.enroll(await code(pool));
+  await node.start();
+  await online(node.nodeId, 15 * 60_000, pool);
+
+  type Emb = { object: string; index: number; embedding: number[] | string };
+  const embed = (body: object) =>
+    gateway<{ data: Emb[]; usage: { prompt_tokens: number }; error?: unknown }>(
+      page,
+      key.secret,
+      'POST',
+      '/embeddings',
+      { model: EMBEDDING_MODEL.name, ...body },
+    );
+  await expect
+    .poll(async () => (await embed({ input: 'hello' })).status, {
+      timeout: 15 * 60_000,
+      intervals: [3_000],
+      message: 'the device never served embeddings',
+    })
+    .toBe(200);
+
+  const cat = 'The cat sat on the mat.';
+  const kitten = 'A kitten is resting on the rug.';
+  const mortgage = 'Quarterly mortgage interest rates rose again.';
+  const vec = (e: Emb) => e.embedding as number[];
+  const dot = (a: number[], b: number[]) => a.reduce((s, x, i) => s + x * b[i]!, 0);
+  const norm = (a: number[]) => Math.sqrt(dot(a, a));
+  const cos = (a: number[], b: number[]) => dot(a, b) / (norm(a) * norm(b));
+
+  // A batch comes back in the order it was sent, with the right size and a sensible meaning.
+  const batch = await embed({ input: [cat, kitten, mortgage] });
+  expect(batch.body.data.map((d) => d.index)).toEqual([0, 1, 2]);
+  expect(batch.body.data.every((d) => d.object === 'embedding')).toBe(true);
+  const [vCat, vKitten, vMortgage] = batch.body.data.map(vec) as [number[], number[], number[]];
+  const full = vCat.length;
+  expect(full).toBeGreaterThan(100);
+  expect(vKitten.length).toBe(full);
+  expect(cos(vCat, vKitten), 'a cat is closer to a kitten than to a mortgage').toBeGreaterThan(
+    cos(vCat, vMortgage),
+  );
+  expect(batch.body.usage.prompt_tokens).toBeGreaterThan(0);
+
+  // The same text alone gives (nearly) the same vector as inside a batch.
+  const alone = vec((await embed({ input: cat })).body.data[0]!);
+  expect(cos(alone, vCat)).toBeGreaterThan(0.99);
+
+  // Fewer dimensions: that many numbers, cut and scaled back to length 1.
+  const short = vec((await embed({ input: cat, dimensions: 64 })).body.data[0]!);
+  expect(short).toHaveLength(64);
+  expect(norm(short)).toBeGreaterThan(0.98);
+  expect(norm(short)).toBeLessThan(1.02);
+
+  // The compact encoding is the same numbers as little-endian 32-bit floats.
+  const b64 = (await embed({ input: cat, encoding_format: 'base64' })).body.data[0]!.embedding;
+  expect(typeof b64).toBe('string');
+  const bytes = Buffer.from(b64 as string, 'base64');
+  expect(bytes.length).toBe(full * 4);
+  const decoded = Array.from({ length: full }, (_, i) => bytes.readFloatLE(i * 4));
+  expect(cos(decoded, alone)).toBeGreaterThan(0.999);
+
+  // More numbers than the model has is the client's mistake: a 400 that says so, not a failed device.
+  const tooMany = await embed({ input: cat, dimensions: full * 100 });
+  expect(tooMany.status).toBe(400);
+  expect(await statusOf(node.nodeId, pool)).toBe('online');
+
+  // The kind of text changes the vector: a search query and a document are not embedded the same way.
+  const asQuery = vec((await embed({ input: cat, task: 'query' })).body.data[0]!);
+  const asDocument = vec((await embed({ input: cat, task: 'document' })).body.data[0]!);
+  expect(asQuery).toHaveLength(full);
+  expect(cos(asQuery, asDocument)).toBeLessThan(0.9999);
+  await node.kill();
+});
+
+test("taking away a pool's model, then the pool, is felt by the device and the key at once", async () => {
+  const pool = await newPool(`e2e-multi-del-${uniq()}`);
+  const key = await newKey([pool]);
+  const node = newCli();
+  await join(node, pool);
+  await online(node.nodeId, 15 * 60_000, pool);
+  await expect
+    .poll(async () => (await ask(key.secret)).status, { timeout: 10 * 60_000, intervals: [3_000] })
+    .toBe(200);
+  const seed = node.seedHex;
+  const id = node.nodeId;
+  const signed = (path: string) =>
+    page.request.fetch(`${baseUrl()}${path}`, {
+      headers: { authorization: nodeAuthHeader(seed, id, 'GET', path) },
+    });
+
+  // The pool stops serving its model: the key no longer knows the name, the device is told it has nothing to serve.
+  expect((await api(page, 'DELETE', org(`/pools/${pool}/models/${chatModel.id}`))).status).toBe(
+    204,
+  );
+  await expect
+    .poll(async () => (await ask(key.secret)).status, { timeout: 30_000, intervals: [1_000] })
+    .toBe(404);
+  await expect
+    .poll(async () => ((await (await signed('/api/node/models')).json()) as unknown[]).length, {
+      timeout: 30_000,
+    })
+    .toBe(0);
+  expect(await statusOf(id, pool), 'the device stays enrolled and connected').toBe('online');
+
+  // Serving it again: the device fetches and loads the model again, and answers.
+  expect((await api(page, 'PUT', org(`/pools/${pool}/models/${chatModel.id}`))).status).toBe(204);
+  await expect
+    .poll(async () => (await ask(key.secret)).status, { timeout: 10 * 60_000, intervals: [3_000] })
+    .toBe(200);
+
+  // The pool goes away with its devices: the device is gone from the organisation, its signature is worthless and
+  // the key (which only knew that pool) has nothing left.
+  expect((await api(page, 'DELETE', org(`/pools/${pool}`))).status).toBe(204);
+  poolIds.splice(poolIds.indexOf(pool), 1);
+  expect((await api(page, 'GET', org(`/nodes/${id}`))).status).toBe(404);
+  await expect
+    .poll(async () => (await signed('/api/node/me')).status(), { timeout: 30_000 })
+    .toBe(401);
+  await expect
+    .poll(async () => (await ask(key.secret)).status, { timeout: 30_000, intervals: [1_000] })
+    .toBe(404);
+  await node.kill();
+});
+
+test("codes for many devices at once, admin overrides, and the node's own commands", async () => {
+  test.setTimeout(20 * 60_000);
+  // A tiny model: the devices download it (a few KB) but cannot run it, which is all this test needs.
+  const tiny = `e2e-multi-tiny-${uniq()}`;
+  const tinyId = await uploadTinyModel(page, orgId, tiny);
+  modelIds.push(tinyId);
+  const pool = await newPool(`e2e-multi-bulk-${uniq()}`, {}, tinyId);
+
+  // Three codes in one go, three devices.
+  const bulk = await api<{ items: { code: string }[] }>(
+    page,
+    'POST',
+    org(`/pools/${pool}/enrollments/bulk`),
+    { count: 3 },
+  );
+  expect(bulk.status).toBe(201);
+  const devices = [newCli(), newCli(), newCli()];
+  for (const [i, d] of devices.entries()) await d.enroll(bulk.body.items[i]!.code);
+  const listed = await poolNodes(page, orgId, pool);
+  expect(new Set(listed.map((n) => n.id)).size).toBe(3);
+  expect(listed.map((n) => n.id).sort()).toEqual(devices.map((d) => d.nodeId).sort());
+  expect(listed.every((n) => n.platform === 'cli')).toBe(true);
+  const fingerprints = await Promise.all(
+    devices.map(
+      async (d) =>
+        (await api<{ fingerprint: string }>(page, 'GET', org(`/nodes/${d.nodeId}`))).body
+          .fingerprint,
+    ),
+  );
+  expect(new Set(fingerprints).size, 'every device has a key of its own').toBe(3);
+  // Used codes are used up.
+  const again = newCli();
+  expect(await again.tryEnroll(bulk.body.items[0]!.code), 'a used bulk code').not.toBeNull();
+
+  // Admin overrides on a device (it is not running: nothing reloads): saved, shown, validated, cleared.
+  const dev = devices[0]!;
+  const patch = (body: object) => api<NodeFull>(page, 'PATCH', org(`/nodes/${dev.nodeId}`), body);
+  const saved = await patch({
+    name: 'rack 7',
+    keepScreenOn: true,
+    enableMtp: true,
+    computeBackend: 'gpu',
+    maxContextTokens: 4096,
+  });
+  expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+  expect(saved.body).toMatchObject({
+    name: 'rack 7',
+    keepScreenOn: true,
+    enableMtp: true,
+    computeBackend: 'gpu',
+    maxContextTokens: 4096,
+  });
+  expect((await nodeOf(dev.nodeId)) as unknown as { keepScreenOn: boolean }).toMatchObject({
+    keepScreenOn: true,
+  });
+  for (const [what, body] of [
+    ['a window below the minimum', { maxContextTokens: 511 }],
+    ['a window above the maximum', { maxContextTokens: 131_073 }],
+    ['a backend nobody has', { computeBackend: 'tpu' }],
+    ['nothing to change', {}],
+    ['un-approving', { approved: false }],
+    ['an empty name', { name: '' }],
+  ] as const) {
+    expect((await patch(body)).status, what).toBe(400);
+  }
+  expect((await patch({ maxContextTokens: 512 })).status).toBe(200);
+  expect((await patch({ maxContextTokens: 131_072 })).status).toBe(200);
+  const cleared = await patch({
+    keepScreenOn: null,
+    enableMtp: null,
+    computeBackend: null,
+    maxContextTokens: null,
+  });
+  expect(cleared.body).toMatchObject({
+    keepScreenOn: null,
+    enableMtp: null,
+    computeBackend: null,
+    maxContextTokens: null,
+  });
+  expect(cleared.body.name, 'clearing overrides keeps the name').toBe('rack 7');
+  // Another organisation's device is out of reach.
+  expect(
+    (
+      await api(page, 'PATCH', `/organisations/${crypto.randomUUID()}/nodes/${dev.nodeId}`, {
+        name: 'x',
+      })
+    ).status,
+  ).toBeGreaterThanOrEqual(403);
+
+  // The node's own commands. `status` says who it is, as the web app does.
+  const me = devices[1]!;
+  const meId = me.nodeId; // `leave` deletes the file this is read from
+  const status = await me.exec('status');
+  expect(status.code).toBe(0);
+  expect(status.out).toContain(me.nodeId);
+  expect(status.out).toContain('Pool:');
+  expect(status.out).toMatch(/Approved:\s+yes/);
+  expect(status.out).toContain('e2e'); // the organisation
+
+  // `config`: a folder for the models must be an absolute path; then the node keeps its models there.
+  expect((await me.exec('config', '--models-dir', 'relative/models')).code).not.toBe(0);
+  const modelsDir = mkdtempSync(pathJoin(tmpdir(), 'splitcortex-e2e-models-'));
+  const set = await me.exec('config', '--models-dir', modelsDir);
+  expect(set.code, set.out).toBe(0);
+  expect(set.out).toContain(modelsDir);
+  await me.start();
+  const file = pathJoin(modelsDir, `${tinyId}.litertlm`);
+  await expect
+    .poll(() => existsSync(pathJoin(modelsDir, `${tinyId}.ok`)) && statSync(file).size, {
+      timeout: 2 * 60_000,
+      intervals: [1_000],
+      message: 'the model never arrived in the chosen folder',
+    })
+    .toBe(4096);
+  expect(existsSync(pathJoin(me.home, 'data', 'models', `${tinyId}.litertlm`))).toBe(false);
+  await online(me.nodeId, 5 * 60_000, pool);
+  await me.kill();
+
+  // `update --check` talks to GitHub: it answers either way and never changes anything.
+  const update = await me.exec('update', '--check');
+  if (/rate limit/i.test(update.out)) {
+    // GitHub's anonymous limit (60 an hour per IP) is used up: the command said so clearly and exited with an error,
+    // which is all it can do. Not a verdict on the node.
+    expect(update.code).not.toBe(0);
+    test.info().annotations.push({
+      type: 'note',
+      description: 'update --check not verified: GitHub rate limit',
+    });
+  } else {
+    expect(update.code, update.out).toBe(0);
+    expect(update.out).toMatch(/Up to date|newer version|No release/);
+  }
+
+  // `leave` forgets the device here. The admin still has to remove it from the organisation.
+  const left = await me.exec('leave');
+  expect(left.code).toBe(0);
+  expect((await me.exec('status')).out).toContain('Not enrolled');
+  expect((await poolNodes(page, orgId, pool)).some((n) => n.id === meId)).toBe(true);
+  expect((await api(page, 'DELETE', org(`/nodes/${meId}`))).status).toBe(204);
 });
 
 test('the audit log has the device events, with no prompt in them', async () => {

@@ -1,6 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
-import { api, createOrg, deleteOrg, gateway, uniq, userPage, type OpenAIError } from '../lib/api';
-import { accessToken } from '../lib/auth';
+import {
+  api,
+  createOrg,
+  deleteOrg,
+  gateway,
+  uniq,
+  uploadTinyModel,
+  userPage,
+  type OpenAIError,
+} from '../lib/api';
 import { baseUrl, CHAT_MODEL, EMBEDDING_MODEL, optional, users } from '../lib/env';
 import { loadState } from '../lib/state';
 
@@ -64,38 +72,6 @@ async function newPool(page: Page, org: string, name: string): Promise<string> {
   const res = await api<{ id: string }>(page, 'POST', `/organisations/${org}/pools`, { name });
   expect(res.status).toBe(201);
   return res.body.id;
-}
-
-/** A tiny model through the upload API (no Hugging Face, no device): a pool can serve it, nothing can run it. */
-async function uploadTiny(page: Page, org: string, name: string, kind = 'chat'): Promise<string> {
-  const size = 4096;
-  const start = await api<{ model: { id: string } }>(
-    page,
-    'POST',
-    `/organisations/${org}/models/uploads`,
-    { name, fileName: `${name}.litertlm`, sizeBytes: size, kind },
-  );
-  expect(start.status, JSON.stringify(start.body)).toBe(201);
-  const id = start.body.model.id;
-  // 4 KiB is one part, far below the part size: the part is the whole file.
-  const part = await page.request.fetch(
-    `${baseUrl()}/api/organisations/${org}/models/${id}/parts/1`,
-    {
-      method: 'PUT',
-      data: Buffer.alloc(size, 7),
-      headers: {
-        authorization: `Bearer ${await accessToken(page)}`,
-        'content-type': 'application/octet-stream',
-      },
-    },
-  );
-  expect(part.status(), await part.text()).toBe(200);
-  const { etag } = (await part.json()) as { etag: string };
-  const done = await api(page, 'POST', `/organisations/${org}/models/${id}/complete`, {
-    parts: [{ partNumber: 1, etag }],
-  });
-  expect(done.status, JSON.stringify(done.body)).toBe(200);
-  return id;
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -252,7 +228,7 @@ test.describe('what a key can reach', () => {
       ['p3', 'embedding'],
     ] as const) {
       const name = `sec-m-${k}-${uniq()}`;
-      const id = await uploadTiny(a, orgA.id, name, kind);
+      const id = await uploadTinyModel(a, orgA.id, name, kind);
       modelOf[k] = name;
       const set = await api(a, 'PUT', A(`/pools/${poolsA[k]}/models/${id}`));
       expect(set.status, `serve ${k}`).toBe(204);
@@ -331,8 +307,8 @@ test.describe('what a key can reach', () => {
 
   test('the same model name in two organisations stays apart', async () => {
     const shared = `sec-same-${uniq()}`;
-    const idA = await uploadTiny(a, orgA.id, shared);
-    const idB = await uploadTiny(b, orgB.id, shared);
+    const idA = await uploadTinyModel(a, orgA.id, shared);
+    const idB = await uploadTinyModel(b, orgB.id, shared);
     expect((await api(a, 'PUT', A(`/pools/${poolsA.p1}/models/${idA}`))).status).toBe(204);
     const poolB = await newPool(b, orgB.id, 'sec-same');
     expect((await api(b, 'PUT', B(`/pools/${poolB}/models/${idB}`))).status).toBe(204);
@@ -477,7 +453,7 @@ test.describe('model life cycle', () => {
       .poll(async () => (await status())?.status, { timeout: 2 * 60_000, intervals: [2_000] })
       .toBe('failed');
     // Retrying what is not failed is refused.
-    const ok = await uploadTiny(a, orgA.id, `sec-ok-${uniq()}`);
+    const ok = await uploadTinyModel(a, orgA.id, `sec-ok-${uniq()}`);
     expect((await api(a, 'POST', A(`/models/${ok}/retry`))).status).toBe(409);
     expect((await api(a, 'DELETE', A(`/models/${add.body.id}`))).status).toBe(204);
   });
@@ -486,8 +462,8 @@ test.describe('model life cycle', () => {
     const pool = await newPool(a, orgA.id, `sec-swap-${uniq()}`);
     const first = `sec-first-${uniq()}`;
     const second = `sec-second-${uniq()}`;
-    const idFirst = await uploadTiny(a, orgA.id, first);
-    const idSecond = await uploadTiny(a, orgA.id, second, 'embedding');
+    const idFirst = await uploadTinyModel(a, orgA.id, first);
+    const idSecond = await uploadTinyModel(a, orgA.id, second, 'embedding');
     const key = await newKey(a, orgA.id, {
       name: `sec-swap-${uniq()}`,
       scope: 'pools',
