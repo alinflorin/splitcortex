@@ -35,4 +35,5 @@ One run (`workers: 4`, `E2E_WORKERS`) against one environment (`BASE_URL`, defau
 - `AddModelDialog` and confirm dialogs are `alertdialog`, the others `dialog`. A Fluent toast renders its text twice: use `.first()`. A closed dialog stays in the DOM for its exit animation: wait with `dialogsClosed(page)` (`lib/ui.ts`). Escape doesn't close the add-device dialog; click Close.
 - "Start" matches "Restart": use `exact: true`. The pool page has four comboboxes: find the model picker by placeholder.
 - `ensurePool` always checks the pool serves its model (a crashed run once left one without), and node specs assert it before enrolling.
+- `cliNodeBinary()` unpacks the release once into `.cache/<tag>/unpacked-<archive mtime>` and never again: unpacking over a running node's executable made it fail loading its model with a bare `No such file or directory (os error 2)`. The CLI node projects share that folder.
 - The web node starts by itself after joining; the driver presses Start only if it didn't. `actionTimeout` is set so a wrong locator fails in 30 s.

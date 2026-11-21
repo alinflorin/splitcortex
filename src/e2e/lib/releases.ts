@@ -1,5 +1,14 @@
 import { execFileSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { join, resolve } from 'node:path';
 import { arch, platform } from 'node:os';
 import { optional } from './env';
@@ -51,15 +60,34 @@ function cliTarget(): string {
   throw new Error(`No CLI node build for ${platform()} ${arch()}`);
 }
 
-/** Downloads (cached) and unpacks the CLI node release; returns the path of the binary. */
+/**
+ * Downloads (cached) and unpacks the CLI node release; returns the path of the binary.
+ *
+ * The archive is unpacked once into a folder named after it and never touched again: a running node keeps using its
+ * executable and the engine library next to it (it looks its own path up when it loads a model), and unpacking over
+ * them (tar replaces the files) made a running node fail with "No such file or directory". Several nodes, and the
+ * other node projects running at the same time, share the folder. The unpacking happens in a private folder that is
+ * moved into place, so nobody sees a half-unpacked one.
+ */
 export async function cliNodeBinary(): Promise<string> {
   const version = optional('E2E_CLI_VERSION');
   const tag = tagOf('cli-node', version);
   const target = cliTarget();
   const archive = await download(tag, (a) => a.name === `splitcortex-node-${target}.tar.gz`, tag);
-  const dir = join(CACHE, tag, 'unpacked');
-  mkdirSync(dir, { recursive: true });
-  execFileSync('tar', ['-xzf', archive, '-C', dir]);
+  const dir = join(CACHE, tag, `unpacked-${Math.floor(statSync(archive).mtimeMs)}`);
+  if (!existsSync(dir)) {
+    const tmp = `${dir}.tmp-${process.pid}-${Date.now()}`;
+    mkdirSync(tmp, { recursive: true });
+    try {
+      execFileSync('tar', ['-xzf', archive, '-C', tmp]);
+      renameSync(tmp, dir);
+    } catch (e) {
+      // Another process moved its copy into place first: use that one.
+      if (!existsSync(dir)) throw e;
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }
   const find = (d: string): string | null => {
     for (const e of readdirSync(d, { withFileTypes: true })) {
       const p = join(d, e.name);
