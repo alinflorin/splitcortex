@@ -1,9 +1,11 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   chmodSync,
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   renameSync,
   rmSync,
   statSync,
@@ -19,6 +21,16 @@ const CACHE = resolve('.cache'); // cached between CI runs, keyed on the release
 interface Asset {
   name: string;
   browser_download_url: string;
+  size: number;
+  /** `sha256:<hex>` as GitHub computes it for an uploaded asset. */
+  digest?: string | null;
+}
+
+/** Whether the cached file is the asset as published now (the rolling `*-latest` tags are re-uploaded under one name). */
+function isCurrent(file: string, asset: Asset): boolean {
+  if (!existsSync(file) || statSync(file).size !== asset.size) return false;
+  const want = asset.digest?.startsWith('sha256:') ? asset.digest.slice(7) : null;
+  return !want || createHash('sha256').update(readFileSync(file)).digest('hex') === want;
 }
 
 async function gh(url: string): Promise<Response> {
@@ -46,7 +58,7 @@ async function download(tag: string, pick: (a: Asset) => boolean, dir: string): 
       `release ${tag} has no matching asset (${rel.assets.map((a) => a.name).join(', ')})`,
     );
   const out = join(CACHE, dir, asset.name);
-  if (!existsSync(out)) {
+  if (!isCurrent(out, asset)) {
     mkdirSync(join(CACHE, dir), { recursive: true });
     writeFileSync(out, Buffer.from(await (await gh(asset.browser_download_url)).arrayBuffer()));
   }
