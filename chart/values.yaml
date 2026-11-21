@@ -260,6 +260,10 @@ garage:
     # SQLite, not LMDB: LMDB needs a huge virtual address space (default map 1 TiB), which a 32-bit OS or a 39-bit-VA arm64
     # kernel (Raspberry Pi) does not give. The engine cannot be switched on an existing meta volume: delete the meta PVC.
     dbEngine: sqlite
+    # 8 MiB blocks (= the upload part size): 8x fewer block files and SQLite inserts than the 1 MiB default. Only affects new objects.
+    blockSize: "8388608"
+    # Model files are already compressed: zstd only burns CPU. The subchart renders the value unquoted, hence the inner quotes.
+    compressionLevel: '"none"'
     rpc:
       secret:
         create: false
