@@ -55,6 +55,11 @@ export interface TourScene {
   dispose(): void;
 }
 
+function smooth(a: number, b: number, x: number) {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+
 // Small deterministic random, so the layout is the same on every visit.
 function rng(seed: number) {
   let s = seed;
@@ -186,23 +191,105 @@ export function createTourScene(
   hub.add(shell, core, ring1, ring2);
   scene.add(hub);
 
-  // the flight: high over the field, down into the aisle, up to the hub
-  const path = new CatmullRomCurve3([
-    new Vector3(7, 9, 12),
-    new Vector3(4, 5.5, -2),
-    new Vector3(0.8, 2.6, -16),
-    new Vector3(-0.6, 1.9, -34),
-    new Vector3(0.4, 2.4, -50),
-    new Vector3(0, 3.2, -58),
-  ]);
-  const look = new CatmullRomCurve3([
-    new Vector3(0, 1.5, -10),
-    new Vector3(0, 2, -22),
-    new Vector3(0, 2, -40),
-    new Vector3(0, 2.4, -58),
-    new Vector3(0, 3, HUB_Z),
-    new Vector3(0, 3, HUB_Z),
-  ]);
+  // chapter 1-2: a desk with forgotten devices, just before the aisle
+  const DESK_Z = 8;
+  const desk = new Group();
+  const deskMat = new MeshStandardMaterial({ roughness: 0.7 });
+  const deskTop = new Mesh(new BoxGeometry(3.6, 0.5, 1.8), deskMat);
+  deskTop.position.set(0, 0.25, DESK_Z);
+  const deskDevices = [
+    {
+      mat: new MeshBasicMaterial(),
+      size: [0.5, 0.9, 0.07],
+      pos: [-1.1, 0.95, DESK_Z],
+      rotX: -0.25,
+    },
+    { mat: new MeshBasicMaterial(), size: [0.9, 0.1, 0.6], pos: [0, 0.55, DESK_Z + 0.1], rotX: 0 },
+    {
+      mat: new MeshBasicMaterial(),
+      size: [1.1, 0.7, 0.05],
+      pos: [1.1, 0.95, DESK_Z - 0.2],
+      rotX: -0.2,
+    },
+  ] as const;
+  desk.add(deskTop);
+  for (const d of deskDevices) {
+    const mesh = new Mesh(new BoxGeometry(...d.size), d.mat);
+    mesh.position.set(...d.pos);
+    mesh.rotation.x = d.rotX;
+    desk.add(mesh);
+  }
+  const laptopBase = new Mesh(new BoxGeometry(1.1, 0.06, 0.75), deskDevices[2].mat);
+  laptopBase.position.set(1.1, 0.53, DESK_Z + 0.2);
+  desk.add(laptopBase);
+  const enrollMat = new MeshBasicMaterial({ transparent: true, depthWrite: false });
+  const enrollRing = new Mesh(new TorusGeometry(1, 0.025, 8, 96), enrollMat);
+  enrollRing.rotation.x = Math.PI / 2;
+  enrollRing.position.set(0, 0.6, DESK_Z);
+  desk.add(enrollRing);
+  scene.add(desk);
+  const deskBrand = [new Color(VIOLET), new Color(MINT), new Color(CYAN)];
+  const idle = new Color();
+
+  // chapter 4: an app, the gateway (the hub), one device, and a request travelling between them
+  const APP = new Vector3(9, 7, -8);
+  const GATE = new Vector3(0, 3, HUB_Z + 4.5);
+  const DEVICE = new Vector3(-3.0, 2.8, -8 * RACK_STEP - 4);
+  const appMat = new MeshBasicMaterial({ transparent: true });
+  const appPanel = new Mesh(new BoxGeometry(1.6, 1, 0.08), appMat);
+  appPanel.position.copy(APP);
+  scene.add(appPanel);
+  const legMat = new LineBasicMaterial({ transparent: true });
+  for (const [a, b] of [
+    [APP, GATE],
+    [GATE, DEVICE],
+    [DEVICE, APP],
+  ] as const) {
+    scene.add(new Line(new BufferGeometry().setFromPoints([a, b]), legMat));
+  }
+  const FLOW = 9; // 1 request + 8 streamed tokens
+  const flowMat = new MeshBasicMaterial({ transparent: true, depthWrite: false });
+  const flow = new InstancedMesh(new SphereGeometry(1, 10, 10), flowMat, FLOW);
+  flow.frustumCulled = false;
+  scene.add(flow);
+
+  // the flight: desk, enrolment, down the aisle, then a side view of the request path
+  const stops: [number[], number[]][] = [
+    [
+      [2.2, 2.0, 14],
+      [0, 0.9, DESK_Z],
+    ],
+    [
+      [1.2, 1.6, 12],
+      [0, 0.9, DESK_Z],
+    ],
+    [
+      [0, 4.6, 14],
+      [0, 0.8, 4],
+    ],
+    [
+      [0.6, 2.6, -6],
+      [0, 2, -30],
+    ],
+    [
+      [-0.5, 2.2, -32],
+      [0, 2, -50],
+    ],
+    [
+      [15, 9.5, -6],
+      [0, 3, -26],
+    ],
+    [
+      [13, 8, 12],
+      [0, 3.2, -14],
+    ],
+  ];
+  const path = new CatmullRomCurve3(
+    stops.map(([p]) => new Vector3(...(p as [number, number, number]))),
+  );
+  const look = new CatmullRomCurve3(
+    stops.map(([, l]) => new Vector3(...(l as [number, number, number]))),
+  );
 
   // bloom only in dark and not on low power; light mode stays crisp
   const composer = new EffectComposer(renderer);
@@ -238,14 +325,25 @@ export function createTourScene(
     hubShell.color.set(light ? DEEP_VIOLET : VIOLET);
     ringA.color.set(light ? DEEP_VIOLET : VIOLET);
     bloom.enabled = !light && !lowPower;
+    deskMat.color.set(light ? '#ffffff' : '#161c52');
+    idle.set(light ? '#a3a9c9' : '#3a4070');
+    enrollMat.color.set(light ? DEEP_TEAL : MINT);
+    enrollMat.blending = light ? NormalBlending : AdditiveBlending;
+    enrollMat.needsUpdate = true;
+    appMat.color.set(light ? DEEP_VIOLET : CYAN);
+    appMat.opacity = 0.9;
+    legMat.color.set(light ? DEEP_VIOLET : CYAN);
+    flowMat.blending = light ? NormalBlending : AdditiveBlending;
+    flowMat.color.set(light ? DEEP_TEAL : MINT);
+    flowMat.needsUpdate = true;
   }
   setTheme('dark');
 
   function render(time: number) {
     const t = time / 1000;
     // camera on the path, a little off by the pointer
-    path.getPointAt(Math.min(progress, 0.999), tmp);
-    look.getPointAt(Math.min(progress, 0.999), tmpLook);
+    path.getPoint(progress, tmp);
+    look.getPoint(progress, tmpLook);
     camera.position.set(tmp.x + pointer.x * 0.6, tmp.y - pointer.y * 0.35, tmp.z);
     camera.lookAt(tmpLook);
     camLight.position.copy(camera.position);
@@ -256,7 +354,48 @@ export function createTourScene(
     const beat = 1 + Math.sin(t * 2.2) * 0.06;
     core.scale.setScalar(beat);
 
-    const size = mode === 'light' ? 0.13 : 0.22;
+    // enrolment: the desk devices light up, a ring spreads out, the fleet wakes up
+    // the side view at the end sees the whole line, so the fog has to thin out
+    if (scene.fog instanceof Fog) {
+      scene.fog.near = 18 + 60 * smooth(0.6, 0.85, progress);
+      scene.fog.far = (mode === 'light' ? 70 : 62) + 90 * smooth(0.6, 0.85, progress);
+    }
+    const reveal = smooth(0.3, 0.42, progress);
+    deskDevices.forEach((d, n) => d.mat.color.lerpColors(idle, deskBrand[n] as Color, reveal));
+    const wave = smooth(0.28, 0.5, progress);
+    enrollRing.scale.setScalar(0.6 + wave * 7);
+    enrollMat.opacity = wave > 0 && wave < 1 ? (1 - wave) * 0.9 : 0;
+    deviceMat.color.setScalar(0.28 + 0.72 * reveal);
+    cableMat.opacity = (mode === 'light' ? 0.55 : 0.45) * reveal;
+
+    // request path
+    const vis = smooth(0.66, 0.76, progress);
+    appPanel.visible = vis > 0;
+    appMat.opacity = 0.9 * vis;
+    legMat.opacity = 0.45 * vis;
+    const ph = (t * 0.22) % 1;
+    const big = mode === 'light' ? 0.4 : 0.5;
+    const small = mode === 'light' ? 0.22 : 0.26;
+    const setFlow = (n: number, from: Vector3, to: Vector3, u: number, sz: number) => {
+      m.makeScale(sz * vis, sz * vis, sz * vis);
+      m.setPosition(tmp.lerpVectors(from, to, u));
+      flow.setMatrixAt(n, m);
+    };
+    const hide = (n: number) => {
+      m.makeScale(0, 0, 0);
+      flow.setMatrixAt(n, m);
+    };
+    if (ph < 0.4) setFlow(0, APP, GATE, ph / 0.4, big);
+    else if (ph < 0.6) setFlow(0, GATE, DEVICE, (ph - 0.4) / 0.2, big);
+    else hide(0);
+    for (let k = 0; k < FLOW - 1; k++) {
+      const u = (ph - 0.6) / 0.4 - k * 0.06;
+      if (ph >= 0.6 && u >= 0 && u <= 1) setFlow(k + 1, DEVICE, APP, u, small);
+      else hide(k + 1);
+    }
+    flow.instanceMatrix.needsUpdate = true;
+
+    const size = (mode === 'light' ? 0.13 : 0.22) * reveal;
     const p = new Vector3();
     for (let c = 0; c < cables.length; c++) {
       for (let k = 0; k < PULSES_PER_CABLE; k++) {

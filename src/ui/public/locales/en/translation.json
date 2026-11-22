@@ -158,20 +158,20 @@
       "scroll": "Scroll to fly in",
       "chapters": [
         {
-          "title": "A data centre made of small things",
-          "body": "Phones, Raspberry Pis and laptops you already own, racked up as one fleet."
+          "title": "Old devices in a drawer",
+          "body": "That phone, that Pi, that spare laptop. Compute you already paid for, doing nothing."
         },
         {
-          "title": "Every device is a node",
-          "body": "Each one connects out to the gateway with its own key. No open ports, no servers to rent."
+          "title": "Enrolled in seconds",
+          "body": "Type a short code or scan a QR. The device gets its own key and joins your pool."
         },
         {
-          "title": "Models live on the devices",
-          "body": "A pool replicates one model on every node, so any of them can answer."
+          "title": "One pool, one model",
+          "body": "Every device in the pool holds the same model, so any of them can answer."
         },
         {
-          "title": "One API on top",
-          "body": "Your app talks OpenAI-format HTTP to the gateway, which balances the load across the fleet."
+          "title": "Follow a request",
+          "body": "Your app calls the OpenAI-format API. The gateway checks the key, picks a healthy device, and the tokens stream back."
         }
       ]
     }

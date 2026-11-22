@@ -158,20 +158,20 @@
       "scroll": "Derulează ca să intri",
       "chapters": [
         {
-          "title": "Un centru de date din lucruri mici",
-          "body": "Telefoane, Raspberry Pi-uri și laptopuri pe care le ai deja, puse laolaltă într-o singură flotă."
+          "title": "Dispozitive vechi, uitate prin sertar",
+          "body": "Telefonul acela, Pi-ul acela, laptopul de rezervă. Putere de calcul deja plătită, care nu face nimic."
         },
         {
-          "title": "Fiecare dispozitiv e un nod",
-          "body": "Fiecare se conectează spre gateway cu propria cheie. Fără porturi deschise, fără servere de închiriat."
+          "title": "Înrolate în câteva secunde",
+          "body": "Scrii un cod scurt sau scanezi un QR. Dispozitivul își primește propria cheie și intră în pool-ul tău."
         },
         {
-          "title": "Modelele stau pe dispozitive",
-          "body": "Un pool replică un model pe fiecare nod, așa că oricare poate răspunde."
+          "title": "Un pool, un model",
+          "body": "Fiecare dispozitiv din pool ține același model, așa că oricare poate răspunde."
         },
         {
-          "title": "Un singur API deasupra",
-          "body": "Aplicația ta vorbește HTTP în format OpenAI cu gateway-ul, care distribuie sarcina în flotă."
+          "title": "Urmărește o cerere",
+          "body": "Aplicația ta apelează API-ul în format OpenAI. Gateway-ul verifică cheia, alege un dispozitiv sănătos, iar tokenii se întorc în streaming."
         }
       ]
     }
