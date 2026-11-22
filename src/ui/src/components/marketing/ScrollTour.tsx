@@ -9,10 +9,9 @@ const useStyles = makeStyles({
   outer: { position: 'relative', height: '480vh', marginTop: '56px' },
   stage: {
     position: 'sticky',
-    top: '8px',
-    height: 'calc(100dvh - 72px)',
+    top: 0,
+    height: 'calc(100dvh - 64px)',
     overflow: 'hidden',
-    borderRadius: '28px',
     backgroundColor: '#0a0e2b',
     color: '#fff',
   },
@@ -29,7 +28,7 @@ const useStyles = makeStyles({
   },
   chapter: {
     position: 'absolute',
-    left: '56px',
+    left: 'max(56px, calc((100% - 1280px) / 2 + 40px))',
     bottom: '18%',
     maxWidth: '440px',
     display: 'flex',

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { makeStyles, tokens } from '@fluentui/react-components';
+import { makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import { matchPath, Outlet, useLocation } from 'react-router-dom';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import { useStoredBoolean } from '../../lib/useStoredBoolean';
@@ -19,9 +19,11 @@ const useStyles = makeStyles({
   body: { display: 'flex', flexGrow: 1, minHeight: 0 },
   scroll: { flexGrow: 1, minWidth: 0, overflowY: 'auto' },
   // One content width for every page; pages fill it (forms keep their own narrower column).
+  // Home is full width: it lays out its own column so the tour can span the screen.
+  mainFull: { maxWidth: 'none', padding: 0 },
   main: {
     width: '100%',
-    maxWidth: '1120px',
+    maxWidth: '1280px',
     margin: '0 auto',
     boxSizing: 'border-box',
     padding: `${tokens.spacingVerticalXXL} ${tokens.spacingHorizontalXXXL} ${tokens.spacingVerticalXXXL}`,
@@ -58,7 +60,7 @@ export function AppShell() {
         )}
         {!isDesktop && <Sidebar open={drawerOpen} overlay onOpenChange={setDrawerOpen} />}
         <div className={styles.scroll}>
-          <main className={styles.main}>
+          <main className={mergeClasses(styles.main, pathname === '/' && styles.mainFull)}>
             <Breadcrumbs />
             <div key={pathname} className="sc-enter">
               <Outlet />

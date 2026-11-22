@@ -1,4 +1,4 @@
-import { Button, Text, makeStyles, tokens } from '@fluentui/react-components';
+import { Button, Text, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import {
   ArrowRight20Regular,
   BrainCircuit24Regular,
@@ -32,6 +32,17 @@ import { buildKeyExamples, getGatewayBaseUrl } from '../lib/gateway';
 const ScrollTour = lazy(() => import('../components/marketing/ScrollTour'));
 
 const useStyles = makeStyles({
+  // The page is full width (see AppShell); text and cards stay in a centred column.
+  column: {
+    width: '100%',
+    maxWidth: '1280px',
+    margin: '0 auto',
+    boxSizing: 'border-box',
+    padding: `0 ${tokens.spacingHorizontalXXXL}`,
+    '@media (max-width: 599px)': { padding: `0 ${tokens.spacingHorizontalL}` },
+  },
+  columnFirst: { paddingTop: tokens.spacingVerticalXXL },
+  columnLast: { paddingBottom: tokens.spacingVerticalXXXL },
   hero: {
     position: 'relative',
     display: 'grid',
@@ -141,160 +152,166 @@ export function Home() {
 
   return (
     <>
-      <section className={styles.hero}>
-        <div className={styles.heroText}>
-          {user && <Text className={styles.welcome}>{t('home.welcome', { name: user.name })}</Text>}
-          <span className={styles.pill}>
-            <span className={styles.pillDot} />
-            {t('home.hero.badge')}
-          </span>
-          <h1 className={styles.h1}>
-            {t('home.hero.titleA')} <GradientText>{t('home.hero.titleB')}</GradientText>
-          </h1>
-          <Text className={styles.lead}>{t('home.subtitle')}</Text>
-          <div className={styles.actions}>
-            {signedIn ? (
-              <Button
-                appearance="primary"
-                size="large"
-                icon={<ArrowRight20Regular />}
-                iconPosition="after"
-                onClick={() => void navigate('/organisations')}
-              >
-                {t('home.hero.ctaOrgs')}
-              </Button>
-            ) : (
-              <Button
-                appearance="primary"
-                size="large"
-                icon={<ArrowRight20Regular />}
-                iconPosition="after"
-                onClick={signIn}
-              >
-                {t('home.hero.ctaStart')}
-              </Button>
+      <div className={mergeClasses(styles.column, styles.columnFirst)}>
+        <section className={styles.hero}>
+          <div className={styles.heroText}>
+            {user && (
+              <Text className={styles.welcome}>{t('home.welcome', { name: user.name })}</Text>
             )}
-            <Button as="a" href="#how" size="large">
-              {t('home.hero.ctaHow')}
-            </Button>
+            <span className={styles.pill}>
+              <span className={styles.pillDot} />
+              {t('home.hero.badge')}
+            </span>
+            <h1 className={styles.h1}>
+              {t('home.hero.titleA')} <GradientText>{t('home.hero.titleB')}</GradientText>
+            </h1>
+            <Text className={styles.lead}>{t('home.subtitle')}</Text>
+            <div className={styles.actions}>
+              {signedIn ? (
+                <Button
+                  appearance="primary"
+                  size="large"
+                  icon={<ArrowRight20Regular />}
+                  iconPosition="after"
+                  onClick={() => void navigate('/organisations')}
+                >
+                  {t('home.hero.ctaOrgs')}
+                </Button>
+              ) : (
+                <Button
+                  appearance="primary"
+                  size="large"
+                  icon={<ArrowRight20Regular />}
+                  iconPosition="after"
+                  onClick={signIn}
+                >
+                  {t('home.hero.ctaStart')}
+                </Button>
+              )}
+              <Button as="a" href="#how" size="large">
+                {t('home.hero.ctaHow')}
+              </Button>
+            </div>
           </div>
-        </div>
-        <NetworkDiagram />
-      </section>
+          <NetworkDiagram />
+        </section>
 
-      <div className={styles.trust}>
-        <Chips items={t('home.trust', { returnObjects: true }) as string[]} />
+        <div className={styles.trust}>
+          <Chips items={t('home.trust', { returnObjects: true }) as string[]} />
+        </div>
       </div>
 
       <Suspense fallback={null}>
         <ScrollTour />
       </Suspense>
 
-      <Section
-        id="how"
-        eyebrow={t('home.how.eyebrow')}
-        title={t('home.how.title')}
-        subtitle={t('home.how.subtitle')}
-      >
-        <div className={styles.steps}>
-          {(['one', 'two', 'three'] as const).map((k, i) => (
-            <div key={k} className={styles.step}>
-              <span className={styles.stepNum}>
-                <GradientText>{`0${i + 1}`}</GradientText>
-              </span>
-              <Text weight="semibold" size={500}>
-                {t(`home.how.steps.${k}.title`)}
-              </Text>
-              <Text className={styles.muted}>{t(`home.how.steps.${k}.body`)}</Text>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        eyebrow={t('home.features.eyebrow')}
-        title={t('home.features.title')}
-        subtitle={t('home.features.subtitle')}
-      >
-        <CardGrid>
-          {features.map(({ key, icon }) => (
-            <FeatureCard
-              key={key}
-              icon={icon}
-              title={t(`home.features.items.${key}.title`)}
-              body={t(`home.features.items.${key}.body`)}
-            />
-          ))}
-        </CardGrid>
-      </Section>
-
-      <Section title={t('home.code.title')} subtitle={t('home.code.body')}>
-        <div className={styles.split}>
-          <CodeBlock code={example} />
-          <div className={styles.splitText}>
-            <Text weight="semibold" size={500}>
-              {t('playground.homeTitle')}
-            </Text>
-            <Text className={styles.muted}>{t('playground.homeBody')}</Text>
-            {signedIn ? (
-              <Button
-                className={styles.play}
-                as="a"
-                href="/playground"
-                target="_blank"
-                rel="noopener"
-                appearance="primary"
-                icon={<Chat24Regular />}
-              >
-                {t('playground.open')}
-              </Button>
-            ) : (
-              <Button
-                className={styles.play}
-                appearance="primary"
-                icon={<Chat24Regular />}
-                onClick={signIn}
-              >
-                {t('playground.open')}
-              </Button>
-            )}
+      <div className={mergeClasses(styles.column, styles.columnLast)}>
+        <Section
+          id="how"
+          eyebrow={t('home.how.eyebrow')}
+          title={t('home.how.title')}
+          subtitle={t('home.how.subtitle')}
+        >
+          <div className={styles.steps}>
+            {(['one', 'two', 'three'] as const).map((k, i) => (
+              <div key={k} className={styles.step}>
+                <span className={styles.stepNum}>
+                  <GradientText>{`0${i + 1}`}</GradientText>
+                </span>
+                <Text weight="semibold" size={500}>
+                  {t(`home.how.steps.${k}.title`)}
+                </Text>
+                <Text className={styles.muted}>{t(`home.how.steps.${k}.body`)}</Text>
+              </div>
+            ))}
           </div>
-        </div>
-      </Section>
+        </Section>
 
-      <Section
-        id="run"
-        eyebrow={t('home.run.eyebrow')}
-        title={t('home.run.title')}
-        subtitle={t('home.run.subtitle')}
-      >
-        <AppDownloads bare />
-      </Section>
+        <Section
+          eyebrow={t('home.features.eyebrow')}
+          title={t('home.features.title')}
+          subtitle={t('home.features.subtitle')}
+        >
+          <CardGrid>
+            {features.map(({ key, icon }) => (
+              <FeatureCard
+                key={key}
+                icon={icon}
+                title={t(`home.features.items.${key}.title`)}
+                body={t(`home.features.items.${key}.body`)}
+              />
+            ))}
+          </CardGrid>
+        </Section>
 
-      <Section title={t('endpoints.title')} subtitle={t('endpoints.body')}>
-        <Endpoints bare />
-      </Section>
+        <Section title={t('home.code.title')} subtitle={t('home.code.body')}>
+          <div className={styles.split}>
+            <CodeBlock code={example} />
+            <div className={styles.splitText}>
+              <Text weight="semibold" size={500}>
+                {t('playground.homeTitle')}
+              </Text>
+              <Text className={styles.muted}>{t('playground.homeBody')}</Text>
+              {signedIn ? (
+                <Button
+                  className={styles.play}
+                  as="a"
+                  href="/playground"
+                  target="_blank"
+                  rel="noopener"
+                  appearance="primary"
+                  icon={<Chat24Regular />}
+                >
+                  {t('playground.open')}
+                </Button>
+              ) : (
+                <Button
+                  className={styles.play}
+                  appearance="primary"
+                  icon={<Chat24Regular />}
+                  onClick={signIn}
+                >
+                  {t('playground.open')}
+                </Button>
+              )}
+            </div>
+          </div>
+        </Section>
 
-      <CtaBand title={t('home.cta.title')} body={t('home.cta.body')}>
-        {signedIn ? (
-          <Button
-            size="large"
-            appearance="secondary"
-            onClick={() => void navigate('/organisations')}
-          >
-            {t('home.hero.ctaOrgs')}
-          </Button>
-        ) : (
-          <Button size="large" appearance="secondary" onClick={signIn}>
-            {t('home.hero.ctaStart')}
-          </Button>
-        )}
-        <Link to="/about">
-          <Button size="large" appearance="transparent" style={{ color: '#fff' }}>
-            {t('home.cta.about')}
-          </Button>
-        </Link>
-      </CtaBand>
+        <Section
+          id="run"
+          eyebrow={t('home.run.eyebrow')}
+          title={t('home.run.title')}
+          subtitle={t('home.run.subtitle')}
+        >
+          <AppDownloads bare />
+        </Section>
+
+        <Section title={t('endpoints.title')} subtitle={t('endpoints.body')}>
+          <Endpoints bare />
+        </Section>
+
+        <CtaBand title={t('home.cta.title')} body={t('home.cta.body')}>
+          {signedIn ? (
+            <Button
+              size="large"
+              appearance="secondary"
+              onClick={() => void navigate('/organisations')}
+            >
+              {t('home.hero.ctaOrgs')}
+            </Button>
+          ) : (
+            <Button size="large" appearance="secondary" onClick={signIn}>
+              {t('home.hero.ctaStart')}
+            </Button>
+          )}
+          <Link to="/about">
+            <Button size="large" appearance="transparent" style={{ color: '#fff' }}>
+              {t('home.cta.about')}
+            </Button>
+          </Link>
+        </CtaBand>
+      </div>
     </>
   );
 }
