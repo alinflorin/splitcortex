@@ -10,11 +10,12 @@ import {
   type ReactNode,
 } from 'react';
 import { useColorScheme } from 'react-native';
+import { DARK_BRAND_TOKENS, LIGHT_BRAND_TOKENS } from './brand';
 
 // Same Fluent tokens as the web app. Inter is bundled (no CDN); React Native has no variable
 // fonts, so each weight is its own family (see fonts.ts).
-export const lightTheme: Theme = teamsLightTheme;
-export const darkTheme: Theme = teamsDarkTheme;
+export const lightTheme: Theme = { ...teamsLightTheme, ...LIGHT_BRAND_TOKENS };
+export const darkTheme: Theme = { ...teamsDarkTheme, ...DARK_BRAND_TOKENS };
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ThemeMode = 'light' | 'dark';

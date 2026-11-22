@@ -38,13 +38,13 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { BRAND } from '../../theme/brand';
 
 /** Brand colours from the logo: violet, mint, cyan. */
-const VIOLET = '#6c7bf2';
-const MINT = '#2ce6c5';
-const CYAN = '#14b8d4';
-const DEEP_VIOLET = '#4a5be6';
-const DEEP_TEAL = '#0e9f8a';
+const VIOLET: string = BRAND.violetLight;
+const MINT: string = BRAND.mint;
+const CYAN: string = BRAND.cyan;
+const DEEP_VIOLET: string = BRAND.violet;
 
 const RACKS_PER_SIDE = 18;
 const RACK_STEP = 3.2;
@@ -539,17 +539,17 @@ export function createTourScene(
     cableMat.color.set(light ? DEEP_VIOLET : MINT);
     cableMat.opacity = light ? 0.55 : 0.45;
     pulseMat.blending = light ? NormalBlending : AdditiveBlending;
-    pulseMat.color.set(light ? DEEP_TEAL : MINT);
+    pulseMat.color.set(light ? CYAN : MINT);
     pulseMat.needsUpdate = true;
     glowMat.color.set(light ? VIOLET : MINT);
     glowMat.opacity = light ? 0.12 : 0.07;
-    leftMat.color.set(light ? DEEP_VIOLET : '#5566e8');
-    rightMat.color.set(light ? DEEP_TEAL : '#25c9ae');
+    leftMat.color.set(light ? DEEP_VIOLET : VIOLET);
+    rightMat.color.set(light ? CYAN : MINT);
     ringA.color.set(light ? DEEP_VIOLET : VIOLET);
     bloom.enabled = !light && !lowPower;
     deskMat.color.set(light ? '#ffffff' : '#161c52');
     idle.set(light ? '#a3a9c9' : '#3a4070');
-    enrollMat.color.set(light ? DEEP_TEAL : MINT);
+    enrollMat.color.set(light ? CYAN : MINT);
     enrollMat.blending = light ? NormalBlending : AdditiveBlending;
     enrollMat.needsUpdate = true;
     appMat.color.set(light ? '#dfe4ff' : '#18234d');
@@ -557,7 +557,7 @@ export function createTourScene(
     bodyMat.color.set(light ? '#8d96b5' : '#262c52');
     legMat.color.set(light ? DEEP_VIOLET : CYAN);
     flowMat.blending = light ? NormalBlending : AdditiveBlending;
-    flowMat.color.set(light ? DEEP_TEAL : MINT);
+    flowMat.color.set(light ? CYAN : MINT);
     flowMat.needsUpdate = true;
   }
   setTheme('dark');
@@ -612,7 +612,7 @@ export function createTourScene(
     phoneScreenMat.opacity = wake;
     laptopScreenMat.opacity = wake;
     piLedMat.color.lerpColors(idle, mintColor, wake);
-    shieldMat.color.set(mode === 'light' ? DEEP_TEAL : MINT);
+    shieldMat.color.set(mode === 'light' ? CYAN : MINT);
     shieldMat.opacity = smooth(0.27, 0.32, progress) * (1 - smooth(0.4, 0.46, progress)) * 0.9;
     const wave = smooth(0.22, 0.4, progress);
     enrollRing.scale.setScalar(0.6 + wave * 7);

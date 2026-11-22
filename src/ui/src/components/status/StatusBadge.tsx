@@ -10,9 +10,9 @@ const NODE_COLOR: Record<NodeStatus, BadgeProps['color']> = {
 };
 const MODEL_COLOR: Record<ModelStatus, BadgeProps['color']> = {
   ready: 'success',
-  pending: 'informative',
-  downloading: 'informative',
-  uploading: 'informative',
+  pending: 'brand',
+  downloading: 'brand',
+  uploading: 'brand',
   failed: 'danger',
 };
 

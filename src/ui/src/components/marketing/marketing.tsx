@@ -2,10 +2,11 @@ import { Button, Text, makeStyles, mergeClasses, tokens } from '@fluentui/react-
 import { Copy20Regular } from '@fluentui/react-icons';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BRAND } from '../../theme/brand';
 import { useToast } from '../feedback/useToast';
 
-export const BRAND_FROM = '#4f5df0';
-export const BRAND_TO = '#14b8d4';
+export const BRAND_FROM: string = BRAND.violet;
+export const BRAND_TO: string = BRAND.mint;
 
 const useStyles = makeStyles({
   section: {

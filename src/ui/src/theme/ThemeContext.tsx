@@ -2,12 +2,13 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { FluentProvider, teamsDarkTheme, teamsLightTheme } from '@fluentui/react-components';
 import { setSharedCookie } from '../lib/sharedCookie';
 import { useMediaQuery } from '../lib/useMediaQuery';
+import { DARK_BRAND_TOKENS, LIGHT_BRAND_TOKENS } from './brand';
 
 // Same typeface on every OS: Inter is self-hosted (src/fonts.css); the rest is a system fallback.
 const FONT_FAMILY =
   "'Inter Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif";
-const lightTheme = { ...teamsLightTheme, fontFamilyBase: FONT_FAMILY };
-const darkTheme = { ...teamsDarkTheme, fontFamilyBase: FONT_FAMILY };
+const lightTheme = { ...teamsLightTheme, ...LIGHT_BRAND_TOKENS, fontFamilyBase: FONT_FAMILY };
+const darkTheme = { ...teamsDarkTheme, ...DARK_BRAND_TOKENS, fontFamilyBase: FONT_FAMILY };
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ThemeMode = 'light' | 'dark';

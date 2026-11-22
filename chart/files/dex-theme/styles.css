@@ -1,7 +1,7 @@
 /* SplitCortex theme for Dex: light, airy, hairline borders (matches the web app). Loaded after Dex's main.css. */
 :root {
-  --sc-brand: #4f5df0;
-  --sc-brand-hover: #3f4ce0;
+  --sc-brand: #4a5be6;
+  --sc-brand-hover: #3a4bd4;
   --sc-text: #1a1d2e;
   --sc-muted: #5b6075;
   --sc-border: #e3e5ee;

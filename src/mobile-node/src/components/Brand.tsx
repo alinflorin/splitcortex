@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native';
 import { fontFamilyForWeight } from '../theme/fonts';
+import { BRAND } from '../theme/brand';
 import { useTheme } from '../theme/ThemeContext';
 import { Logo } from './Logo';
 
@@ -18,8 +19,8 @@ export function Brand() {
           fontSize: parseFloat(t.fontSizeBase400),
         }}
       >
-        <Text style={{ color: '#14b8d4' }}>split</Text>
-        <Text style={{ color: '#4f5df0' }}>cortex</Text>
+        <Text style={{ color: BRAND.mint }}>split</Text>
+        <Text style={{ color: BRAND.violet }}>cortex</Text>
       </Text>
     </View>
   );

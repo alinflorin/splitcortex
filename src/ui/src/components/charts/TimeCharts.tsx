@@ -2,6 +2,7 @@ import { Body1, Spinner, makeStyles, tokens } from '@fluentui/react-components';
 import { Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ItemCard } from '../cards/cards';
+import { BRAND } from '../../theme/brand';
 
 // The chart library (d3 and friends) is large: it loads when the first chart is drawn.
 /** Plot height plus room for the legend. */
@@ -23,12 +24,14 @@ export interface ChartSeries {
   color?: string;
 }
 
-/** Palette from the Fluent tokens (they follow light/dark), in a fixed order so a series keeps its colour. */
-export const SERIES_COLORS = [
-  tokens.colorBrandForeground1,
-  tokens.colorPaletteBerryForeground2,
-  tokens.colorPaletteGreenForeground2,
+/** The logo's colours first (violet, mint, cyan, light violet), then Fluent tokens; fixed order so a series keeps its colour. */
+export const SERIES_COLORS: string[] = [
+  BRAND.violet,
+  BRAND.mint,
+  BRAND.cyan,
+  BRAND.violetLight,
   tokens.colorPaletteMarigoldForeground2,
+  tokens.colorPaletteBerryForeground2,
   tokens.colorPaletteRedForeground2,
 ];
 

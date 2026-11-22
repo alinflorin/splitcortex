@@ -1,4 +1,4 @@
-//! What the node tells the platform about this computer, telemetry and sleep prevention.
+//! What the CLI node tells the platform about this computer, telemetry and sleep prevention.
 
 use crate::enroll::DeviceInfo;
 use std::sync::Mutex;

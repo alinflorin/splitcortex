@@ -16,7 +16,7 @@ import { useAuth } from 'react-oidc-context';
 import { AppDownloads } from '../components/AppDownloads';
 import { Endpoints } from '../components/Endpoints';
 import {
-  BRAND_FROM,
+  BRAND_TO,
   CardGrid,
   Chips,
   CodeBlock,
@@ -73,7 +73,7 @@ const useStyles = makeStyles({
     width: '8px',
     height: '8px',
     borderRadius: tokens.borderRadiusCircular,
-    backgroundColor: BRAND_FROM,
+    backgroundColor: BRAND_TO,
   },
   h1: {
     margin: 0,

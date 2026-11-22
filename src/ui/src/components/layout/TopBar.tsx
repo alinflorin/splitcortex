@@ -9,6 +9,7 @@ import {
 import { Navigation24Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink } from 'react-router-dom';
+import { BRAND } from '../../theme/brand';
 import { GLOBAL_ITEMS } from './globalNav';
 import { UserMenu } from './UserMenu';
 
@@ -40,8 +41,19 @@ const useStyles = makeStyles({
     fontWeight: tokens.fontWeightRegular,
     textTransform: 'lowercase',
   },
-  brandSplit: { color: '#14b8d4' },
-  brandCortex: { color: '#4f5df0' },
+  // The wordmark carries the logo's two gradients: mint → cyan, violet.
+  brandSplit: {
+    backgroundImage: `linear-gradient(180deg, ${BRAND.mint}, ${BRAND.cyan})`,
+    backgroundClip: 'text',
+    WebkitBackgroundClip: 'text',
+    color: 'transparent',
+  },
+  brandCortex: {
+    backgroundImage: `linear-gradient(180deg, ${BRAND.violetLight}, ${BRAND.violet})`,
+    backgroundClip: 'text',
+    WebkitBackgroundClip: 'text',
+    color: 'transparent',
+  },
   links: {
     display: 'flex',
     gap: tokens.spacingHorizontalXS,

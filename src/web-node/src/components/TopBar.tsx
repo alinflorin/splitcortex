@@ -10,6 +10,7 @@ import {
 import { Settings24Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useChartVersion } from '../lib/useChartVersion';
+import { BRAND } from '../theme/brand';
 import { LanguageSubmenu, ThemeSubmenu } from './PreferencesMenu';
 
 const useStyles = makeStyles({
@@ -30,8 +31,19 @@ const useStyles = makeStyles({
   brand: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, minWidth: 0 },
   logo: { width: '32px', height: '32px', flexShrink: 0 },
   name: { fontSize: tokens.fontSizeBase400, textTransform: 'lowercase' },
-  split: { color: '#14b8d4' },
-  cortex: { color: '#4f5df0' },
+  // The wordmark carries the logo's two gradients: mint → cyan, violet.
+  split: {
+    backgroundImage: `linear-gradient(180deg, ${BRAND.mint}, ${BRAND.cyan})`,
+    backgroundClip: 'text',
+    WebkitBackgroundClip: 'text',
+    color: 'transparent',
+  },
+  cortex: {
+    backgroundImage: `linear-gradient(180deg, ${BRAND.violetLight}, ${BRAND.violet})`,
+    backgroundClip: 'text',
+    WebkitBackgroundClip: 'text',
+    color: 'transparent',
+  },
   tag: { color: tokens.colorNeutralForeground3, fontSize: tokens.fontSizeBase200 },
   spacer: { flexGrow: 1 },
 });

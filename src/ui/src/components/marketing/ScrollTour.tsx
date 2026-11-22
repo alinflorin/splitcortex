@@ -1,6 +1,7 @@
 import { makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BRAND } from '../../theme/brand';
 import { useTheme } from '../../theme/ThemeContext';
 import type { TourScene } from './tourScene';
 
@@ -38,14 +39,14 @@ const useStyles = makeStyles({
     '@media (max-width: 799px)': { left: '24px', right: '24px', bottom: '14%' },
   },
   eyebrow: {
-    color: '#2ce6c5',
+    color: BRAND.mint,
     textTransform: 'uppercase',
     letterSpacing: '0.12em',
     fontSize: '12px',
   },
-  eyebrowLight: { color: '#0e9f8a' },
-  num: { fontSize: '14px', color: '#6c7bf2', fontWeight: 600 },
-  numLight: { color: '#4a5be6' },
+  eyebrowLight: { color: BRAND.cyan },
+  num: { fontSize: '14px', color: BRAND.violetLight, fontWeight: 600 },
+  numLight: { color: BRAND.violet },
   title: {
     margin: 0,
     fontSize: '40px',
@@ -63,7 +64,7 @@ const useStyles = makeStyles({
     width: '100%',
     transformOrigin: 'left',
     transform: 'scaleX(0)',
-    background: 'linear-gradient(90deg, #6c7bf2, #2ce6c5)',
+    background: `linear-gradient(90deg, ${BRAND.violetLight}, ${BRAND.mint})`,
   },
   hint: {
     position: 'absolute',
