@@ -2,6 +2,12 @@ import {
   AdditiveBlending,
   AmbientLight,
   BoxGeometry,
+  CanvasTexture,
+  DoubleSide,
+  LineLoop,
+  PlaneGeometry,
+  SRGBColorSpace,
+  TubeGeometry,
   CatmullRomCurve3,
   Color,
   Fog,
@@ -193,51 +199,199 @@ export function createTourScene(
 
   // chapter 1-2: a desk with forgotten devices, just before the aisle
   const DESK_Z = 8;
+  const D = DESK_Z;
   const desk = new Group();
   const deskMat = new MeshStandardMaterial({ roughness: 0.7 });
   const deskTop = new Mesh(new BoxGeometry(3.6, 0.5, 1.8), deskMat);
-  deskTop.position.set(0, 0.25, DESK_Z);
-  const deskDevices = [
-    {
-      mat: new MeshBasicMaterial(),
-      size: [0.5, 0.9, 0.07],
-      pos: [-1.1, 0.95, DESK_Z],
-      rotX: -0.25,
-    },
-    { mat: new MeshBasicMaterial(), size: [0.9, 0.1, 0.6], pos: [0, 0.55, DESK_Z + 0.1], rotX: 0 },
-    {
-      mat: new MeshBasicMaterial(),
-      size: [1.1, 0.7, 0.05],
-      pos: [1.1, 0.95, DESK_Z - 0.2],
-      rotX: -0.2,
-    },
-  ] as const;
+  deskTop.position.set(0, 0.25, D);
   desk.add(deskTop);
-  for (const d of deskDevices) {
-    const mesh = new Mesh(new BoxGeometry(...d.size), d.mat);
-    mesh.position.set(d.pos[0], d.pos[1], d.pos[2]);
-    mesh.rotation.x = d.rotX;
-    desk.add(mesh);
+
+  const bodyMat = new MeshStandardMaterial({ roughness: 0.35, metalness: 0.6 });
+  const metal = new MeshStandardMaterial({ color: '#b9c3d6', roughness: 0.3, metalness: 0.85 });
+  const pcbMat = new MeshStandardMaterial({ color: '#1f6b57', roughness: 0.55, metalness: 0.1 });
+  const chipMat = new MeshStandardMaterial({ color: '#12172b', roughness: 0.4, metalness: 0.4 });
+  const glassMat = new MeshStandardMaterial({ color: '#05070f', roughness: 0.15, metalness: 0.2 });
+
+  // the screens share one gradient with a heartbeat line, shown once enrolled
+  const tex = (() => {
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 256;
+    const g = c.getContext('2d');
+    if (!g) return undefined;
+    const grad = g.createLinearGradient(0, 0, 256, 256);
+    grad.addColorStop(0, VIOLET);
+    grad.addColorStop(0.55, '#222e76');
+    grad.addColorStop(1, MINT);
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 256, 256);
+    g.strokeStyle = 'rgba(255,255,255,0.85)';
+    g.lineWidth = 7;
+    g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(30, 140);
+    for (const [x, y] of [
+      [90, 140],
+      [110, 90],
+      [135, 190],
+      [158, 140],
+      [226, 140],
+    ] as const)
+      g.lineTo(x, y);
+    g.stroke();
+    const t = new CanvasTexture(c);
+    t.colorSpace = SRGBColorSpace;
+    return t;
+  })();
+  const screenMat = () =>
+    new MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      opacity: 0,
+      toneMapped: false,
+      side: DoubleSide,
+    });
+  const phoneScreenMat = screenMat();
+  const laptopScreenMat = screenMat();
+
+  // phone, lying face up, USB-C on the back edge
+  const phone = new Group();
+  phone.position.set(-1.1, 0.535, D - 0.05);
+  phone.rotation.y = 0.12;
+  phone.add(new Mesh(new BoxGeometry(0.5, 0.07, 0.95), bodyMat));
+  const phoneGlass = new Mesh(new BoxGeometry(0.45, 0.012, 0.88), glassMat);
+  phoneGlass.position.y = 0.037;
+  const phoneScreen = new Mesh(new PlaneGeometry(0.43, 0.86), phoneScreenMat);
+  phoneScreen.rotation.x = -Math.PI / 2;
+  phoneScreen.position.y = 0.045;
+  phone.add(phoneGlass, phoneScreen);
+  const lens = new Mesh(new SphereGeometry(0.035, 12, 12), chipMat);
+  lens.position.set(0.14, -0.04, -0.34);
+  phone.add(lens);
+
+  // Raspberry Pi: board, chips, GPIO header, ports
+  const pi = new Group();
+  pi.position.set(0, 0.52, D + 0.1);
+  pi.add(new Mesh(new BoxGeometry(0.95, 0.04, 0.62), pcbMat));
+  for (const [x, z, w, d] of [
+    [-0.18, -0.02, 0.2, 0.2],
+    [0.16, 0.08, 0.17, 0.16],
+    [0.3, -0.12, 0.1, 0.1],
+  ] as const) {
+    const chip = new Mesh(new BoxGeometry(w, 0.05, d), chipMat);
+    chip.position.set(x, 0.045, z);
+    pi.add(chip);
   }
-  const laptopBase = new Mesh(new BoxGeometry(1.1, 0.06, 0.75), deskDevices[2].mat);
-  laptopBase.position.set(1.1, 0.53, DESK_Z + 0.2);
-  desk.add(laptopBase);
+  const pins = new InstancedMesh(new BoxGeometry(0.014, 0.07, 0.014), metal, 40);
+  for (let n = 0; n < 40; n++) {
+    m.makeTranslation(-0.45 + (n >> 1) * 0.0475, 0.055, n % 2 ? -0.26 : -0.22);
+    pins.setMatrixAt(n, m);
+  }
+  pi.add(pins);
+  for (const x of [-0.3, -0.12, 0.06]) {
+    const port = new Mesh(new BoxGeometry(0.14, 0.11, 0.16), metal);
+    port.position.set(x, 0.07, 0.25);
+    pi.add(port);
+  }
+  const piLedMat = new MeshBasicMaterial({ toneMapped: false });
+  const piLed = new Mesh(new BoxGeometry(0.03, 0.02, 0.03), piLedMat);
+  piLed.position.set(0.4, 0.03, 0.2);
+  pi.add(piLed);
+
+  // laptop with a lid that opens
+  const laptop = new Group();
+  laptop.position.set(1.1, 0.525, D + 0.15);
+  laptop.add(new Mesh(new BoxGeometry(1.1, 0.05, 0.75), bodyMat));
+  const keys = new Mesh(new BoxGeometry(0.96, 0.012, 0.4), chipMat);
+  keys.position.set(0, 0.03, -0.06);
+  laptop.add(keys);
+  const hinge = new Group();
+  hinge.position.set(0, 0.025, -0.375);
+  const lid = new Mesh(new BoxGeometry(1.1, 0.7, 0.03), bodyMat);
+  lid.position.y = 0.35;
+  const lidScreen = new Mesh(new PlaneGeometry(1.0, 0.6), laptopScreenMat);
+  lidScreen.position.set(0, 0.35, 0.018);
+  hinge.add(lid, lidScreen);
+  laptop.add(hinge);
+  desk.add(phone, pi, laptop);
+
+  // power cables that snake in from the aisle and plug into each device
+  const plugs = [
+    { port: new Vector3(-1.1, 0.545, D - 0.54), dir: new Vector3(0, 0, -1) },
+    { port: new Vector3(0.3, 0.56, D - 0.22), dir: new Vector3(0, 0, -1) },
+    { port: new Vector3(1.66, 0.56, D + 0.15), dir: new Vector3(1, 0, 0) },
+  ].map(({ port, dir }) => {
+    const away = port.clone().addScaledVector(dir, 0.3);
+    const pts =
+      dir.x === 0
+        ? [
+            new Vector3(port.x, 0.03, D - 5),
+            new Vector3(port.x, 0.03, D - 1.3),
+            new Vector3(port.x, 0.4, D - 1.05),
+            new Vector3(port.x, 0.62, D - 0.8),
+            away,
+          ]
+        : [
+            new Vector3(1.95, 0.03, D - 5),
+            new Vector3(1.95, 0.03, D - 0.5),
+            new Vector3(1.95, 0.4, D + 0.1),
+            new Vector3(1.9, 0.62, D + 0.15),
+            away,
+          ];
+    const geo = new TubeGeometry(new CatmullRomCurve3(pts), 80, 0.022, 6, false);
+    const mat = new MeshBasicMaterial({ toneMapped: false });
+    const cable = new Mesh(geo, mat);
+    cable.frustumCulled = false;
+    const plug = new Mesh(new BoxGeometry(0.09, 0.05, 0.12), metal);
+    plug.rotation.y = dir.x === 0 ? 0 : Math.PI / 2;
+    desk.add(cable, plug);
+    return { geo, mat, cable, plug, port, dir };
+  });
+  const plugCount = (plugs[0] as (typeof plugs)[number]).geo.index?.count ?? 0;
+
+  // identity glyphs: a key/shield outline floats above each device when it enrols
+  const shieldMat = new LineBasicMaterial({ transparent: true, opacity: 0 });
+  const shieldGeo = new BufferGeometry().setFromPoints(
+    [
+      [-0.2, 0.08],
+      [0, 0.28],
+      [0.2, 0.08],
+      [0.15, -0.15],
+      [0, -0.29],
+      [-0.15, -0.15],
+    ].map(([x, y]) => new Vector3(x, y, 0)),
+  );
+  for (const x of [-1.1, 0, 1.1]) {
+    const shield = new LineLoop(shieldGeo, shieldMat);
+    shield.position.set(x, 1.75, D);
+    desk.add(shield);
+  }
+
   const enrollMat = new MeshBasicMaterial({ transparent: true, depthWrite: false });
   const enrollRing = new Mesh(new TorusGeometry(1, 0.025, 8, 96), enrollMat);
   enrollRing.rotation.x = Math.PI / 2;
-  enrollRing.position.set(0, 0.6, DESK_Z);
+  enrollRing.position.set(0, 0.6, D);
   desk.add(enrollRing);
   scene.add(desk);
-  const deskBrand = [new Color(VIOLET), new Color(MINT), new Color(CYAN)];
   const idle = new Color();
+  const mintColor = new Color(MINT);
 
   // chapter 4: an app, the gateway (the hub), one device, and a request travelling between them
   const APP = new Vector3(9, 7, -8);
   const GATE = new Vector3(0, 3, HUB_Z + 4.5);
   const DEVICE = new Vector3(-3.0, 2.8, -8 * RACK_STEP - 4);
-  const appMat = new MeshBasicMaterial({ transparent: true });
-  const appPanel = new Mesh(new BoxGeometry(1.6, 1, 0.08), appMat);
+  const appMat = new MeshBasicMaterial({ transparent: true, side: DoubleSide });
+  const appBarMat = new MeshBasicMaterial({ transparent: true, toneMapped: false });
+  const appPanel = new Group();
   appPanel.position.copy(APP);
+  appPanel.rotation.y = 0.9;
+  appPanel.add(new Mesh(new PlaneGeometry(1.8, 1.2), appMat));
+  for (let n = 0; n < 6; n++) {
+    const w = 0.5 + (n % 3) * 0.22;
+    const bar = new Mesh(new PlaneGeometry(w, 0.04), appBarMat);
+    bar.position.set(-0.75 + w / 2, 0.32 - n * 0.16, 0.01);
+    appPanel.add(bar);
+  }
   scene.add(appPanel);
   const legMat = new LineBasicMaterial({ transparent: true });
   for (const [a, b] of [
@@ -330,8 +484,9 @@ export function createTourScene(
     enrollMat.color.set(light ? DEEP_TEAL : MINT);
     enrollMat.blending = light ? NormalBlending : AdditiveBlending;
     enrollMat.needsUpdate = true;
-    appMat.color.set(light ? DEEP_VIOLET : CYAN);
-    appMat.opacity = 0.9;
+    appMat.color.set(light ? '#dfe4ff' : '#18234d');
+    appBarMat.color.set(light ? DEEP_VIOLET : CYAN);
+    bodyMat.color.set(light ? '#8d96b5' : '#262c52');
     legMat.color.set(light ? DEEP_VIOLET : CYAN);
     flowMat.blending = light ? NormalBlending : AdditiveBlending;
     flowMat.color.set(light ? DEEP_TEAL : MINT);
@@ -361,7 +516,20 @@ export function createTourScene(
       scene.fog.far = (mode === 'light' ? 70 : 62) + 90 * smooth(0.6, 0.85, progress);
     }
     const reveal = smooth(0.3, 0.42, progress);
-    deskDevices.forEach((d, n) => d.mat.color.lerpColors(idle, deskBrand[n] as Color, reveal));
+    hinge.rotation.x = Math.PI / 2 - 0.02 - (Math.PI / 2 + 0.2) * smooth(0, 0.1, progress);
+    plugs.forEach((pl, n) => {
+      const grow = smooth(0.18 + n * 0.025, 0.3 + n * 0.025, progress);
+      const snap = smooth(0.29 + n * 0.025, 0.32 + n * 0.025, progress);
+      pl.geo.setDrawRange(0, Math.floor(grow * 79) * 36 + (grow >= 1 ? plugCount : 0));
+      pl.mat.color.lerpColors(idle, mintColor, grow);
+      pl.plug.visible = grow >= 0.98;
+      pl.plug.position.copy(pl.port).addScaledVector(pl.dir, 0.1 * (1 - snap) + 0.05);
+    });
+    phoneScreenMat.opacity = reveal;
+    laptopScreenMat.opacity = reveal;
+    piLedMat.color.lerpColors(idle, mintColor, reveal);
+    shieldMat.color.set(mode === 'light' ? DEEP_TEAL : MINT);
+    shieldMat.opacity = smooth(0.31, 0.36, progress) * (1 - smooth(0.44, 0.5, progress)) * 0.9;
     const wave = smooth(0.28, 0.5, progress);
     enrollRing.scale.setScalar(0.6 + wave * 7);
     enrollMat.opacity = wave > 0 && wave < 1 ? (1 - wave) * 0.9 : 0;
@@ -371,7 +539,8 @@ export function createTourScene(
     // request path
     const vis = smooth(0.66, 0.76, progress);
     appPanel.visible = vis > 0;
-    appMat.opacity = 0.9 * vis;
+    appMat.opacity = 0.85 * vis;
+    appBarMat.opacity = 0.9 * vis;
     legMat.opacity = 0.45 * vis;
     const ph = (t * 0.22) % 1;
     const big = mode === 'light' ? 0.4 : 0.5;
@@ -436,6 +605,7 @@ export function createTourScene(
         const mesh = o as Mesh;
         mesh.geometry?.dispose();
       });
+      tex?.dispose();
       composer.dispose();
       renderer.dispose();
     },
