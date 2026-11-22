@@ -6,6 +6,7 @@
 
 pub mod compute;
 pub mod embed;
+pub mod fake;
 mod ffi;
 
 use embed::{EmbedError, Embedder};
@@ -62,6 +63,9 @@ pub struct Engine {
     embedder: Mutex<Option<LoadedEmbed>>,
     /// The loaded model takes image and audio input.
     media: AtomicBool,
+    /// Set for the fake engine (`run --fake`): nothing below touches the library or a model file.
+    fake: Option<fake::FakeConfig>,
+    fake_loaded: Mutex<Option<fake::Loaded>>,
 }
 
 /// Where the library is: `SPLITCORTEX_LITERT_LIB`, else `litert/` next to the executable (what the release archive
@@ -424,6 +428,22 @@ pub struct GenerateReq {
 }
 
 impl Engine {
+    /// An engine that answers with synthetic tokens (see `fake.rs`).
+    pub fn fake(cfg: fake::FakeConfig) -> Engine {
+        Engine {
+            fake: Some(cfg),
+            ..Engine::default()
+        }
+    }
+
+    pub fn is_fake(&self) -> bool {
+        self.fake.is_some()
+    }
+
+    fn fake_loaded(&self) -> Option<fake::Loaded> {
+        *self.fake_loaded.lock().unwrap_or_else(|x| x.into_inner())
+    }
+
     fn api(&self) -> Result<Arc<Api>, String> {
         let mut g = self.api.lock().unwrap_or_else(|x| x.into_inner());
         if let Some(a) = g.as_ref() {
@@ -447,6 +467,11 @@ impl Engine {
         if backend != "cpu" && backend != "gpu" {
             return Err("backend must be cpu or gpu".into());
         }
+        if self.fake.is_some() {
+            self.unload();
+            *self.fake_loaded.lock().unwrap_or_else(|x| x.into_inner()) = Some(fake::Loaded::Chat);
+            return Ok(());
+        }
         if !path.exists() {
             return Err("the model file does not exist".into());
         }
@@ -468,6 +493,7 @@ impl Engine {
     pub fn unload(&self) {
         *self.loaded.lock().unwrap_or_else(|x| x.into_inner()) = None;
         *self.embedder.lock().unwrap_or_else(|x| x.into_inner()) = None;
+        *self.fake_loaded.lock().unwrap_or_else(|x| x.into_inner()) = None;
         self.media.store(false, Ordering::SeqCst);
     }
 
@@ -481,6 +507,12 @@ impl Engine {
     ) -> Result<u32, String> {
         if backend != "cpu" && backend != "gpu" {
             return Err("backend must be cpu or gpu".into());
+        }
+        if let Some(cfg) = &self.fake {
+            self.unload();
+            *self.fake_loaded.lock().unwrap_or_else(|x| x.into_inner()) =
+                Some(fake::Loaded::Embedding(cfg.dimension));
+            return Ok(cfg.dimension);
         }
         if !path.exists() {
             return Err("the model file does not exist".into());
@@ -551,6 +583,12 @@ impl Engine {
         cancel: Arc<AtomicBool>,
         on_text: Box<dyn Fn(String) + Send>,
     ) -> Result<(), String> {
+        if let Some(cfg) = &self.fake {
+            return match self.fake_loaded() {
+                Some(fake::Loaded::Chat) => fake::generate(cfg, req, cancel, on_text),
+                _ => Err("no model is loaded".into()),
+            };
+        }
         // The generation holds the lock for its whole run: unload waits for it.
         let guard = self.loaded.lock().unwrap_or_else(|x| x.into_inner());
         let loaded = guard.as_ref().ok_or("no model is loaded")?;
@@ -671,6 +709,12 @@ fn compute_embeddings(l: &LoadedEmbed, texts: &[String]) -> Result<Vec<Vec<f32>>
 
 impl Embedder for Engine {
     fn embed_batch(&self, texts: &[String]) -> Result<Vec<Vec<f32>>, EmbedError> {
+        if self.fake.is_some() {
+            return match self.fake_loaded() {
+                Some(fake::Loaded::Embedding(d)) => fake::embed(d, texts),
+                _ => Err(EmbedError::engine("no embedding model is loaded")),
+            };
+        }
         // The embedding holds the lock for its whole run: unload waits for it.
         let guard = self.embedder.lock().unwrap_or_else(|x| x.into_inner());
         let loaded = guard

@@ -203,8 +203,10 @@ impl ModelManager {
                 return Ok(());
             }
             let name = data_file(&a.model_id);
-            let complete = file_size(&self.dirs.model_path(&done_marker(&a.model_id))?) >= 0
-                && file_size(&self.dirs.model_path(&name)?) == a.size_bytes as i64;
+            // The fake engine has no model file: nothing is downloaded (it still reports the assignment as loaded).
+            let complete = self.engine.is_fake()
+                || file_size(&self.dirs.model_path(&done_marker(&a.model_id))?) >= 0
+                    && file_size(&self.dirs.model_path(&name)?) == a.size_bytes as i64;
             if !complete {
                 self.engine.unload().await;
                 self.remove_others(&a.model_id)?; // replace: the old model goes first, there may not be room for two

@@ -33,10 +33,18 @@ export function nodeAuthHeader(
   return `Node ${nodeId}.${ts}.${signature}`;
 }
 
-/** One released CLI node with a data directory of its own: several can run side by side in one test. */
+/**
+ * One released CLI node with a data directory of its own: several can run side by side in one test.
+ *
+ * With `fake` (the default) it runs `run --fake`: the real node (enrollment, handshake, assignments, credits, resume), but
+ * with synthetic tokens (`tok0 tok1 …`, 20 ms to the first, then 200 a second) and no model download. Pass `fake: false`
+ * for a test that needs the real engine or the real download (a meaning, a file in the models folder).
+ */
 export class CliNode {
   readonly home = mkdtempSync(join(tmpdir(), 'splitcortex-e2e-'));
   private proc: ChildProcess | undefined;
+
+  constructor(private readonly fake = true) {}
 
   private env() {
     return { ...process.env, SPLITCORTEX_HOME: this.home, SPLITCORTEX_URL: baseUrl() };
@@ -79,7 +87,8 @@ export class CliNode {
 
   async start(): Promise<void> {
     if (this.running()) return;
-    this.proc = spawn(await cliNodeBinary(), ['run'], { env: this.env(), stdio: 'inherit' });
+    const args = this.fake ? ['run', '--fake'] : ['run'];
+    this.proc = spawn(await cliNodeBinary(), args, { env: this.env(), stdio: 'inherit' });
   }
 
   running(): boolean {

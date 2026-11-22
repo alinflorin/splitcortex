@@ -99,6 +99,11 @@ impl ComputeEngine {
         })
     }
 
+    /// The engine is the fake one (`run --fake`): there is nothing to download.
+    pub fn is_fake(&self) -> bool {
+        self.engine.is_fake()
+    }
+
     pub fn backend(&self) -> Option<Backend> {
         self.active
             .lock()

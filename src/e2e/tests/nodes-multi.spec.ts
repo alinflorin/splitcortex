@@ -19,7 +19,8 @@ import { loadState } from '../lib/state';
 
 // Several devices in one pool, the way a customer runs them: balancing, a device dying (also in the middle of an
 // answer), reconnecting, the device's own settings against the admin's, the device API a node talks to, and mixed node
-// types. CLI nodes only (cheap, any number of them), plus one browser tab for the mixed pool. Pools and keys are
+// types. CLI nodes only (cheap, any number of them), plus one browser tab for the mixed pool. The CLI nodes run the fake
+// engine (`run --fake`: synthetic tokens, no model download) except where a test needs the real one. Pools and keys are
 // throw-away and live in the e2e organisation (its two models are reused, nothing is downloaded from Hugging Face).
 test.describe.configure({ mode: 'serial' });
 test.use({ storageState: authFile(0) });
@@ -60,8 +61,9 @@ const keyIds: string[] = [];
 const modelIds: string[] = [];
 const poolIds: string[] = [];
 const cli: CliNode[] = [];
-const newCli = () => {
-  const n = new CliNode();
+/** A CLI node; `fake: false` runs the real engine and downloads the real model. */
+const newCli = (fake = true) => {
+  const n = new CliNode(fake);
   cli.push(n);
   return n;
 };
@@ -736,6 +738,8 @@ test('a short reply says it was cut, a conversation keeps its roles, the numbers
   expect(cut.status).toBe(200);
   expect(cut.body.choices[0]!.finish_reason).toBe('length');
   expect(cut.body.choices[0]!.message.role).toBe('assistant');
+  // The fake engine's answer is exact: one piece per token.
+  expect(cut.body.choices[0]!.message.content).toMatch(/^tok0 tok1 tok2/);
   const u = cut.body.usage;
   expect(u.prompt_tokens).toBeGreaterThan(0);
   expect(u.completion_tokens).toBeGreaterThan(0);
@@ -848,7 +852,7 @@ test('embeddings on a real device: sizes, encodings, tasks, order, meaning', asy
   test.setTimeout(40 * 60_000);
   const pool = await newPool(`e2e-multi-emb-${uniq()}`, {}, embedModel.id);
   const key = await newKey([pool]);
-  const node = newCli();
+  const node = newCli(false); // the real engine: this test checks meaning
   await node.enroll(await code(pool));
   await node.start();
   await online(node.nodeId, 15 * 60_000, pool);
@@ -988,7 +992,7 @@ test("codes for many devices at once, admin overrides, and the node's own comman
     { count: 3 },
   );
   expect(bulk.status).toBe(201);
-  const devices = [newCli(), newCli(), newCli()];
+  const devices = [newCli(false), newCli(false), newCli(false)]; // the real download into a chosen folder
   for (const [i, d] of devices.entries()) await d.enroll(bulk.body.items[i]!.code);
   const listed = await poolNodes(page, orgId, pool);
   expect(new Set(listed.map((n) => n.id)).size).toBe(3);

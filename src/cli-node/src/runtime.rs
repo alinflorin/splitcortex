@@ -190,7 +190,11 @@ async fn wait_for_approval(dirs: &Dirs, shutdown: &CancellationToken) -> Result<
 }
 
 /// Runs the node until `shutdown` is cancelled.
-pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<End> {
+pub async fn run(
+    dirs: Dirs,
+    shutdown: CancellationToken,
+    fake: Option<crate::engine::fake::FakeConfig>,
+) -> Result<End> {
     let enrollment = wait_for_approval(&dirs, &shutdown).await?;
     let Some(mut pinned) = enrollment.gateway.clone() else {
         bail!("The platform has not given this device a gateway yet");
@@ -198,7 +202,16 @@ pub async fn run(dirs: Dirs, shutdown: CancellationToken) -> Result<End> {
     let key = get_or_create_identity(&dirs)?;
     let settings: Settings = dirs.read_json(settings::FILE).unwrap_or_default();
 
-    let engine = ComputeEngine::new(Arc::new(Engine::default()), dirs.clone());
+    let engine = match fake {
+        Some(cfg) => {
+            tracing::warn!(
+                "FAKE ENGINE ({cfg:?}): answers are synthetic and no model is downloaded. Test pools only."
+            );
+            Engine::fake(cfg)
+        }
+        None => Engine::default(),
+    };
+    let engine = ComputeEngine::new(Arc::new(engine), dirs.clone());
     engine
         .set_prefs(Source::Local, settings.prefs())
         .await

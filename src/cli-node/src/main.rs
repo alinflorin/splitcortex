@@ -46,7 +46,35 @@ enum Command {
         code: Option<String>,
     },
     /// Connect to the gateway and serve requests (stop with Ctrl+C)
-    Run,
+    Run {
+        /// Tests only: answer with synthetic tokens and download no model (see docs/cli-node.md). Never in a real pool.
+        #[arg(long, hide = true, env = "SPLITCORTEX_FAKE_ENGINE")]
+        fake: bool,
+        /// Fake engine: milliseconds before the first token
+        #[arg(
+            long,
+            hide = true,
+            default_value_t = 20,
+            env = "SPLITCORTEX_FAKE_FIRST_TOKEN_MS"
+        )]
+        fake_first_token_ms: u64,
+        /// Fake engine: tokens per second after the first (0 = no delay)
+        #[arg(
+            long,
+            hide = true,
+            default_value_t = 200,
+            env = "SPLITCORTEX_FAKE_TOKENS_PER_SEC"
+        )]
+        fake_tokens_per_sec: u32,
+        /// Fake engine: length of the embedding vectors
+        #[arg(
+            long,
+            hide = true,
+            default_value_t = 768,
+            env = "SPLITCORTEX_FAKE_DIMENSION"
+        )]
+        fake_dimension: u32,
+    },
     /// Show whether this computer is enrolled and approved
     Status,
     /// Forget the enrollment and the device key (the device must be enrolled again)
@@ -185,15 +213,25 @@ async fn main() -> Result<()> {
                 );
             }
         }
-        Command::Run => {
+        Command::Run {
+            fake,
+            fake_first_token_ms,
+            fake_tokens_per_sec,
+            fake_dimension,
+        } => {
             init_logging();
+            let fake = fake.then_some(engine::fake::FakeConfig {
+                first_token_ms: fake_first_token_ms,
+                tokens_per_sec: fake_tokens_per_sec,
+                dimension: fake_dimension,
+            });
             let shutdown = CancellationToken::new();
             let s = shutdown.clone();
             tokio::spawn(async move {
                 wait_for_signal().await;
                 s.cancel();
             });
-            if runtime::run(dirs, shutdown).await? == runtime::End::Restart {
+            if runtime::run(dirs, shutdown, fake).await? == runtime::End::Restart {
                 // Everything is closed: start this program again (see restart.rs). It returns only on failure.
                 let e = restart::relaunch();
                 tracing::error!("Cannot restart: {e}");

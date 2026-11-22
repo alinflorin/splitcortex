@@ -3,4 +3,4 @@
 # (one per line; platform, mobile and CLI streams). Remove a line to skip that stream.
 v24.0.0
 mobile-node-v24.0.0
-cli-node-v24.0.0
+cli-node-v24.0.1
