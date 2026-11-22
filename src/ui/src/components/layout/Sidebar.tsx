@@ -1,7 +1,6 @@
 import type { MouseEvent } from 'react';
 import {
   Button,
-  NavDivider,
   NavDrawer,
   NavDrawerBody,
   Text,
@@ -38,13 +37,9 @@ const InfoIcon = bundleIcon(Info24Filled, Info24Regular);
 const MailIcon = bundleIcon(Mail24Filled, Mail24Regular);
 
 const ITEMS = [
+  { to: '/', key: 'home', Icon: HomeIcon },
   { to: '/organisations', key: 'organisations', Icon: OrgIcon },
   { to: '/playground', key: 'playground', Icon: ChatIcon },
-] as const;
-
-// The public site (it has its own header): a second group so the way back is always in reach.
-const PUBLIC_ITEMS = [
-  { to: '/', key: 'home', Icon: HomeIcon },
   { to: '/about', key: 'about', Icon: InfoIcon },
   { to: '/contact', key: 'contact', Icon: MailIcon },
 ] as const;
@@ -124,7 +119,7 @@ export function Sidebar({
   const orgId = matchPath('/organisations/:orgId/*', pathname)?.params.orgId;
   const selected = orgId
     ? `/organisations/${orgId}/${sectionOf(pathname)}`
-    : ITEMS.find((i) => pathname.startsWith(i.to))?.to;
+    : ITEMS.find((i) => (i.to === '/' ? pathname === '/' : pathname.startsWith(i.to)))?.to;
 
   // `keepOpen`: navigate without closing the overlay drawer (e.g. the back item, so the
   // top-level menu is visible right after leaving an organisation).
@@ -171,29 +166,16 @@ export function Sidebar({
           // Inside an organisation the sidebar is only about that organisation.
           <OrgNav orgId={orgId} go={go} collapsed={collapsed} />
         ) : (
-          <>
-            {ITEMS.map(({ to, key, Icon }) => (
-              <NavEntry
-                key={to}
-                to={to}
-                label={t(`nav.${key}`)}
-                icon={<Icon />}
-                collapsed={collapsed}
-                onClick={go(to)}
-              />
-            ))}
-            <NavDivider />
-            {PUBLIC_ITEMS.map(({ to, key, Icon }) => (
-              <NavEntry
-                key={to}
-                to={to}
-                label={t(`nav.${key}`)}
-                icon={<Icon />}
-                collapsed={collapsed}
-                onClick={go(to)}
-              />
-            ))}
-          </>
+          ITEMS.map(({ to, key, Icon }) => (
+            <NavEntry
+              key={to}
+              to={to}
+              label={t(`nav.${key}`)}
+              icon={<Icon />}
+              collapsed={collapsed}
+              onClick={go(to)}
+            />
+          ))
         )}
       </NavDrawerBody>
       <div className={mergeClasses(styles.footer, collapsed && styles.footerRail)}>
