@@ -152,6 +152,28 @@
       "title": "Ready to put your devices to work?",
       "body": "Create an organisation, enroll a device and make your first request in minutes.",
       "about": "Learn more"
+    },
+    "tour": {
+      "eyebrow": "A look inside",
+      "scroll": "Scroll to fly in",
+      "chapters": [
+        {
+          "title": "A data centre made of small things",
+          "body": "Phones, Raspberry Pis and laptops you already own, racked up as one fleet."
+        },
+        {
+          "title": "Every device is a node",
+          "body": "Each one connects out to the gateway with its own key. No open ports, no servers to rent."
+        },
+        {
+          "title": "Models live on the devices",
+          "body": "A pool replicates one model on every node, so any of them can answer."
+        },
+        {
+          "title": "One API on top",
+          "body": "Your app talks OpenAI-format HTTP to the gateway, which balances the load across the fleet."
+        }
+      ]
     }
   },
   "endpoints": {

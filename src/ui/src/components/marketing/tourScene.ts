@@ -1,0 +1,304 @@
+import {
+  AdditiveBlending,
+  AmbientLight,
+  BoxGeometry,
+  CatmullRomCurve3,
+  Color,
+  Fog,
+  GridHelper,
+  Group,
+  IcosahedronGeometry,
+  InstancedMesh,
+  Line,
+  LineBasicMaterial,
+  BufferGeometry,
+  Matrix4,
+  Mesh,
+  MeshBasicMaterial,
+  MeshStandardMaterial,
+  NormalBlending,
+  PerspectiveCamera,
+  PointLight,
+  Scene,
+  SphereGeometry,
+  TorusGeometry,
+  Vector2,
+  Vector3,
+  WebGLRenderer,
+} from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+
+/** Brand colours from the logo: violet, mint, cyan. */
+const VIOLET = '#6c7bf2';
+const MINT = '#2ce6c5';
+const CYAN = '#14b8d4';
+const DEEP_VIOLET = '#4a5be6';
+const DEEP_TEAL = '#0e9f8a';
+
+const RACKS_PER_SIDE = 18;
+const RACK_STEP = 3.2;
+const RACK_X = 3.9;
+const HUB_Z = -66;
+const PULSES_PER_CABLE = 2;
+
+export interface TourScene {
+  /** Scroll position through the tour, 0..1. */
+  setProgress(p: number): void;
+  /** Pointer in -1..1, for a small parallax. */
+  setPointer(x: number, y: number): void;
+  setTheme(mode: 'light' | 'dark'): void;
+  resize(width: number, height: number): void;
+  render(time: number): void;
+  dispose(): void;
+}
+
+// Small deterministic random, so the layout is the same on every visit.
+function rng(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
+  };
+}
+
+export function createTourScene(
+  canvas: HTMLCanvasElement,
+  { lowPower }: { lowPower: boolean },
+): TourScene {
+  const renderer = new WebGLRenderer({ canvas, antialias: !lowPower, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, lowPower ? 1 : 1.75));
+
+  const scene = new Scene();
+  const camera = new PerspectiveCamera(55, 1, 0.1, 200);
+  const rand = rng(7);
+
+  const ambient = new AmbientLight('#ffffff', 1);
+  const camLight = new PointLight('#ffffff', 40, 40, 1.6);
+  const hubLight = new PointLight(MINT, 300, 60, 1.6);
+  hubLight.position.set(0, 3, HUB_Z + 4);
+  scene.add(ambient, camLight, hubLight);
+
+  // ground
+  const gridDark = new GridHelper(130, 65, new Color(VIOLET), new Color('#222a6b'));
+  const gridLight = new GridHelper(130, 65, new Color('#a9b3f3'), new Color('#d9def8'));
+  for (const g of [gridDark, gridLight]) {
+    g.position.set(0, 0, -30);
+    scene.add(g);
+  }
+
+  // racks: one instanced body, three instanced device shapes on their fronts
+  const rackCount = RACKS_PER_SIDE * 2;
+  const rackMat = new MeshStandardMaterial({ roughness: 0.55, metalness: 0.15 });
+  const racks = new InstancedMesh(new BoxGeometry(1.7, 3.6, 1.5), rackMat, rackCount);
+  scene.add(racks);
+
+  const deviceMat = new MeshBasicMaterial();
+  const phones = new InstancedMesh(new BoxGeometry(0.2, 0.36, 0.05), deviceMat, rackCount * 16);
+  const pis = new InstancedMesh(new BoxGeometry(0.4, 0.26, 0.06), deviceMat, rackCount * 8);
+  const laptops = new InstancedMesh(new BoxGeometry(0.62, 0.38, 0.04), deviceMat, rackCount * 4);
+  scene.add(phones, pis, laptops);
+
+  const m = new Matrix4();
+  const palette = [new Color(VIOLET), new Color(MINT), new Color(CYAN)] as [Color, Color, Color];
+  const pick = () => palette[Math.floor(rand() * 3)] as Color;
+  const darkRack = new Color('#161c52');
+  const lightRack = new Color('#ffffff');
+  let phoneN = 0;
+  let piN = 0;
+  let laptopN = 0;
+  const cables: CatmullRomCurve3[] = [];
+
+  let r = 0;
+  for (let i = 0; i < RACKS_PER_SIDE; i++) {
+    for (const side of [-1, 1]) {
+      const z = -i * RACK_STEP - 4;
+      const x = side * RACK_X;
+      m.makeTranslation(x, 1.8, z);
+      racks.setMatrixAt(r++, m);
+      // devices sit on the face that looks at the aisle
+      const faceX = x - side * 0.88;
+      for (let row = 0; row < 8; row++) {
+        const y = 0.45 + row * 0.4;
+        const kind = rand();
+        if (kind < 0.5) {
+          for (let c = 0; c < 2; c++) {
+            m.makeTranslation(faceX, y, z + (c - 0.5) * 0.7);
+            m.multiply(new Matrix4().makeRotationY(Math.PI / 2));
+            phones.setMatrixAt(phoneN, m);
+            phones.setColorAt(phoneN++, pick());
+          }
+        } else if (kind < 0.8) {
+          m.makeTranslation(faceX, y, z);
+          m.multiply(new Matrix4().makeRotationY(Math.PI / 2));
+          pis.setMatrixAt(piN, m);
+          pis.setColorAt(piN++, pick());
+        } else {
+          m.makeTranslation(faceX, y, z);
+          m.multiply(new Matrix4().makeRotationY(Math.PI / 2));
+          laptops.setMatrixAt(laptopN, m);
+          laptops.setColorAt(laptopN++, pick());
+        }
+      }
+      // cable: from the rack's foot, along the floor, up into the hub
+      cables.push(
+        new CatmullRomCurve3([
+          new Vector3(faceX, 0.1, z),
+          new Vector3(side * 1.2, 0.05, z),
+          new Vector3(side * 0.6, 0.05, (z + HUB_Z) / 2),
+          new Vector3(0, 1.2, HUB_Z + 3),
+        ]),
+      );
+    }
+  }
+  phones.count = phoneN;
+  pis.count = piN;
+  laptops.count = laptopN;
+
+  const cableMat = new LineBasicMaterial({ transparent: true, opacity: 0.5 });
+  for (const curve of cables) {
+    scene.add(new Line(new BufferGeometry().setFromPoints(curve.getPoints(40)), cableMat));
+  }
+
+  const pulseMat = new MeshBasicMaterial({ transparent: true, depthWrite: false });
+  const pulses = new InstancedMesh(
+    new SphereGeometry(1, 8, 8),
+    pulseMat,
+    cables.length * PULSES_PER_CABLE,
+  );
+  scene.add(pulses);
+
+  // hub at the end of the aisle
+  const hub = new Group();
+  hub.position.set(0, 3, HUB_Z);
+  const hubShell = new MeshBasicMaterial({ wireframe: true });
+  const hubCore = new MeshBasicMaterial({ color: MINT });
+  const ringA = new MeshBasicMaterial({ transparent: true, opacity: 0.8 });
+  const ringB = new MeshBasicMaterial({ color: CYAN, transparent: true, opacity: 0.8 });
+  const shell = new Mesh(new IcosahedronGeometry(2.6, 1), hubShell);
+  const core = new Mesh(new SphereGeometry(1.1, 24, 24), hubCore);
+  const ring1 = new Mesh(new TorusGeometry(3.6, 0.04, 8, 80), ringA);
+  const ring2 = new Mesh(new TorusGeometry(4.4, 0.04, 8, 80), ringB);
+  ring1.rotation.x = Math.PI / 2.4;
+  ring2.rotation.y = Math.PI / 2.8;
+  hub.add(shell, core, ring1, ring2);
+  scene.add(hub);
+
+  // the flight: high over the field, down into the aisle, up to the hub
+  const path = new CatmullRomCurve3([
+    new Vector3(7, 9, 12),
+    new Vector3(4, 5.5, -2),
+    new Vector3(0.8, 2.6, -16),
+    new Vector3(-0.6, 1.9, -34),
+    new Vector3(0.4, 2.4, -50),
+    new Vector3(0, 3.2, -58),
+  ]);
+  const look = new CatmullRomCurve3([
+    new Vector3(0, 1.5, -10),
+    new Vector3(0, 2, -22),
+    new Vector3(0, 2, -40),
+    new Vector3(0, 2.4, -58),
+    new Vector3(0, 3, HUB_Z),
+    new Vector3(0, 3, HUB_Z),
+  ]);
+
+  // bloom only in dark and not on low power; light mode stays crisp
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloom = new UnrealBloomPass(new Vector2(1, 1), 0.5, 0.5, 0.55);
+  composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+
+  let mode: 'light' | 'dark' = 'dark';
+  let progress = 0;
+  const pointer = { x: 0, y: 0 };
+  const tmp = new Vector3();
+  const tmpLook = new Vector3();
+
+  function setTheme(next: 'light' | 'dark') {
+    mode = next;
+    const light = next === 'light';
+    const bg = light ? '#eef1ff' : '#0a0e2b';
+    scene.background = new Color(bg);
+    scene.fog = new Fog(bg, 18, light ? 70 : 62);
+    ambient.intensity = light ? 2.1 : 1.4;
+    ambient.color.set(light ? '#ffffff' : VIOLET);
+    camLight.intensity = light ? 40 : 90;
+    hubLight.intensity = light ? 160 : 400;
+    gridDark.visible = !light;
+    gridLight.visible = light;
+    rackMat.color.copy(light ? lightRack : darkRack);
+    cableMat.color.set(light ? DEEP_VIOLET : MINT);
+    cableMat.opacity = light ? 0.55 : 0.45;
+    pulseMat.blending = light ? NormalBlending : AdditiveBlending;
+    pulseMat.color.set(light ? DEEP_TEAL : MINT);
+    pulseMat.needsUpdate = true;
+    hubShell.color.set(light ? DEEP_VIOLET : VIOLET);
+    ringA.color.set(light ? DEEP_VIOLET : VIOLET);
+    bloom.enabled = !light && !lowPower;
+  }
+  setTheme('dark');
+
+  function render(time: number) {
+    const t = time / 1000;
+    // camera on the path, a little off by the pointer
+    path.getPointAt(Math.min(progress, 0.999), tmp);
+    look.getPointAt(Math.min(progress, 0.999), tmpLook);
+    camera.position.set(tmp.x + pointer.x * 0.6, tmp.y - pointer.y * 0.35, tmp.z);
+    camera.lookAt(tmpLook);
+    camLight.position.copy(camera.position);
+
+    hub.rotation.y = t * 0.35;
+    ring1.rotation.z = t * 0.6;
+    ring2.rotation.x = t * 0.45;
+    const beat = 1 + Math.sin(t * 2.2) * 0.06;
+    core.scale.setScalar(beat);
+
+    const size = mode === 'light' ? 0.13 : 0.22;
+    const p = new Vector3();
+    for (let c = 0; c < cables.length; c++) {
+      for (let k = 0; k < PULSES_PER_CABLE; k++) {
+        // pulses run from the devices to the hub, offset per cable
+        const u = (t * 0.18 + c * 0.137 + k / PULSES_PER_CABLE) % 1;
+        (cables[c] as CatmullRomCurve3).getPointAt(u, p);
+        m.makeScale(size, size, size);
+        m.setPosition(p);
+        pulses.setMatrixAt(c * PULSES_PER_CABLE + k, m);
+      }
+    }
+    pulses.instanceMatrix.needsUpdate = true;
+
+    if (bloom.enabled) composer.render();
+    else renderer.render(scene, camera);
+  }
+
+  return {
+    setProgress: (p) => {
+      progress = Math.max(0, Math.min(1, p));
+    },
+    setPointer: (x, y) => {
+      pointer.x = x;
+      pointer.y = y;
+    },
+    setTheme,
+    resize: (w, h) => {
+      renderer.setSize(w, h, false);
+      composer.setSize(w, h);
+      camera.aspect = w / h;
+      // narrow screens need a wider view to fit both racks
+      camera.fov = w / h < 0.9 ? 75 : 55;
+      camera.updateProjectionMatrix();
+    },
+    render,
+    dispose: () => {
+      scene.traverse((o) => {
+        const mesh = o as Mesh;
+        mesh.geometry?.dispose();
+      });
+      composer.dispose();
+      renderer.dispose();
+    },
+  };
+}

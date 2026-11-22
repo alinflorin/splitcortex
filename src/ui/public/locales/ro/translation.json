@@ -152,6 +152,28 @@
       "title": "Gata să-ți pui dispozitivele la treabă?",
       "body": "Creează o organizație, înrolează un dispozitiv și fă prima cerere în câteva minute.",
       "about": "Află mai multe"
+    },
+    "tour": {
+      "eyebrow": "Privește înăuntru",
+      "scroll": "Derulează ca să intri",
+      "chapters": [
+        {
+          "title": "Un centru de date din lucruri mici",
+          "body": "Telefoane, Raspberry Pi-uri și laptopuri pe care le ai deja, puse laolaltă într-o singură flotă."
+        },
+        {
+          "title": "Fiecare dispozitiv e un nod",
+          "body": "Fiecare se conectează spre gateway cu propria cheie. Fără porturi deschise, fără servere de închiriat."
+        },
+        {
+          "title": "Modelele stau pe dispozitive",
+          "body": "Un pool replică un model pe fiecare nod, așa că oricare poate răspunde."
+        },
+        {
+          "title": "Un singur API deasupra",
+          "body": "Aplicația ta vorbește HTTP în format OpenAI cu gateway-ul, care distribuie sarcina în flotă."
+        }
+      ]
     }
   },
   "endpoints": {

@@ -9,7 +9,7 @@ import {
   PhoneLaptop24Regular,
   PlugConnected24Regular,
 } from '@fluentui/react-icons';
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
@@ -28,6 +28,8 @@ import {
 import { NetworkDiagram } from '../components/marketing/NetworkDiagram';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import { buildKeyExamples, getGatewayBaseUrl } from '../lib/gateway';
+
+const ScrollTour = lazy(() => import('../components/marketing/ScrollTour'));
 
 const useStyles = makeStyles({
   hero: {
@@ -183,6 +185,10 @@ export function Home() {
       <div className={styles.trust}>
         <Chips items={t('home.trust', { returnObjects: true }) as string[]} />
       </div>
+
+      <Suspense fallback={null}>
+        <ScrollTour />
+      </Suspense>
 
       <Section
         id="how"
