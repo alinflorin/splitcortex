@@ -1,13 +1,5 @@
 import type { MouseEvent } from 'react';
-import {
-  Badge,
-  Caption1,
-  NavDivider,
-  NavItem,
-  Text,
-  makeStyles,
-  tokens,
-} from '@fluentui/react-components';
+import { Badge, Caption1, NavDivider, Text, makeStyles, tokens } from '@fluentui/react-components';
 import {
   ArrowLeftRegular,
   KeyRegular,
@@ -22,6 +14,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useOrganisation } from '../../api/hooks';
 import { isAdmin } from '../../lib/roles';
+import { NavEntry } from './NavEntry';
 
 const useStyles = makeStyles({
   // Context label, not a heading: the page's own title stays the only heading on screen.
@@ -39,10 +32,11 @@ const useStyles = makeStyles({
 interface OrgNavProps {
   orgId: string;
   go: (to: string, keepOpen?: boolean) => (e: MouseEvent) => void;
+  collapsed?: boolean;
 }
 
 /** Sidebar content for the organisation in the URL: a back item plus its pages. */
-export function OrgNav({ orgId, go }: OrgNavProps) {
+export function OrgNav({ orgId, go, collapsed = false }: OrgNavProps) {
   const styles = useStyles();
   const { t } = useTranslation();
   // Same query (and cache entry) as the page itself, so the role never disagrees with the content.
@@ -68,15 +62,14 @@ export function OrgNav({ orgId, go }: OrgNavProps) {
 
   return (
     <>
-      <NavItem
-        value="/organisations"
-        href="/organisations"
+      <NavEntry
+        to="/organisations"
+        label={t('organisations.back')}
         icon={<ArrowLeftRegular />}
+        collapsed={collapsed}
         onClick={go('/organisations', true)}
-      >
-        {t('organisations.back')}
-      </NavItem>
-      {current && (
+      />
+      {current && !collapsed && (
         <div className={styles.org} aria-label={t('orgNav.current')}>
           <Caption1>{t('orgNav.current')}</Caption1>
           <Text className={styles.name}>{current.name}</Text>
@@ -87,9 +80,14 @@ export function OrgNav({ orgId, go }: OrgNavProps) {
       )}
       <NavDivider />
       {items.map(({ to, key, Icon }) => (
-        <NavItem key={to} value={to} href={to} icon={<Icon />} onClick={go(to)}>
-          {t(`orgNav.${key}`)}
-        </NavItem>
+        <NavEntry
+          key={to}
+          to={to}
+          label={t(`orgNav.${key}`)}
+          icon={<Icon />}
+          collapsed={collapsed}
+          onClick={go(to)}
+        />
       ))}
     </>
   );

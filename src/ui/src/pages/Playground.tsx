@@ -91,7 +91,6 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalL,
-    maxWidth: '880px',
   },
   muted: { color: tokens.colorNeutralForeground2 },
   card: {

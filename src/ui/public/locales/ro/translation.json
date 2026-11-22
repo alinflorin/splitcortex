@@ -9,7 +9,11 @@
     "toggle": "Comută navigarea",
     "organisations": "Organizații",
     "playground": "Spațiu de test",
-    "contact": "Contact"
+    "contact": "Contact",
+    "expand": "Extinde bara laterală",
+    "collapse": "Restrânge bara laterală",
+    "public": "Principal",
+    "openApp": "Deschide aplicația"
   },
   "auth": {
     "signIn": "Autentificare",

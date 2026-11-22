@@ -22,7 +22,7 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalXXL,
-    maxWidth: '480px',
+    maxWidth: '640px',
   },
   form: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
   actions: { display: 'flex' },

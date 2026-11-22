@@ -9,7 +9,11 @@
     "toggle": "Toggle navigation",
     "organisations": "Organisations",
     "playground": "Playground",
-    "contact": "Contact"
+    "contact": "Contact",
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar",
+    "public": "Main",
+    "openApp": "Open app"
   },
   "auth": {
     "signIn": "Sign in",

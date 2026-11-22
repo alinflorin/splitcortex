@@ -15,7 +15,7 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalXXL,
-    maxWidth: '480px',
+    maxWidth: '640px',
   },
   actions: { display: 'flex' },
   danger: {

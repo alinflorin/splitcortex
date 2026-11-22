@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { makeStyles, tokens } from '@fluentui/react-components';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useMediaQuery } from '../../lib/useMediaQuery';
+import { useStoredBoolean } from '../../lib/useStoredBoolean';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 
@@ -21,6 +22,7 @@ const useStyles = makeStyles({
     minHeight: 0,
     overflowY: 'auto',
   },
+  // One content width for every app page; pages fill it (forms keep their own narrower column).
   main: {
     flexGrow: 1,
     width: '100%',
@@ -34,16 +36,24 @@ const useStyles = makeStyles({
   },
 });
 
+/** The signed-in app: a sidebar (collapsible to an icon rail) next to the page. */
 export function AppLayout() {
   const styles = useStyles();
   const { pathname } = useLocation();
-  const isDesktop = useMediaQuery('(min-width: 900px)');
-  // Desktop: the sidebar is always visible. Mobile: an overlay drawer that starts hidden.
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  // Desktop: inline sidebar, expanded or an icon rail (remembered). Below 1024px: an overlay drawer, hidden at first.
+  const [collapsed, setCollapsed] = useStoredBoolean('sc-sidebar-collapsed');
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className={styles.root}>
-      <Sidebar open={isDesktop || mobileOpen} overlay={!isDesktop} onOpenChange={setMobileOpen} />
+      <Sidebar
+        open={isDesktop || mobileOpen}
+        overlay={!isDesktop}
+        onOpenChange={setMobileOpen}
+        collapsed={collapsed}
+        onToggleCollapsed={() => setCollapsed(!collapsed)}
+      />
       <div className={styles.column}>
         <TopBar showNavToggle={!isDesktop} onToggleNav={() => setMobileOpen((o) => !o)} />
         <main className={styles.main}>

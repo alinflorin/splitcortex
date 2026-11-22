@@ -70,3 +70,15 @@ html {
     animation: none !important;
   }
 }
+
+/* Touch targets: at least 44 px for fingers (phones, tablets), without changing the desktop look. */
+@media (max-width: 599px), (pointer: coarse) {
+  :is(button, a).fui-Button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .fui-NavItem,
+  .fui-MenuItem {
+    min-height: 44px;
+  }
+}
