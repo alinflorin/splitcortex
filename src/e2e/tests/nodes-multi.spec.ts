@@ -706,6 +706,9 @@ test('every balancing choice reaches both devices', async () => {
 });
 
 test('a client that hangs up mid-answer frees the device', async () => {
+  // The devices report what they are running every 10 s (telemetry), and a steady fake device streams 200 tokens a
+  // second: the answer must outlast the report that shows it (and the one that shows it gone), so it is 12000 tokens,
+  // a minute, not the 5 s that 1000 would take.
   const inFlight = async () =>
     ((await nodeOf(n1.nodeId)).live?.inFlight ?? 0) +
     ((await nodeOf(n2.nodeId)).live?.inFlight ?? 0);
@@ -715,7 +718,7 @@ test('a client that hangs up mid-answer frees the device', async () => {
   const res = await fetch(`${baseUrl()}/v1/chat/completions`, {
     method: 'POST',
     headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
-    body: JSON.stringify(chat({ stream: true, max_tokens: 1000 })),
+    body: JSON.stringify(chat({ stream: true, max_tokens: 12_000 })),
     signal: controller.signal,
   });
   expect(res.status).toBe(200);
@@ -724,7 +727,7 @@ test('a client that hangs up mid-answer frees the device', async () => {
   // The device reports it is busy with the answer...
   await expect
     .poll(inFlight, {
-      timeout: 30_000,
+      timeout: 40_000,
       intervals: [1_000],
       message: 'the answer never showed as running',
     })
@@ -732,7 +735,7 @@ test('a client that hangs up mid-answer frees the device', async () => {
   // ...the client leaves...
   controller.abort();
   await reader.cancel().catch(() => undefined);
-  // ...and the device is told to stop: it is free again long before 1000 tokens could have been generated.
+  // ...and the device is told to stop: it is free again long before 12000 tokens could have been generated.
   await expect
     .poll(inFlight, { timeout: 30_000, intervals: [1_000], message: 'the device kept generating' })
     .toBe(0);
