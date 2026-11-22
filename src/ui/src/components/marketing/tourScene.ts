@@ -215,7 +215,7 @@ export function createTourScene(
   desk.add(deskTop);
   for (const d of deskDevices) {
     const mesh = new Mesh(new BoxGeometry(...d.size), d.mat);
-    mesh.position.set(...d.pos);
+    mesh.position.set(d.pos[0], d.pos[1], d.pos[2]);
     mesh.rotation.x = d.rotX;
     desk.add(mesh);
   }
