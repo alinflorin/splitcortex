@@ -93,6 +93,14 @@ export default defineConfig({
         },
       },
     },
+    // Performance of the platform with a fleet of fake CLI nodes (`run --fake`). Run it alone, on one worker, after the
+    // other projects have passed: `--project=perf --workers=1`. Results land in `perf-results/`.
+    {
+      name: 'perf',
+      dependencies: ['setup'],
+      testMatch: /perf\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
     // The emulator is one device: Android is its own project (and CI job).
     {
       name: 'nodes-android',

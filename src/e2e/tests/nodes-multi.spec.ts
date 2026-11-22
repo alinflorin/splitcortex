@@ -61,8 +61,13 @@ const keyIds: string[] = [];
 const modelIds: string[] = [];
 const poolIds: string[] = [];
 const cli: CliNode[] = [];
-/** A CLI node; `fake: false` runs the real engine and downloads the real model. */
-const newCli = (fake = true) => {
+/** Instant answers (1 ms to the first token, no delay between tokens): most tests only need the answer. */
+const QUICK = { firstTokenMs: 1, tokensPerSec: 0 };
+/** Slow enough (20 ms, then 200 a second) that an answer of hundreds of tokens is still streaming when a test acts. */
+const STEADY = { firstTokenMs: 20, tokensPerSec: 200 };
+
+/** A CLI node on the fake engine (instant by default); `fake: false` runs the real engine and downloads the real model. */
+const newCli = (fake: boolean | typeof QUICK = QUICK) => {
   const n = new CliNode(fake);
   cli.push(n);
   return n;
@@ -226,8 +231,10 @@ test.afterAll(async () => {
   await page.context().close();
 });
 
-const n1 = newCli();
-const n2 = newCli();
+// The pair the mid-answer tests (a device dying or stopping, a client hanging up) act on: their answers must still be
+// streaming when the test acts.
+const n1 = newCli(STEADY);
+const n2 = newCli(STEADY);
 
 test('two devices in one pool come online, both serve, load is shared', async () => {
   await join(n1);
@@ -633,6 +640,9 @@ test('mixed devices: a browser tab and a command-line node share one pool', asyn
   await expect
     .poll(async () => (await ids()).length, { timeout: 15 * 60_000, intervals: [3_000] })
     .toBe(2);
+  // "Online" is only the connection, and a device that is still loading gets no traffic. The fake command-line node is
+  // ready at once, the browser tab needs minutes: wait for both, or the requests below all go to the first one.
+  await Promise.all((await ids()).map((n) => loaded(n.id)));
   await expect
     .poll(async () => (await ask(key.secret)).status, { timeout: 15 * 60_000, intervals: [3_000] })
     .toBe(200);

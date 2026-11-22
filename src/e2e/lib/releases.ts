@@ -35,7 +35,7 @@ function isCurrent(file: string, asset: Asset): boolean {
 
 async function gh(url: string): Promise<Response> {
   // Anonymous calls to the GitHub API are limited to 60 an hour: a token (when there is one) lifts that.
-  const token = process.env.GITHUB_TOKEN?.trim();
+  const token = (process.env.GITHUB_TOKEN || process.env.GH_TOKEN)?.trim();
   const res = await fetch(url, {
     headers: {
       'user-agent': 'splitcortex-e2e',
@@ -43,7 +43,13 @@ async function gh(url: string): Promise<Response> {
     },
     redirect: 'follow',
   });
-  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  if (!res.ok) {
+    const hint =
+      (res.status === 403 || res.status === 429) && !token
+        ? ' (GitHub rate limit for anonymous calls: set GITHUB_TOKEN)'
+        : '';
+    throw new Error(`${url}: ${res.status}${hint}`);
+  }
   return res;
 }
 
@@ -51,12 +57,33 @@ async function gh(url: string): Promise<Response> {
 const tagOf = (stream: 'cli-node' | 'mobile-node', version?: string) =>
   version ? `${stream}-v${version.replace(/^v/, '')}` : `${stream}-latest`;
 
+/** The newest file already downloaded for this tag that `pick` accepts: what to use when GitHub cannot be asked. */
+function cached(pick: (a: Asset) => boolean, dir: string): string | null {
+  const folder = join(CACHE, dir);
+  if (!existsSync(folder)) return null;
+  const files = readdirSync(folder, { withFileTypes: true })
+    .filter((e) => e.isFile())
+    .map((e) => ({ file: join(folder, e.name), name: e.name }))
+    .filter((f) => pick({ name: f.name, browser_download_url: '', size: statSync(f.file).size }))
+    .sort((a, b) => statSync(b.file).mtimeMs - statSync(a.file).mtimeMs);
+  return files[0]?.file ?? null;
+}
+
 async function download(tag: string, pick: (a: Asset) => boolean, dir: string): Promise<string> {
-  const rel = (await (
-    await gh(`https://api.github.com/repos/${REPO}/releases/tags/${tag}`)
-  ).json()) as {
-    assets: Asset[];
-  };
+  let rel: { assets: Asset[] };
+  try {
+    rel = (await (
+      await gh(`https://api.github.com/repos/${REPO}/releases/tags/${tag}`)
+    ).json()) as {
+      assets: Asset[];
+    };
+  } catch (e) {
+    // Cannot ask (rate limit, GitHub down): a copy from an earlier run beats failing, and it is said out loud.
+    const old = cached(pick, dir);
+    if (!old) throw e;
+    console.warn(`Using the cached ${old}: ${e instanceof Error ? e.message : e}`);
+    return old;
+  }
   const asset = rel.assets.find(pick);
   if (!asset)
     throw new Error(

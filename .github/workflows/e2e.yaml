@@ -1,6 +1,7 @@
 # End-to-end suite (src/e2e, Playwright) against stg: signs in through Dex, builds an organisation with models and pools,
 # then runs, side by side in separate jobs, the device-free specs (API, web app, tenancy) and every node type with pools
-# of its own (web node in the browser, the released CLI node, the released Android app on an emulator). Daily, or by hand
+# of its own (web node in the browser, the released CLI node, the released Android app on an emulator). Last, only when
+# all of those passed, a performance run of the platform with a fleet of fake CLI nodes (`run --fake`). Daily, or by hand
 # with optional node versions.
 name: E2E
 
@@ -9,6 +10,10 @@ on:
     - cron: "17 3 * * *"
   workflow_dispatch:
     inputs:
+      perf_nodes:
+        description: Fake devices in the performance fleet (default 12; enrolling takes 6 s each)
+        type: string
+        default: ""
       cli_version:
         description: CLI node version to test (X.Y.Z); empty = the rolling cli-node-latest
         type: string
@@ -109,6 +114,9 @@ jobs:
       E2E_CLI_VERSION: ${{ inputs.cli_version }}
       E2E_MOBILE_VERSION: ${{ inputs.mobile_version }}
       E2E_NODE_TYPES: ${{ matrix.node-types }}
+      # Release lookups (lib/releases.ts) with a token: anonymous calls are 60 an hour per runner address, shared with
+      # everyone else on it, and fail with 403.
+      GITHUB_TOKEN: ${{ github.token }}
     defaults:
       run:
         working-directory: src/e2e
@@ -199,6 +207,91 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: e2e-report-${{ matrix.node-types }}
+          path: |
+            src/e2e/playwright-report
+            src/e2e/test-results
+          retention-days: 14
+
+  # Performance of the platform (gateway, control plane, metering) with a fleet of fake CLI nodes. Only once every job
+  # above has passed, so the environment is known to be sane, and alone on stg (the concurrency group above also keeps
+  # other runs away). Reports only; set PERF_ENFORCE=1 to fail on a regression against the previous run's results.
+  perf:
+    needs: [prepare, e2e]
+    if: ${{ !cancelled() && needs.e2e.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: stg
+    permissions:
+      contents: read
+      actions: read
+    env:
+      BASE_URL: https://stg.splitcortex.com
+      E2E_EMAILS: ${{ secrets.E2E_EMAILS }}
+      E2E_PASSWORDS: ${{ secrets.E2E_PASSWORDS }}
+      E2E_CLI_VERSION: ${{ inputs.cli_version }}
+      E2E_NODE_TYPES: none
+      PERF_NODES: ${{ inputs.perf_nodes }}
+      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    defaults:
+      run:
+        working-directory: src/e2e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: src/e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: src/e2e/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('src/e2e/pnpm-lock.yaml') }}
+      - name: Install Chromium
+        run: |
+          if [ "${{ steps.browsers.outputs.cache-hit }}" = "true" ]; then pnpm exec playwright install-deps chromium; else pnpm install:browsers; fi
+
+      - name: Cache node release downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: src/e2e/.cache
+          key: e2e-releases-${{ github.run_id }}
+          restore-keys: e2e-releases-
+
+      # The previous successful run's results, to compare with (none the first time: then nothing is compared).
+      - name: Fetch the previous results
+        run: |
+          for id in $(gh run list --workflow e2e.yaml --status success --limit 10 --json databaseId --jq '.[].databaseId'); do
+            if gh run download "$id" -n perf-results -D perf-baseline 2>/dev/null; then
+              echo "Comparing with run $id"; break
+            fi
+          done
+
+      - name: Run the performance specs
+        run: pnpm exec playwright test --project=perf --workers=1
+
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: '[ -f perf-results/summary.md ] && cat perf-results/summary.md >> "$GITHUB_STEP_SUMMARY" || true'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ !cancelled() }}
+        with:
+          name: perf-results
+          path: src/e2e/perf-results
+          retention-days: 30
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ failure() }}
+        with:
+          name: e2e-report-perf
           path: |
             src/e2e/playwright-report
             src/e2e/test-results

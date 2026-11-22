@@ -33,6 +33,12 @@ export function nodeAuthHeader(
   return `Node ${nodeId}.${ts}.${signature}`;
 }
 
+/** Pace of the fake engine (`run --fake`): defaults are 20 ms to the first token, then 200 a second. */
+export interface FakeOptions {
+  firstTokenMs?: number;
+  tokensPerSec?: number;
+}
+
 /**
  * One released CLI node with a data directory of its own: several can run side by side in one test.
  *
@@ -44,7 +50,7 @@ export class CliNode {
   readonly home = mkdtempSync(join(tmpdir(), 'splitcortex-e2e-'));
   private proc: ChildProcess | undefined;
 
-  constructor(private readonly fake = true) {}
+  constructor(private readonly fake: boolean | FakeOptions = true) {}
 
   private env() {
     return { ...process.env, SPLITCORTEX_HOME: this.home, SPLITCORTEX_URL: baseUrl() };
@@ -87,7 +93,15 @@ export class CliNode {
 
   async start(): Promise<void> {
     if (this.running()) return;
-    const args = this.fake ? ['run', '--fake'] : ['run'];
+    const args = ['run'];
+    if (this.fake) {
+      args.push('--fake');
+      if (typeof this.fake === 'object') {
+        const { firstTokenMs, tokensPerSec } = this.fake;
+        if (firstTokenMs !== undefined) args.push('--fake-first-token-ms', String(firstTokenMs));
+        if (tokensPerSec !== undefined) args.push('--fake-tokens-per-sec', String(tokensPerSec));
+      }
+    }
     this.proc = spawn(await cliNodeBinary(), args, { env: this.env(), stdio: 'inherit' });
   }
 
