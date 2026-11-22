@@ -154,20 +154,22 @@ test('find or create the organisation, models, pools; new API key', async ({ bro
     }
   }
 
-  const keyName = `e2e-${Date.now().toString(36)}`;
-  await page.goto(`${baseUrl()}/organisations/${orgId}/api-keys`);
-  await page.getByRole('button', { name: 'New API key' }).first().click();
-  await page.getByRole('dialog').getByLabel('Name').fill(keyName);
-  await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click();
-  // Role + name: the alert dialog itself is also labelled "Copy your API key" (by its title).
-  const secret = page.getByRole('textbox', { name: 'Copy your API key' });
-  await expect(secret).toBeVisible();
-  const apiKey = await secret.inputValue();
-  expect(apiKey.length).toBeGreaterThan(16);
-  await page.getByRole('button', { name: 'Done' }).click();
-  const apiKeyId = (await list(page, `/organisations/${orgId}/api-keys`)).find(
-    (k) => k.name === keyName,
-  )!.id;
+  // Scoped to this job's own pools: a whole-org key would also reach the devices that the web and CLI node jobs
+  // enroll in the same organisation at the same time, and the Playground would chat with a real (slow) node.
+  // Creating a key through the dialog is covered by ui-admin.spec.ts.
+  const mainKey = await api<{ key: { id: string }; secret: string }>(
+    page,
+    'POST',
+    `/organisations/${orgId}/api-keys`,
+    {
+      name: `e2e-${Date.now().toString(36)}`,
+      scope: 'pools',
+      poolIds: [chatPoolId, embedPoolId],
+    },
+  );
+  expect(mainKey.status, 'main key').toBe(201);
+  const apiKey = mainKey.body.secret;
+  const apiKeyId = mainKey.body.key.id;
 
   saveState({ orgId, orgName: ORG_NAME, chatPoolId, embedPoolId, apiKey, apiKeyId, nodes });
   await context.close();
