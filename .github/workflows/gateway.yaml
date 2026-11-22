@@ -22,8 +22,10 @@ jobs:
     permissions:
       contents: read
       packages: write
+      checks: write
     uses: ./.github/workflows/docker-service.yaml
     with:
       service: gateway
       context: src/gateway
       dockerfile: src/gateway/Dockerfile
+      test-report: true

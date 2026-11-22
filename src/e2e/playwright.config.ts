@@ -13,8 +13,14 @@ export default defineConfig({
   retries: 0,
   timeout: 20 * 60_000,
   expect: { timeout: 15_000 },
+  // CI also writes JUnit XML (reports/junit.xml), which the workflow shows as a test report on the run.
   reporter: process.env.CI
-    ? [['github'], ['html', { open: 'never' }], ['list']]
+    ? [
+        ['github'],
+        ['html', { open: 'never' }],
+        ['junit', { outputFile: 'reports/junit.xml' }],
+        ['list'],
+      ]
     : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: process.env.BASE_URL,

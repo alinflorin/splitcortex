@@ -17,6 +17,7 @@ concurrency:
 permissions:
   contents: read
   packages: write
+  checks: write
 
 jobs:
   # Manual runs must start from the tag itself (Run workflow -> "Use workflow from" -> Tags -> vX.Y.Z):

@@ -11,6 +11,7 @@
     "format": "prettier --write src index.html",
     "format:check": "prettier --check src index.html",
     "test": "vitest run",
+    "test:ci": "vitest run --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml",
     "test:watch": "vitest"
   },
   "dependencies": {

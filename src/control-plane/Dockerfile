@@ -4,10 +4,19 @@ RUN npm install -g pnpm@12.19.0
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-FROM base AS build
+FROM base AS test
 RUN pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm test
+# Failing tests do not fail this step: it writes reports/junit.xml and reports/exit-code, so CI can export the report
+# (`--target test-report`) even when they fail. The build stage below fails the image on a non-zero exit code.
+RUN mkdir -p reports; pnpm test:ci; echo $? > reports/exit-code; true
+
+# Only the reports, for `docker build --target test-report --output type=local,dest=<dir>`.
+FROM scratch AS test-report
+COPY --from=test /app/reports /
+
+FROM test AS build
+RUN [ "$(cat reports/exit-code)" = 0 ] || { echo "Unit tests failed: see the JUnit report (target test-report)"; exit 1; }
 RUN pnpm build
 
 FROM base AS deps

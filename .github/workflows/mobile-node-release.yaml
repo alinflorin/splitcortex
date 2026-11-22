@@ -14,6 +14,8 @@ concurrency:
 
 permissions:
   contents: read
+  # mobile-node.yaml shows its unit test report as a check run.
+  checks: write
 
 jobs:
   # Manual runs must start from the tag itself (Run workflow -> "Use workflow from" -> Tags -> vX.Y.Z):

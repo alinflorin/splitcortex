@@ -22,8 +22,10 @@ jobs:
     permissions:
       contents: read
       packages: write
+      checks: write
     uses: ./.github/workflows/docker-service.yaml
     with:
       service: web-node
       context: src/web-node
       dockerfile: src/web-node/Dockerfile
+      test-report: true

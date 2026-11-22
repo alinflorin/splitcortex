@@ -60,6 +60,7 @@ Local `*.local.splitcortex.com`, stg `*.stg.splitcortex.com`, prd `splitcortex.c
 
 CI/CD, releases, deploy: [docs/commands-and-ci.md](docs/commands-and-ci.md).
 
+- **Test reports**: JUnit XML everywhere, shown on the run with `dorny/test-reporter` (`pnpm test:ci`, `cargo nextest run --profile ci`, Playwright `junit`; Docker unit tests export via the `test-report` stage). [docs/commands-and-ci.md](docs/commands-and-ci.md)
 - Chart: `helm lint chart --strict [-f chart/values-stg.yaml]`, `helm template`. Local stack: `tilt up --wait` at the root.
 - `src/{ui,web-node,control-plane,mobile-node}` (pnpm): `pnpm install`, `typecheck`, `test`, `format` (before committing; Prettier config at root), `dev`/`build`. Control plane also `db:generate`/`db:migrate`; mobile `expo run:android`.
 - `src/cli-node`: `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `cargo build --release` (`python3 scripts/fetch-litert.py` first).

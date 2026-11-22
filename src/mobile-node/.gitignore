@@ -45,3 +45,4 @@ modules/*/android/build/
 modules/*/android/.cxx/
 modules/*/ios/build/
 .gradle/
+reports

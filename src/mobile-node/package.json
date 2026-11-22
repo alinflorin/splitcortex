@@ -45,6 +45,7 @@
     "@types/react": "~19.3.0",
     "jest": "~30.5.2",
     "jest-expo": "~58.0.15",
+    "jest-junit": "^17.0.0",
     "prettier": "^3.10.1",
     "react-test-renderer": "^19.3.1",
     "typescript": "~6.0.3"
@@ -57,11 +58,18 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write src",
     "test": "jest",
+    "test:ci": "jest --ci --reporters=default --reporters=jest-junit",
     "format:check": "prettier --check src",
     "gen:proto": "scripts/gen-proto.sh"
   },
   "packageManager": "pnpm@12.19.0",
   "private": true,
+  "jest-junit": {
+    "outputDirectory": "reports",
+    "outputName": "junit.xml",
+    "classNameTemplate": "{classname}",
+    "titleTemplate": "{title}"
+  },
   "jest": {
     "preset": "jest-expo",
     "setupFiles": [

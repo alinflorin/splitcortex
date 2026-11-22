@@ -22,8 +22,10 @@ jobs:
     permissions:
       contents: read
       packages: write
+      checks: write
     uses: ./.github/workflows/docker-service.yaml
     with:
       service: control-plane
       context: src/control-plane
       dockerfile: src/control-plane/Dockerfile
+      test-report: true

@@ -1,0 +1,6 @@
+# JUnit XML for CI (cargo nextest run --profile ci): target/nextest/ci/junit.xml, shown as a test report on the run.
+[profile.ci]
+fail-fast = false
+
+[profile.ci.junit]
+path = "junit.xml"
