@@ -162,16 +162,16 @@
           "body": "Telefonul acela, Pi-ul acela, laptopul de rezervă. Putere de calcul deja plătită, care nu face nimic."
         },
         {
-          "title": "Înrolate în câteva secunde",
-          "body": "Scrii un cod scurt sau scanezi un QR. Dispozitivul își primește propria cheie și intră în pool-ul tău."
+          "title": "Se conectează și contribuie",
+          "body": "Un cod scurt sau un QR dă fiecărui dispozitiv propria cheie. Apoi puterea lui de calcul curge spre flotă: adaugă capacitate, nu consumă."
         },
         {
-          "title": "Un pool, un model",
-          "body": "Fiecare dispozitiv din pool ține același model, așa că oricare poate răspunde."
+          "title": "Flota e făcută din ele",
+          "body": "Fiecare rack e încă un set de dispozitive ca acestea, toate cu același model într-un singur pool. Oricare poate răspunde."
         },
         {
           "title": "Urmărește o cerere",
-          "body": "Aplicația ta apelează API-ul în format OpenAI. Gateway-ul verifică cheia, alege un dispozitiv sănătos, iar tokenii se întorc în streaming."
+          "body": "Aplicația ta apelează API-ul în format OpenAI. Gateway-ul verifică cheia și o trimite la un dispozitiv sănătos, iar tokenii se întorc în streaming. Dacă unul cade, preia altul."
         }
       ]
     }

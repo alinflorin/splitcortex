@@ -162,16 +162,16 @@
           "body": "That phone, that Pi, that spare laptop. Compute you already paid for, doing nothing."
         },
         {
-          "title": "Enrolled in seconds",
-          "body": "Type a short code or scan a QR. The device gets its own key and joins your pool."
+          "title": "They plug in and contribute",
+          "body": "A short code or a QR gives each device its own key. Then its compute flows out to the fleet: it adds capacity, it takes none."
         },
         {
-          "title": "One pool, one model",
-          "body": "Every device in the pool holds the same model, so any of them can answer."
+          "title": "The fleet is made of them",
+          "body": "Every rack is more devices like these, all holding the same model in one pool. Any of them can answer."
         },
         {
           "title": "Follow a request",
-          "body": "Your app calls the OpenAI-format API. The gateway checks the key, picks a healthy device, and the tokens stream back."
+          "body": "Your app calls the OpenAI-format API. The gateway checks the key and sends it to a healthy device, and the tokens stream back. If one drops, another takes over."
         }
       ]
     }

@@ -12,8 +12,8 @@ import {
   Color,
   Fog,
   GridHelper,
-  Group,
   IcosahedronGeometry,
+  Group,
   InstancedMesh,
   Line,
   LineBasicMaterial,
@@ -26,6 +26,8 @@ import {
   PerspectiveCamera,
   PointLight,
   Scene,
+  Sprite,
+  SpriteMaterial,
   SphereGeometry,
   TorusGeometry,
   Vector2,
@@ -88,7 +90,7 @@ export function createTourScene(
 
   const ambient = new AmbientLight('#ffffff', 1);
   const camLight = new PointLight('#ffffff', 40, 40, 1.6);
-  const hubLight = new PointLight(MINT, 300, 60, 1.6);
+  const hubLight = new PointLight('#ffffff', 300, 60, 1.6);
   hubLight.position.set(0, 3, HUB_Z + 4);
   scene.add(ambient, camLight, hubLight);
 
@@ -184,17 +186,52 @@ export function createTourScene(
   // hub at the end of the aisle
   const hub = new Group();
   hub.position.set(0, 3, HUB_Z);
-  const hubShell = new MeshBasicMaterial({ wireframe: true });
-  const hubCore = new MeshBasicMaterial({ color: MINT });
   const ringA = new MeshBasicMaterial({ transparent: true, opacity: 0.8 });
   const ringB = new MeshBasicMaterial({ color: CYAN, transparent: true, opacity: 0.8 });
-  const shell = new Mesh(new IcosahedronGeometry(2.6, 1), hubShell);
-  const core = new Mesh(new SphereGeometry(1.1, 24, 24), hubCore);
   const ring1 = new Mesh(new TorusGeometry(3.6, 0.04, 8, 80), ringA);
   const ring2 = new Mesh(new TorusGeometry(4.4, 0.04, 8, 80), ringB);
   ring1.rotation.x = Math.PI / 2.4;
   ring2.rotation.y = Math.PI / 2.8;
-  hub.add(shell, core, ring1, ring2);
+  const glowTex = (() => {
+    const c = document.createElement('canvas');
+    c.width = 128;
+    c.height = 128;
+    const g = c.getContext('2d');
+    if (!g) return undefined;
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    return new CanvasTexture(c);
+  })();
+  const glowMat = new SpriteMaterial({
+    map: glowTex,
+    transparent: true,
+    depthWrite: false,
+    fog: false,
+  });
+  const glow = new Sprite(glowMat);
+  glow.scale.setScalar(13);
+  const R = 2.2;
+  const leftMat = new MeshBasicMaterial({ side: DoubleSide });
+  const rightMat = new MeshBasicMaterial({ side: DoubleSide });
+  const mark = new Group();
+  mark.position.set(0, 3, HUB_Z);
+  const leftHalf = new Mesh(new SphereGeometry(R, 48, 32, -Math.PI / 2, Math.PI), leftMat);
+  const rightHalf = new Mesh(new SphereGeometry(R, 48, 32, Math.PI / 2, Math.PI), rightMat);
+  leftHalf.position.x = -0.05;
+  rightHalf.position.x = 0.05;
+  const seamMat = new MeshBasicMaterial({ color: '#dfe4ff' });
+  const seam = new Mesh(new TorusGeometry(R, 0.035, 8, 96), seamMat);
+  seam.rotation.y = Math.PI / 2;
+  const net = new Mesh(
+    new IcosahedronGeometry(R + 0.08, 2),
+    new MeshBasicMaterial({ color: '#ffffff', wireframe: true, transparent: true, opacity: 0.08 }),
+  );
+  mark.add(leftHalf, rightHalf, seam, net);
+  scene.add(mark);
+  hub.add(glow, ring1, ring2);
   scene.add(hub);
 
   // chapter 1-2: a desk with forgotten devices, just before the aisle
@@ -315,39 +352,52 @@ export function createTourScene(
   laptop.add(hinge);
   desk.add(phone, pi, laptop);
 
-  // power cables that snake in from the aisle and plug into each device
+  // cables leave each device and run down the aisle to the hub: the devices feed the fleet
+  const SEG = 240;
   const plugs = [
     { port: new Vector3(-1.1, 0.545, D - 0.54), dir: new Vector3(0, 0, -1) },
     { port: new Vector3(0.3, 0.56, D - 0.22), dir: new Vector3(0, 0, -1) },
     { port: new Vector3(1.66, 0.56, D + 0.15), dir: new Vector3(1, 0, 0) },
   ].map(({ port, dir }) => {
     const away = port.clone().addScaledVector(dir, 0.3);
-    const pts =
+    const tail = [
+      new Vector3(port.x * 0.4, 0.03, D - 7),
+      new Vector3(port.x * 0.1, 0.03, -20),
+      new Vector3(0, 0.05, -45),
+      new Vector3(0, 1.2, HUB_Z + 3),
+    ];
+    const start =
       dir.x === 0
         ? [
-            new Vector3(port.x, 0.03, D - 5),
-            new Vector3(port.x, 0.03, D - 1.3),
-            new Vector3(port.x, 0.4, D - 1.05),
-            new Vector3(port.x, 0.62, D - 0.8),
             away,
+            new Vector3(port.x, 0.62, D - 0.8),
+            new Vector3(port.x, 0.4, D - 1.05),
+            new Vector3(port.x, 0.03, D - 1.3),
           ]
         : [
-            new Vector3(1.95, 0.03, D - 5),
-            new Vector3(1.95, 0.03, D - 0.5),
-            new Vector3(1.95, 0.4, D + 0.1),
-            new Vector3(1.9, 0.62, D + 0.15),
             away,
+            new Vector3(1.9, 0.62, D + 0.15),
+            new Vector3(1.95, 0.4, D + 0.1),
+            new Vector3(1.95, 0.03, D - 0.5),
           ];
-    const geo = new TubeGeometry(new CatmullRomCurve3(pts), 80, 0.022, 6, false);
+    const curve = new CatmullRomCurve3([...start, ...tail]);
+    const geo = new TubeGeometry(curve, SEG, 0.022, 6, false);
     const mat = new MeshBasicMaterial({ toneMapped: false });
     const cable = new Mesh(geo, mat);
     cable.frustumCulled = false;
     const plug = new Mesh(new BoxGeometry(0.09, 0.05, 0.12), metal);
     plug.rotation.y = dir.x === 0 ? 0 : Math.PI / 2;
     desk.add(cable, plug);
-    return { geo, mat, cable, plug, port, dir };
+    return { geo, mat, cable, plug, port, dir, curve };
   });
-  const plugCount = (plugs[0] as (typeof plugs)[number]).geo.index?.count ?? 0;
+  const DESK_PULSES = 5;
+  const deskPulses = new InstancedMesh(
+    new SphereGeometry(1, 8, 8),
+    pulseMat,
+    plugs.length * DESK_PULSES,
+  );
+  deskPulses.frustumCulled = false;
+  scene.add(deskPulses);
 
   // identity glyphs: a key/shield outline floats above each device when it enrols
   const shieldMat = new LineBasicMaterial({ transparent: true, opacity: 0 });
@@ -380,6 +430,7 @@ export function createTourScene(
   const APP = new Vector3(9, 7, -8);
   const GATE = new Vector3(0, 3, HUB_Z + 4.5);
   const DEVICE = new Vector3(-3.0, 2.8, -8 * RACK_STEP - 4);
+  const DEVICE2 = new Vector3(3.0, 2.8, -4 * RACK_STEP - 4);
   const appMat = new MeshBasicMaterial({ transparent: true, side: DoubleSide });
   const appBarMat = new MeshBasicMaterial({ transparent: true, toneMapped: false });
   const appPanel = new Group();
@@ -398,8 +449,22 @@ export function createTourScene(
     [APP, GATE],
     [GATE, DEVICE],
     [DEVICE, APP],
+    [GATE, DEVICE2],
+    [DEVICE2, APP],
   ] as const) {
     scene.add(new Line(new BufferGeometry().setFromPoints([a, b]), legMat));
+  }
+  // the two devices that can answer: the first one drops out halfway, the other takes over
+  const markA = new MeshBasicMaterial({ transparent: true, toneMapped: false });
+  const markB = new MeshBasicMaterial({ transparent: true, toneMapped: false });
+  for (const [pos, mat] of [
+    [DEVICE, markA],
+    [DEVICE2, markB],
+  ] as const) {
+    const mark = new Mesh(new TorusGeometry(0.55, 0.05, 8, 40), mat);
+    mark.position.copy(pos);
+    mark.rotation.y = Math.PI / 2;
+    scene.add(mark);
   }
   const FLOW = 9; // 1 request + 8 streamed tokens
   const flowMat = new MeshBasicMaterial({ transparent: true, depthWrite: false });
@@ -467,7 +532,7 @@ export function createTourScene(
     ambient.intensity = light ? 2.1 : 1.4;
     ambient.color.set(light ? '#ffffff' : VIOLET);
     camLight.intensity = light ? 40 : 90;
-    hubLight.intensity = light ? 160 : 400;
+    hubLight.intensity = light ? 8 : 10;
     gridDark.visible = !light;
     gridLight.visible = light;
     rackMat.color.copy(light ? lightRack : darkRack);
@@ -476,7 +541,10 @@ export function createTourScene(
     pulseMat.blending = light ? NormalBlending : AdditiveBlending;
     pulseMat.color.set(light ? DEEP_TEAL : MINT);
     pulseMat.needsUpdate = true;
-    hubShell.color.set(light ? DEEP_VIOLET : VIOLET);
+    glowMat.color.set(light ? VIOLET : MINT);
+    glowMat.opacity = light ? 0.12 : 0.07;
+    leftMat.color.set(light ? DEEP_VIOLET : '#5566e8');
+    rightMat.color.set(light ? DEEP_TEAL : '#25c9ae');
     ringA.color.set(light ? DEEP_VIOLET : VIOLET);
     bloom.enabled = !light && !lowPower;
     deskMat.color.set(light ? '#ffffff' : '#161c52');
@@ -507,7 +575,11 @@ export function createTourScene(
     ring1.rotation.z = t * 0.6;
     ring2.rotation.x = t * 0.45;
     const beat = 1 + Math.sin(t * 2.2) * 0.06;
-    core.scale.setScalar(beat);
+    mark.scale.setScalar(beat);
+    net.rotation.y = t * 0.2;
+    net.rotation.x = t * 0.1;
+    mark.rotation.y = Math.sin(t * 0.4) * 0.35;
+    glow.scale.setScalar(13 * beat);
 
     // enrolment: the desk devices light up, a ring spreads out, the fleet wakes up
     // the side view at the end sees the whole line, so the fog has to thin out
@@ -515,22 +587,34 @@ export function createTourScene(
       scene.fog.near = 18 + 60 * smooth(0.6, 0.85, progress);
       scene.fog.far = (mode === 'light' ? 70 : 62) + 90 * smooth(0.6, 0.85, progress);
     }
-    const reveal = smooth(0.3, 0.42, progress);
+    const reveal = smooth(0.4, 0.54, progress); // the fleet lights up as the cables arrive
+    const wake = smooth(0.24, 0.32, progress); // the desk devices enrol
     hinge.rotation.x = Math.PI / 2 - 0.02 - (Math.PI / 2 + 0.2) * smooth(0, 0.1, progress);
+    const pv = new Vector3();
     plugs.forEach((pl, n) => {
-      const grow = smooth(0.18 + n * 0.025, 0.3 + n * 0.025, progress);
-      const snap = smooth(0.29 + n * 0.025, 0.32 + n * 0.025, progress);
-      pl.geo.setDrawRange(0, Math.floor(grow * 79) * 36 + (grow >= 1 ? plugCount : 0));
-      pl.mat.color.lerpColors(idle, mintColor, grow);
-      pl.plug.visible = grow >= 0.98;
+      const grow = smooth(0.16 + n * 0.02, 0.52 + n * 0.02, progress);
+      const snap = smooth(0.16 + n * 0.02, 0.2 + n * 0.02, progress);
+      pl.geo.setDrawRange(0, Math.floor(grow * (SEG - 1)) * 36 + (grow >= 1 ? 100000 : 0));
+      pl.mat.color.lerpColors(idle, mintColor, Math.min(1, grow * 10));
       pl.plug.position.copy(pl.port).addScaledVector(pl.dir, 0.1 * (1 - snap) + 0.05);
+      // pulses run from the device out to the hub, only along the part already laid
+      for (let k = 0; k < DESK_PULSES; k++) {
+        const u = ((t * 0.1 + k / DESK_PULSES) % 1) * grow;
+        pl.curve.getPointAt(u, pv);
+        // fade out before the hub so the pulses don't pile up on the sphere
+        const sz = grow > 0.02 ? (mode === 'light' ? 0.08 : 0.09) * (1 - smooth(0.8, 0.97, u)) : 0;
+        m.makeScale(sz, sz, sz);
+        m.setPosition(pv);
+        deskPulses.setMatrixAt(n * DESK_PULSES + k, m);
+      }
     });
-    phoneScreenMat.opacity = reveal;
-    laptopScreenMat.opacity = reveal;
-    piLedMat.color.lerpColors(idle, mintColor, reveal);
+    deskPulses.instanceMatrix.needsUpdate = true;
+    phoneScreenMat.opacity = wake;
+    laptopScreenMat.opacity = wake;
+    piLedMat.color.lerpColors(idle, mintColor, wake);
     shieldMat.color.set(mode === 'light' ? DEEP_TEAL : MINT);
-    shieldMat.opacity = smooth(0.31, 0.36, progress) * (1 - smooth(0.44, 0.5, progress)) * 0.9;
-    const wave = smooth(0.28, 0.5, progress);
+    shieldMat.opacity = smooth(0.27, 0.32, progress) * (1 - smooth(0.4, 0.46, progress)) * 0.9;
+    const wave = smooth(0.22, 0.4, progress);
     enrollRing.scale.setScalar(0.6 + wave * 7);
     enrollMat.opacity = wave > 0 && wave < 1 ? (1 - wave) * 0.9 : 0;
     deviceMat.color.setScalar(0.28 + 0.72 * reveal);
@@ -542,7 +626,14 @@ export function createTourScene(
     appMat.opacity = 0.85 * vis;
     appBarMat.opacity = 0.9 * vis;
     legMat.opacity = 0.45 * vis;
-    const ph = (t * 0.22) % 1;
+    const cycle = (t * 0.11) % 1;
+    const second = cycle >= 0.5;
+    const target = second ? DEVICE2 : DEVICE;
+    const ph = (cycle % 0.5) * 2;
+    markA.color.set(second ? (mode === 'light' ? '#9aa0c0' : '#4a4f7a') : mintColor);
+    markB.color.set(mintColor);
+    markA.opacity = vis;
+    markB.opacity = vis * (second ? 1 : 0.35);
     const big = mode === 'light' ? 0.4 : 0.5;
     const small = mode === 'light' ? 0.22 : 0.26;
     const setFlow = (n: number, from: Vector3, to: Vector3, u: number, sz: number) => {
@@ -555,11 +646,11 @@ export function createTourScene(
       flow.setMatrixAt(n, m);
     };
     if (ph < 0.4) setFlow(0, APP, GATE, ph / 0.4, big);
-    else if (ph < 0.6) setFlow(0, GATE, DEVICE, (ph - 0.4) / 0.2, big);
+    else if (ph < 0.6) setFlow(0, GATE, target, (ph - 0.4) / 0.2, big);
     else hide(0);
     for (let k = 0; k < FLOW - 1; k++) {
       const u = (ph - 0.6) / 0.4 - k * 0.06;
-      if (ph >= 0.6 && u >= 0 && u <= 1) setFlow(k + 1, DEVICE, APP, u, small);
+      if (ph >= 0.6 && u >= 0 && u <= 1) setFlow(k + 1, target, APP, u, small);
       else hide(k + 1);
     }
     flow.instanceMatrix.needsUpdate = true;
@@ -571,7 +662,8 @@ export function createTourScene(
         // pulses run from the devices to the hub, offset per cable
         const u = (t * 0.18 + c * 0.137 + k / PULSES_PER_CABLE) % 1;
         (cables[c] as CatmullRomCurve3).getPointAt(u, p);
-        m.makeScale(size, size, size);
+        const sz = size * (1 - smooth(0.8, 0.97, u));
+        m.makeScale(sz, sz, sz);
         m.setPosition(p);
         pulses.setMatrixAt(c * PULSES_PER_CABLE + k, m);
       }
@@ -605,6 +697,7 @@ export function createTourScene(
         const mesh = o as Mesh;
         mesh.geometry?.dispose();
       });
+      glowTex?.dispose();
       tex?.dispose();
       composer.dispose();
       renderer.dispose();
