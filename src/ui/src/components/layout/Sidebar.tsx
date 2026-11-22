@@ -1,6 +1,7 @@
 import type { MouseEvent } from 'react';
 import {
   Button,
+  NavDivider,
   NavDrawer,
   NavDrawerBody,
   Text,
@@ -14,6 +15,12 @@ import {
   Building24Regular,
   Chat24Filled,
   Chat24Regular,
+  Home24Filled,
+  Home24Regular,
+  Info24Filled,
+  Info24Regular,
+  Mail24Filled,
+  Mail24Regular,
   PanelLeftContract20Regular,
   PanelLeftExpand20Regular,
   bundleIcon,
@@ -26,11 +33,20 @@ import { OrgNav } from './OrgNav';
 
 const OrgIcon = bundleIcon(Building24Filled, Building24Regular);
 const ChatIcon = bundleIcon(Chat24Filled, Chat24Regular);
+const HomeIcon = bundleIcon(Home24Filled, Home24Regular);
+const InfoIcon = bundleIcon(Info24Filled, Info24Regular);
+const MailIcon = bundleIcon(Mail24Filled, Mail24Regular);
 
-// The app sidebar is for the signed-in app only; Home, About and Contact live in the public header.
 const ITEMS = [
   { to: '/organisations', key: 'organisations', Icon: OrgIcon },
   { to: '/playground', key: 'playground', Icon: ChatIcon },
+] as const;
+
+// The public site (it has its own header): a second group so the way back is always in reach.
+const PUBLIC_ITEMS = [
+  { to: '/', key: 'home', Icon: HomeIcon },
+  { to: '/about', key: 'about', Icon: InfoIcon },
+  { to: '/contact', key: 'contact', Icon: MailIcon },
 ] as const;
 
 export const SIDEBAR_WIDTH = '232px';
@@ -155,16 +171,29 @@ export function Sidebar({
           // Inside an organisation the sidebar is only about that organisation.
           <OrgNav orgId={orgId} go={go} collapsed={collapsed} />
         ) : (
-          ITEMS.map(({ to, key, Icon }) => (
-            <NavEntry
-              key={to}
-              to={to}
-              label={t(`nav.${key}`)}
-              icon={<Icon />}
-              collapsed={collapsed}
-              onClick={go(to)}
-            />
-          ))
+          <>
+            {ITEMS.map(({ to, key, Icon }) => (
+              <NavEntry
+                key={to}
+                to={to}
+                label={t(`nav.${key}`)}
+                icon={<Icon />}
+                collapsed={collapsed}
+                onClick={go(to)}
+              />
+            ))}
+            <NavDivider />
+            {PUBLIC_ITEMS.map(({ to, key, Icon }) => (
+              <NavEntry
+                key={to}
+                to={to}
+                label={t(`nav.${key}`)}
+                icon={<Icon />}
+                collapsed={collapsed}
+                onClick={go(to)}
+              />
+            ))}
+          </>
         )}
       </NavDrawerBody>
       <div className={mergeClasses(styles.footer, collapsed && styles.footerRail)}>

@@ -17,8 +17,10 @@ describe('Sidebar', () => {
       'href',
       '/playground',
     );
-    // public pages live in the public header, not here
-    expect(screen.queryByRole('link', { name: en.nav.about })).not.toBeInTheDocument();
+    // the way back to the public site is always in the sidebar
+    expect(screen.getByRole('link', { name: en.nav.home })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: en.nav.about })).toHaveAttribute('href', '/about');
+    expect(screen.getByRole('link', { name: en.nav.contact })).toHaveAttribute('href', '/contact');
     expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();
   });
 
