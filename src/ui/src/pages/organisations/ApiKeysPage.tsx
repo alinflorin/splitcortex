@@ -6,6 +6,7 @@ import {
   CalendarClock20Regular,
   Delete20Regular,
   Gauge20Regular,
+  Key24Regular,
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useApiKeys, usePools, useRevokeApiKey } from '../../api/hooks';
@@ -13,6 +14,7 @@ import { apiKeyState } from '../../api/schemas';
 import type { ApiKey, ApiKeyState } from '../../api/schemas';
 import { QueryBoundary } from '../../components/QueryBoundary';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { EmptyState } from '../../components/cards/EmptyState';
 import { CardList, ItemCard, Stat, StatRow } from '../../components/cards/cards';
 import { useConfirm } from '../../components/feedback/useConfirm';
 import { useToast } from '../../components/feedback/useToast';
@@ -106,7 +108,13 @@ export function ApiKeysPage() {
       <QueryBoundary query={query}>
         {(keys) =>
           keys.length === 0 ? (
-            <Body1 className={styles.muted}>{t('apiKeys.empty')}</Body1>
+            <EmptyState
+              icon={<Key24Regular />}
+              text={t('apiKeys.empty')}
+              actionLabel={t('apiKeys.new')}
+              actionIcon={<Add24Regular />}
+              onAction={() => setCreating(true)}
+            />
           ) : (
             <CardList>
               {keys.map((k) => {

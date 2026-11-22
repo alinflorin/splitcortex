@@ -54,6 +54,6 @@ describe('api hooks', () => {
       </Routes>,
     );
     expect(await screen.findByText('No pools yet.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'New pool' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'New pool' }).length).toBeGreaterThan(0);
   });
 });

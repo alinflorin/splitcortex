@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Badge, Body1, Button, makeStyles, tokens } from '@fluentui/react-components';
-import { Add24Regular } from '@fluentui/react-icons';
+import { Badge, Button } from '@fluentui/react-components';
+import { Add24Regular, Building24Regular } from '@fluentui/react-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -10,18 +10,14 @@ import { organisationFormSchema } from '../../api/schemas';
 import type { OrganisationForm } from '../../api/schemas';
 import { QueryBoundary } from '../../components/QueryBoundary';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { EmptyState } from '../../components/cards/EmptyState';
 import { CardList, ItemCard } from '../../components/cards/cards';
 import { FormDialog } from '../../components/forms/FormDialog';
 import { TextField } from '../../components/forms/TextField';
 import { useToast } from '../../components/feedback/useToast';
 import { slugify } from '../../lib/slugify';
 
-const useStyles = makeStyles({
-  muted: { color: tokens.colorNeutralForeground3 },
-});
-
 export function OrganisationsPage() {
-  const styles = useStyles();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
@@ -72,7 +68,13 @@ export function OrganisationsPage() {
       <QueryBoundary query={query}>
         {(orgs) =>
           orgs.length === 0 ? (
-            <Body1 className={styles.muted}>{t('organisations.empty')}</Body1>
+            <EmptyState
+              icon={<Building24Regular />}
+              text={t('organisations.empty')}
+              actionLabel={t('organisations.new')}
+              actionIcon={<Add24Regular />}
+              onAction={() => setOpen(true)}
+            />
           ) : (
             <CardList variant="grid">
               {orgs.map((org) => (

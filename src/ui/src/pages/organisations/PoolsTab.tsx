@@ -1,20 +1,18 @@
 import { useState } from 'react';
+import { Badge, Button, Text, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import {
-  Badge,
-  Body1,
-  Button,
-  Text,
-  makeStyles,
-  mergeClasses,
-  tokens,
-} from '@fluentui/react-components';
-import { Add24Regular, Delete20Regular, Edit20Regular } from '@fluentui/react-icons';
+  Add24Regular,
+  DeviceMeetingRoom24Regular,
+  Delete20Regular,
+  Edit20Regular,
+} from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { usePools } from '../../api/hooks';
 import type { Pool } from '../../api/schemas';
 import { QueryBoundary } from '../../components/QueryBoundary';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { EmptyState } from '../../components/cards/EmptyState';
 import { CardList, ItemCard } from '../../components/cards/cards';
 import { isAdmin } from '../../lib/roles';
 import { useOrganisationContext } from './OrganisationLayout';
@@ -68,7 +66,13 @@ export function PoolsTab() {
       <QueryBoundary query={query}>
         {(pools) =>
           pools.length === 0 ? (
-            <Body1 className={styles.muted}>{t('pools.empty')}</Body1>
+            <EmptyState
+              icon={<DeviceMeetingRoom24Regular />}
+              text={t('pools.empty')}
+              actionLabel={admin ? t('pools.new') : undefined}
+              actionIcon={<Add24Regular />}
+              onAction={() => setEditing('new')}
+            />
           ) : (
             <CardList>
               {pools.map((pool) => (
