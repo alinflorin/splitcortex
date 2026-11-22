@@ -7,10 +7,10 @@ default_registry('localhost:5000')
 
 NAMESPACE = 'splitcortex'
 
-# --- Infra chart (Traefik, cert-manager, Postgres, ClusterIssuers) ---------
-# Installed with `helm upgrade --wait` instead of tilt's helm() because the
-# ClusterIssuer hooks must run after the cert-manager webhook is ready, which
-# `helm template` + kubectl apply cannot guarantee.
+# --- Infra chart (Postgres, Dex, Garage, secrets, jobs) --------------------
+# Ingress controller and TLS are provided by the cluster, not by the chart. Installed with
+# `helm upgrade --wait` instead of tilt's helm() because the chart has hooks and Jobs that
+# `helm template` + kubectl apply cannot order.
 helm_values = ['chart/values-local.yaml'] if os.path.exists('chart/values-local.yaml') else []
 values_args = ' '.join(['-f ' + v for v in helm_values])
 
@@ -126,6 +126,8 @@ k8s_yaml(local(
     '--show-only templates/gateway-deployment.yaml --show-only templates/gateway-service.yaml ' +
     '--show-only templates/gateway-ingress.yaml --show-only templates/gateway-app-ingress.yaml --show-only templates/gateway-node-ingress.yaml --show-only templates/gateway-identity-job.yaml ' +
     '--set gateway.readOnlyRootFilesystem=false ' +
+    # Short drain so a replaced pod does not hang for the production hour (grace period becomes ~70 s).
+    '--set gateway.drain.delaySeconds=0 --set gateway.drain.timeoutSeconds=10 ' +
     # The dev image has no installed binary: run keygen through cargo (cwd is /app).
     "--set 'gateway.identity.command={cargo,run,-q,--}'",
     quiet=True,
