@@ -706,22 +706,27 @@ test('every balancing choice reaches both devices', async () => {
 });
 
 test('a client that hangs up mid-answer frees the device', async () => {
-  // The devices report what they are running every 10 s (telemetry), and a steady fake device streams 200 tokens a
-  // second: the answer must outlast the report that shows it (and the one that shows it gone), so it is 12000 tokens,
-  // a minute, not the 5 s that 1000 would take.
-  const inFlight = async () =>
-    ((await nodeOf(n1.nodeId)).live?.inFlight ?? 0) +
-    ((await nodeOf(n2.nodeId)).live?.inFlight ?? 0);
-  await serving();
+  // The devices report what they are running every 10 s (telemetry), so the answer must outlast the report that shows
+  // it (and the one that shows it gone). A device's window caps the answer (2048 tokens by default; more is a 400), and
+  // the shared devices stream 200 tokens a second, so this test has a device of its own that streams 20 a second:
+  // 1500 tokens are 75 s.
+  const pool = await newPool(`e2e-multi-hangup-${uniq()}`);
+  const key = await newKey([pool]);
+  const slow = newCli({ firstTokenMs: 20, tokensPerSec: 20 });
+  await slow.enroll(await code(pool));
+  await slow.start();
+  await online(slow.nodeId, 15 * 60_000, pool);
+  await serving(10 * 60_000, key.secret);
+  const inFlight = async () => (await nodeOf(slow.nodeId)).live?.inFlight ?? 0;
   await expect.poll(inFlight, { timeout: 60_000, intervals: [2_000] }).toBe(0);
   const controller = new AbortController();
   const res = await fetch(`${baseUrl()}/v1/chat/completions`, {
     method: 'POST',
-    headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
-    body: JSON.stringify(chat({ stream: true, max_tokens: 12_000 })),
+    headers: { authorization: `Bearer ${key.secret}`, 'content-type': 'application/json' },
+    body: JSON.stringify(chat({ stream: true, max_tokens: 1500 })),
     signal: controller.signal,
   });
-  expect(res.status).toBe(200);
+  if (res.status !== 200) throw new Error(`${res.status} ${await res.text()}`);
   const reader = res.body!.getReader();
   await reader.read(); // the first piece is on its way
   // The device reports it is busy with the answer...
@@ -735,11 +740,12 @@ test('a client that hangs up mid-answer frees the device', async () => {
   // ...the client leaves...
   controller.abort();
   await reader.cancel().catch(() => undefined);
-  // ...and the device is told to stop: it is free again long before 12000 tokens could have been generated.
+  // ...and the device is told to stop: it is free again long before 1500 tokens could have been generated.
   await expect
     .poll(inFlight, { timeout: 30_000, intervals: [1_000], message: 'the device kept generating' })
     .toBe(0);
-  expect((await ask()).status, 'and it serves the next one').toBe(200);
+  expect((await ask(key.secret)).status, 'and it serves the next one').toBe(200);
+  await slow.kill();
 });
 
 test('a short reply says it was cut, a conversation keeps its roles, the numbers add up', async () => {
