@@ -36,13 +36,10 @@ describe('organisation sidebar section', () => {
       'href',
       '/organisations/o1/settings',
     );
-    // only the organisation is shown: no top-level items, but a way back
+    // only the organisation is shown; the way back is the breadcrumb, not the sidebar
     expect(screen.queryByRole('link', { name: 'Home' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'About' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'All organisations' })).toHaveAttribute(
-      'href',
-      '/organisations',
-    );
+    expect(screen.queryByRole('link', { name: 'All organisations' })).not.toBeInTheDocument();
   });
 
   it('hides organisation Settings from plain members', async () => {

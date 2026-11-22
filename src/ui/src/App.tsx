@@ -1,7 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { PrivateRoute } from './auth/PrivateRoute';
-import { AppLayout } from './components/layout/AppLayout';
-import { PublicLayout } from './components/layout/PublicLayout';
+import { AppShell } from './components/layout/AppShell';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
 import { Home } from './pages/Home';
@@ -25,17 +24,13 @@ import { UserSettings } from './pages/UserSettings';
 export function App() {
   return (
     <Routes>
-      {/* Public pages: top header, no sidebar. */}
-      <Route element={<PublicLayout />}>
+      <Route element={<AppShell />}>
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="terms" element={<Terms />} />
         <Route path="privacy" element={<Privacy />} />
         <Route path="contact" element={<Contact />} />
-      </Route>
-      {/* The signed-in app: sidebar. */}
-      <Route element={<PrivateRoute />}>
-        <Route element={<AppLayout />}>
+        <Route element={<PrivateRoute />}>
           <Route path="user-settings" element={<UserSettings />} />
           <Route path="playground" element={<Playground />} />
           <Route path="organisations" element={<OrganisationsPage />} />
@@ -53,8 +48,6 @@ export function App() {
             <Route path="settings" element={<OrganisationSettingsTab />} />
           </Route>
         </Route>
-      </Route>
-      <Route element={<PublicLayout />}>
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

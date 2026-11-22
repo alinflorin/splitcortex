@@ -1,24 +1,31 @@
-import { Button, Text, Tooltip, makeStyles, tokens } from '@fluentui/react-components';
+import {
+  Button,
+  Text,
+  Tooltip,
+  makeStyles,
+  mergeClasses,
+  tokens,
+} from '@fluentui/react-components';
 import { Navigation24Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
+import { GLOBAL_ITEMS } from './globalNav';
 import { UserMenu } from './UserMenu';
 
 const useStyles = makeStyles({
   bar: {
-    position: 'sticky',
-    top: 0,
-    zIndex: 10,
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalS,
+    gap: tokens.spacingHorizontalL,
     height: '64px',
     flexShrink: 0,
     padding: `0 ${tokens.spacingHorizontalXL}`,
-    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 80%, transparent)`,
-    backdropFilter: 'saturate(1.4) blur(12px)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
-    '@media (max-width: 599px)': { padding: `0 ${tokens.spacingHorizontalM}` },
+    '@media (max-width: 599px)': {
+      padding: `0 ${tokens.spacingHorizontalM}`,
+      gap: tokens.spacingHorizontalS,
+    },
   },
   brandLink: {
     display: 'flex',
@@ -35,13 +42,29 @@ const useStyles = makeStyles({
   },
   brandSplit: { color: '#14b8d4' },
   brandCortex: { color: '#4f5df0' },
+  links: {
+    display: 'flex',
+    gap: tokens.spacingHorizontalXS,
+    '@media (max-width: 1023px)': { display: 'none' },
+  },
+  link: {
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
+    borderRadius: tokens.borderRadiusMedium,
+    color: tokens.colorNeutralForeground2,
+    textDecorationLine: 'none',
+    fontSize: tokens.fontSizeBase300,
+    ':hover': { backgroundColor: tokens.colorNeutralBackground2Hover },
+  },
+  linkActive: { color: tokens.colorBrandForeground1, fontWeight: tokens.fontWeightSemibold },
   spacer: { flexGrow: 1 },
 });
 
+/** The same bar on every page: brand (home), the top-level links, the account menu. */
 export function TopBar({
   showNavToggle,
   onToggleNav,
 }: {
+  /** Narrow screens: the links move into the drawer this button opens. */
   showNavToggle: boolean;
   onToggleNav: () => void;
 }) {
@@ -60,15 +83,25 @@ export function TopBar({
           />
         </Tooltip>
       )}
-      {showNavToggle && (
-        <Link to="/" className={styles.brandLink} aria-label="SplitCortex">
-          <img src="/logo.svg" alt="" className={styles.logo} />
-          <Text className={styles.brand}>
-            <span className={styles.brandSplit}>split</span>
-            <span className={styles.brandCortex}>cortex</span>
-          </Text>
-        </Link>
-      )}
+      <Link to="/" className={styles.brandLink} aria-label="SplitCortex">
+        <img src="/logo.svg" alt="" className={styles.logo} />
+        <Text className={styles.brand}>
+          <span className={styles.brandSplit}>split</span>
+          <span className={styles.brandCortex}>cortex</span>
+        </Text>
+      </Link>
+      <nav className={styles.links} aria-label={t('nav.main')}>
+        {GLOBAL_ITEMS.map(({ to, key }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) => mergeClasses(styles.link, isActive && styles.linkActive)}
+          >
+            {t(`nav.${key}`)}
+          </NavLink>
+        ))}
+      </nav>
       <div className={styles.spacer} />
       <UserMenu />
     </header>

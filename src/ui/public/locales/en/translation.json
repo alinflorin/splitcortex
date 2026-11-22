@@ -12,8 +12,8 @@
     "contact": "Contact",
     "expand": "Expand sidebar",
     "collapse": "Collapse sidebar",
-    "public": "Main",
-    "openApp": "Open app"
+    "main": "Main",
+    "breadcrumb": "Breadcrumb"
   },
   "auth": {
     "signIn": "Sign in",
@@ -451,7 +451,6 @@
       "offline": "Offline",
       "pending": "Pending approval"
     },
-    "backToPool": "Back to pool",
     "live": "Live status",
     "device": "Device",
     "approve": "Approve",

@@ -5,10 +5,16 @@ import { en, renderApp } from '../../test/render';
 import { Sidebar } from './Sidebar';
 
 describe('Sidebar', () => {
-  it('renders the brand and navigation links', async () => {
+  it('lists the top-level pages in order outside an organisation', async () => {
     await renderApp(<Sidebar open overlay={false} onOpenChange={vi.fn()} />);
-    expect(screen.getByText('split')).toBeInTheDocument();
-    expect(screen.getByText('cortex')).toBeInTheDocument();
+    const names = screen.getAllByRole('link').map((l) => l.textContent);
+    expect(names).toEqual([
+      en.nav.home,
+      en.nav.organisations,
+      en.nav.playground,
+      en.nav.about,
+      en.nav.contact,
+    ]);
     expect(screen.getByRole('link', { name: en.nav.organisations })).toHaveAttribute(
       'href',
       '/organisations',
@@ -17,7 +23,6 @@ describe('Sidebar', () => {
       'href',
       '/playground',
     );
-    // the way back to the public site is always in the sidebar
     expect(screen.getByRole('link', { name: en.nav.home })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: en.nav.about })).toHaveAttribute('href', '/about');
     expect(screen.getByRole('link', { name: en.nav.contact })).toHaveAttribute('href', '/contact');
@@ -49,7 +54,6 @@ describe('Sidebar', () => {
         onToggleCollapsed={onToggle}
       />,
     );
-    expect(screen.queryByText('cortex')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: en.nav.organisations })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: en.nav.expand }));
     expect(onToggle).toHaveBeenCalled();

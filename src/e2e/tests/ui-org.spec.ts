@@ -25,7 +25,7 @@ test.afterAll(async () => {
   await admin.context().close();
 });
 
-test('organisation sidebar: the name and role, every page marked active, back to the list', async ({
+test('organisation sidebar: the name and role, every page marked active; the breadcrumb goes back to the list', async ({
   page,
 }) => {
   await page.goto(orgUrl());
@@ -50,7 +50,10 @@ test('organisation sidebar: the name and role, every page marked active, back to
       'page',
     );
   }
-  await page.getByRole('link', { name: 'All organisations' }).click();
+  await page
+    .getByRole('navigation', { name: 'Breadcrumb' })
+    .getByRole('link', { name: 'Organisations' })
+    .click();
   await page.waitForURL(`${baseUrl()}/organisations`);
   await expect(page.getByRole('link', { name: 'Organisations', exact: true })).toBeVisible();
 });

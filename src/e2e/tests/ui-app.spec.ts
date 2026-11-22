@@ -28,7 +28,7 @@ test.describe('signed out', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Your devices.');
     await expect(page.getByRole('button', { name: 'Get started' }).first()).toBeVisible();
     await expect(page.getByText('Welcome back')).toHaveCount(0);
-    // The sidebar is the top-level menu; the org pages are not listed.
+    // The top bar is the top-level menu; the org pages are not listed.
     for (const link of ['Home', 'Organisations', 'Playground', 'About']) {
       await expect(page.getByRole('link', { name: link, exact: true }), link).toBeVisible();
     }
@@ -151,7 +151,7 @@ test.describe('signed in', () => {
     await expect(page.getByText('Something went wrong')).toHaveCount(0);
   });
 
-  test('sidebar: the top-level menu, the active item, back out of an organisation', async ({
+  test('top bar: the top-level menu, the active item, the drawer on a narrow screen', async ({
     page,
   }) => {
     await page.goto(baseUrl());
@@ -163,8 +163,11 @@ test.describe('signed in', () => {
     await page.waitForURL(`${baseUrl()}/playground`);
     await page.getByRole('link', { name: 'Home', exact: true }).click();
     await page.waitForURL(`${baseUrl()}/`);
+    // The version sits at the bottom of the account menu.
+    await page.getByRole('button', { name: 'Account' }).click();
     await expect(page.getByText(/^Version /)).toBeVisible();
-    // On a narrow screen the sidebar is hidden and can be shown again with the top bar button.
+    await page.keyboard.press('Escape');
+    // On a narrow screen the links move into a drawer, opened with the top bar button.
     await page.setViewportSize({ width: 600, height: 900 });
     const nav = page.getByRole('link', { name: 'About', exact: true });
     await expect(nav).toBeHidden();
@@ -293,7 +296,7 @@ test.describe('signed in', () => {
     await dialogsClosed(page);
   });
 
-  test('on a phone the sidebar is a drawer that closes after a choice', async ({ browser }) => {
+  test('on a phone the menu is a drawer that closes after a choice', async ({ browser }) => {
     const context = await browser.newContext({
       storageState: authFile(0),
       viewport: { width: 390, height: 800 },

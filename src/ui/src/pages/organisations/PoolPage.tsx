@@ -10,7 +10,7 @@ import {
 } from '@fluentui/react-components';
 import { Delete20Regular, Edit20Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { usePool } from '../../api/hooks';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { QueryBoundary } from '../../components/QueryBoundary';
@@ -26,7 +26,6 @@ import { useDeletePoolAction } from './useDeletePoolAction';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXL },
-  back: { color: tokens.colorNeutralForeground3, fontSize: tokens.fontSizeBase200 },
   header: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -60,9 +59,6 @@ export function PoolPage() {
 
   return (
     <div className={styles.root}>
-      <Link to={`/organisations/${org.id}/pools`} className={styles.back}>
-        ← {t('pools.title')}
-      </Link>
       <QueryBoundary query={query}>
         {(pool) => (
           <>

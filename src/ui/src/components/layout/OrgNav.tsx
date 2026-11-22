@@ -1,7 +1,6 @@
 import type { MouseEvent } from 'react';
 import { Badge, Caption1, NavDivider, Text, makeStyles, tokens } from '@fluentui/react-components';
 import {
-  ArrowLeftRegular,
   KeyRegular,
   DataTrendingRegular,
   PulseRegular,
@@ -31,11 +30,11 @@ const useStyles = makeStyles({
 
 interface OrgNavProps {
   orgId: string;
-  go: (to: string, keepOpen?: boolean) => (e: MouseEvent) => void;
+  go: (to: string) => (e: MouseEvent) => void;
   collapsed?: boolean;
 }
 
-/** Sidebar content for the organisation in the URL: a back item plus its pages. */
+/** Sidebar content for the organisation in the URL: who it is, then its pages. The way back is the breadcrumb. */
 export function OrgNav({ orgId, go, collapsed = false }: OrgNavProps) {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -62,13 +61,6 @@ export function OrgNav({ orgId, go, collapsed = false }: OrgNavProps) {
 
   return (
     <>
-      <NavEntry
-        to="/organisations"
-        label={t('organisations.back')}
-        icon={<ArrowLeftRegular />}
-        collapsed={collapsed}
-        onClick={go('/organisations', true)}
-      />
       {current && !collapsed && (
         <div className={styles.org} aria-label={t('orgNav.current')}>
           <Caption1>{t('orgNav.current')}</Caption1>

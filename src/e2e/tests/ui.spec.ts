@@ -25,14 +25,18 @@ test.afterAll(async () => {
   await admin.context().close();
 });
 
-test('organisations: the list, the card, the sidebar', async ({ page }) => {
+test('organisations: the list, the card, the sidebar and the breadcrumb', async ({ page }) => {
   await page.goto(`${baseUrl()}/organisations`);
   await expect(page.getByRole('heading', { level: 1, name: 'Organisations' })).toBeVisible();
   await page.getByText(org.name, { exact: true }).first().click();
   await page.waitForURL(new RegExp(`/organisations/${org.id}`));
-  // The sidebar names the organisation and the caller's role, and links back.
+  // The sidebar names the organisation and the caller's role; the breadcrumb links back to the list.
   await expect(page.getByText('Owner', { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole('link', { name: 'All organisations' })).toBeVisible();
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Breadcrumb' })
+      .getByRole('link', { name: 'Organisations' }),
+  ).toBeVisible();
 });
 
 test('every page of the organisation loads without an error', async ({ page }) => {

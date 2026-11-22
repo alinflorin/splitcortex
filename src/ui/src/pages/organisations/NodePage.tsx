@@ -15,7 +15,7 @@ import {
 } from '@fluentui/react-icons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useDeleteNode, useNode, useRestartNode, useUpdateNode } from '../../api/hooks';
 import type { Node } from '../../api/schemas';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -31,7 +31,6 @@ import { useOrganisationContext } from './OrganisationLayout';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXL },
-  back: { color: tokens.colorNeutralForeground3, fontSize: tokens.fontSizeBase200 },
   header: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -241,9 +240,6 @@ export function NodePage() {
               : undefined;
           return (
             <>
-              <Link to={`/organisations/${org.id}/pools/${node.poolId}`} className={styles.back}>
-                ← {t('nodes.backToPool')}
-              </Link>
               <PageHeader
                 eyebrow={<NodeStatusBadge status={node.status} />}
                 title={node.name}

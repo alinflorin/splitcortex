@@ -12,8 +12,8 @@
     "contact": "Contact",
     "expand": "Extinde bara laterală",
     "collapse": "Restrânge bara laterală",
-    "public": "Principal",
-    "openApp": "Deschide aplicația"
+    "main": "Principal",
+    "breadcrumb": "Traseu"
   },
   "auth": {
     "signIn": "Autentificare",
@@ -451,7 +451,6 @@
       "offline": "Offline",
       "pending": "În așteptarea aprobării"
     },
-    "backToPool": "Înapoi la pool",
     "live": "Stare în timp real",
     "device": "Dispozitiv",
     "approve": "Aprobă",

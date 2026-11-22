@@ -188,7 +188,8 @@ async function checkNodePage(
   await expect(page.getByText('No devices in this pool yet.')).toHaveCount(0);
 
   await page.goto(`${baseUrl()}/organisations/${orgId}/nodes/${nodeId}`);
-  await expect(page.getByRole('link', { name: /Back to pool/ })).toBeVisible();
+  // The breadcrumb leads back up to the pool (there is no "back" link on the page).
+  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toBeVisible();
   for (const card of [
     'Live status',
     'Engine settings',
