@@ -55,7 +55,12 @@ test('organisation sidebar: the name and role, every page marked active; the bre
     .getByRole('link', { name: 'Organisations' })
     .click();
   await page.waitForURL(`${baseUrl()}/organisations`);
-  await expect(page.getByRole('link', { name: 'Organisations', exact: true })).toBeVisible();
+  // The URL changes before the page does: wait for the breadcrumb (organisation pages only) to go,
+  // otherwise the old page still has a second "Organisations" link and the locator is ambiguous.
+  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveCount(0);
+  await expect(
+    page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Organisations' }),
+  ).toBeVisible();
 });
 
 test('pools: the card (state, approval), the balancing choice, the icons on the card', async ({
