@@ -11,12 +11,20 @@ import {
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
-import { Person24Regular, Settings24Regular, SignOut24Regular } from '@fluentui/react-icons';
+import {
+  Cookies24Regular,
+  Person24Regular,
+  Settings24Regular,
+  SignOut24Regular,
+} from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from 'react-oidc-context';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAnalyticsId } from '../../analytics/config';
+import { reopenConsent } from '../../analytics/consent';
 import { startSignOut } from '../../auth/signOut';
 import { useCurrentUser } from '../../auth/useCurrentUser';
+import { useLocalePath } from '../../seo/useLocalePath';
 import { LanguageSubmenu, ThemeSubmenu } from './PreferencesMenu';
 
 const useStyles = makeStyles({
@@ -40,6 +48,8 @@ export function UserMenu() {
   const styles = useStyles();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const localePath = useLocalePath();
+  const analyticsId = useAnalyticsId();
   const location = useLocation();
   const auth = useAuth();
   const user = useCurrentUser();
@@ -81,6 +91,11 @@ export function UserMenu() {
         <MenuList>
           <ThemeSubmenu />
           <LanguageSubmenu />
+          {analyticsId && (
+            <MenuItem icon={<Cookies24Regular />} onClick={reopenConsent}>
+              {t('consent.settings')}
+            </MenuItem>
+          )}
           <MenuDivider />
           {user && (
             <MenuItem icon={<Settings24Regular />} onClick={() => void navigate('/user-settings')}>
@@ -93,7 +108,7 @@ export function UserMenu() {
               icon={<SignOut24Regular />}
               onClick={() => {
                 startSignOut(location.pathname);
-                void auth.removeUser().then(() => navigate('/'));
+                void auth.removeUser().then(() => navigate(localePath('/')));
               }}
             >
               {t('auth.signOut')}

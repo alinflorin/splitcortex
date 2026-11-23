@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- Source of public/og-image.png (1200x630, the link-preview card). Render: open in Chromium at 1200x630 and screenshot
+     (see docs/ui.md, "SEO"). Same Inter as the app, brand colours from the logo. -->
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      @font-face {
+        font-family: 'Inter Variable';
+        font-weight: 100 900;
+        src: url('../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2-variations');
+      }
+      html, body { margin: 0; width: 1200px; height: 630px; }
+      body {
+        display: flex; align-items: center; gap: 72px; padding: 0 96px; box-sizing: border-box;
+        font-family: 'Inter Variable', sans-serif; color: #242424;
+        background: radial-gradient(900px 500px at 15% 20%, #eef0ff, transparent 70%), radial-gradient(800px 500px at 95% 100%, #e3fbf6, transparent 70%), #ffffff;
+      }
+      .mark { flex: none; width: 300px; height: 300px; }
+      .name { font-size: 84px; font-weight: 400; letter-spacing: -0.03em; line-height: 1; }
+      .split { background: linear-gradient(180deg, #6c7bf2, #4a5be6); -webkit-background-clip: text; color: transparent; }
+      .cortex { background: linear-gradient(180deg, #2ce6c5, #14b8d4); -webkit-background-clip: text; color: transparent; }
+      .tag { margin-top: 28px; font-size: 40px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+      .tag span { color: #4a5be6; }
+      .sub { margin-top: 20px; font-size: 24px; color: #616161; }
+    </style>
+  </head>
+  <body>
+    <div class="mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="300" height="300">
+  <defs>
+    <linearGradient id="sc-left" gradientUnits="userSpaceOnUse" x1="0" y1="100" x2="0" y2="900">
+      <stop offset="0" stop-color="#6C7BF2" />
+      <stop offset="1" stop-color="#4A5BE6" />
+    </linearGradient>
+    <linearGradient id="sc-right" gradientUnits="userSpaceOnUse" x1="0" y1="100" x2="0" y2="900">
+      <stop offset="0" stop-color="#2CE6C5" />
+      <stop offset="1" stop-color="#14B8D4" />
+    </linearGradient>
+    <path id="sc-hemisphere" d="M476 140C476 112 442 108 412 115C382 122 368 140 362 152C325 142 275 162 255 198C210 202 165 242 162 292C118 312 95 362 108 415C65 452 48 518 68 585C55 642 85 702 145 722C155 785 215 832 285 825C305 875 365 902 418 892C452 885 476 865 476 838Z" />
+  </defs>
+  <use href="#sc-hemisphere" fill="url(#sc-left)" />
+  <use href="#sc-hemisphere" fill="url(#sc-right)" transform="translate(1000 0) scale(-1 1)" />
+</svg>
+</div>
+    <div>
+      <div class="name"><span class="split">split</span><span class="cortex">cortex</span></div>
+      <div class="tag">Your devices. <span>Your private AI cloud.</span></div>
+      <div class="sub">OpenAI-compatible inference on phones, Raspberry Pis, laptops and browsers.</div>
+    </div>
+  </body>
+</html>

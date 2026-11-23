@@ -25,6 +25,9 @@ spec:
             # Shown in the app (served as /version.json).
             - name: APP_VERSION
               value: {{ .Chart.Version | quote }}
+            # Google Analytics measurement id (served as /config.json): empty everywhere but production.
+            - name: GA_MEASUREMENT_ID
+              value: {{ .Values.webNode.analytics.measurementId | quote }}
           ports:
             - name: http
               containerPort: 8080

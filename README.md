@@ -119,7 +119,8 @@ Chart changes: `helm lint chart --strict` and `helm template splitcortex chart`.
 - The control plane's zod DTOs are not shared with the gateway or the UI; the UI copies what it needs by hand.
 - The CLI node is a separate Rust implementation of the web node's protocol, enrollment and runtime logic: a fix in one usually belongs in the other.
 - API error messages exist in English and Romanian; add both.
-- No CDNs (fonts and icons are self-hosted) and no CORS on the gateway or the node-facing hosts.
+- No CDNs (fonts and icons are self-hosted), with one exception: Google Analytics in production, loaded only after the visitor accepts the cookie banner (see [docs/ui.md](docs/ui.md#analytics)); and no CORS on the gateway or the node-facing hosts.
+- The web app's public pages (Home, About, Terms, Privacy, Contact) are prerendered at build in English (`/about`) and Romanian (`/ro/about`), with canonical/hreflang/Open Graph and a sitemap; the host is filled in by Caddy at runtime. Only prd is indexable (`ui.seo.indexable`); stg, local and every other host send `X-Robots-Tag: noindex`. Links to public pages use `useLocalePath()`. Details: [docs/ui.md](docs/ui.md#seo).
 - Builds are slow: verify with typecheck, tests and `helm lint`/`helm template` rather than building images by hand.
 
 ## CI and releases

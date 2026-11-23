@@ -1,6 +1,8 @@
 import { MessageBar, MessageBarBody, makeStyles, tokens } from '@fluentui/react-components';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Analytics } from './analytics/Analytics';
+import { ConsentBanner } from './analytics/ConsentBanner';
 import { JoinCard } from './components/JoinCard';
 import { LogsCard } from './components/LogsCard';
 import { NodeCard } from './components/NodeCard';
@@ -71,6 +73,8 @@ export function App() {
   return (
     <div className={styles.page}>
       <TopBar />
+      <Analytics />
+      <ConsentBanner />
       <main className={styles.main}>
         <PageHeader eyebrow="SplitCortex" title={t('app.webNode')} subtitle={t('app.intro')} />
         {!supported && (

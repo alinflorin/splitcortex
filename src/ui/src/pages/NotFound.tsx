@@ -2,6 +2,7 @@ import { Button, Text, makeStyles, tokens } from '@fluentui/react-components';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { GradientText } from '../components/marketing/marketing';
+import { useLocalePath } from '../seo/useLocalePath';
 
 const useStyles = makeStyles({
   root: {
@@ -26,6 +27,7 @@ const useStyles = makeStyles({
 export function NotFound() {
   const styles = useStyles();
   const { t } = useTranslation();
+  const localePath = useLocalePath();
   return (
     <section className={styles.root}>
       <span className={styles.code}>
@@ -35,7 +37,7 @@ export function NotFound() {
         {t('notFound.title')}
       </Text>
       <Text className={styles.muted}>{t('notFound.body')}</Text>
-      <Link to="/">
+      <Link to={localePath('/')}>
         <Button appearance="primary">{t('notFound.home')}</Button>
       </Link>
     </section>

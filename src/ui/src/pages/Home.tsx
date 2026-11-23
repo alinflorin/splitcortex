@@ -28,6 +28,7 @@ import {
 import { NetworkDiagram } from '../components/marketing/NetworkDiagram';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import { buildKeyExamples, getGatewayBaseUrl } from '../lib/gateway';
+import { useLocalePath } from '../seo/useLocalePath';
 
 const ScrollTour = lazy(() => import('../components/marketing/ScrollTour'));
 
@@ -130,6 +131,7 @@ export function Home() {
   const user = useCurrentUser();
   const auth = useAuth();
   const navigate = useNavigate();
+  const localePath = useLocalePath();
   const signedIn = !!user;
   const signIn = () => void auth.signinRedirect();
 
@@ -305,7 +307,7 @@ export function Home() {
               {t('home.hero.ctaStart')}
             </Button>
           )}
-          <Link to="/about">
+          <Link to={localePath('/about')}>
             <Button size="large" appearance="transparent" style={{ color: '#fff' }}>
               {t('home.cta.about')}
             </Button>

@@ -1,14 +1,17 @@
 import {
   Button,
   Menu,
+  MenuItem,
   MenuList,
   MenuPopover,
   MenuTrigger,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
-import { Settings24Regular } from '@fluentui/react-icons';
+import { Cookies24Regular, Settings24Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
+import { useAnalyticsId } from '../analytics/config';
+import { reopenConsent } from '../analytics/consent';
 import { useChartVersion } from '../lib/useChartVersion';
 import { BRAND } from '../theme/brand';
 import { LanguageSubmenu, ThemeSubmenu } from './PreferencesMenu';
@@ -52,6 +55,7 @@ export function TopBar() {
   const styles = useStyles();
   const { t } = useTranslation();
   const version = useChartVersion();
+  const analyticsId = useAnalyticsId();
   return (
     <header className={styles.bar}>
       <div className={styles.brand}>
@@ -76,6 +80,11 @@ export function TopBar() {
           <MenuList>
             <ThemeSubmenu />
             <LanguageSubmenu />
+            {analyticsId && (
+              <MenuItem icon={<Cookies24Regular />} onClick={reopenConsent}>
+                {t('consent.settings')}
+              </MenuItem>
+            )}
           </MenuList>
         </MenuPopover>
       </Menu>

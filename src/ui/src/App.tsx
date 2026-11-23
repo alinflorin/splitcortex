@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from './i18n/languages';
 import { PrivateRoute } from './auth/PrivateRoute';
 import { AppShell } from './components/layout/AppShell';
 import { About } from './pages/About';
@@ -21,15 +22,27 @@ import { MetricsTab } from './pages/organisations/MetricsTab';
 import { Playground } from './pages/Playground';
 import { UserSettings } from './pages/UserSettings';
 
+/** The public pages; mounted once per language (`/about`, `/ro/about`), see `seo/pages.ts`. */
+const publicRoutes = () => (
+  <>
+    <Route index element={<Home />} />
+    <Route path="about" element={<About />} />
+    <Route path="terms" element={<Terms />} />
+    <Route path="privacy" element={<Privacy />} />
+    <Route path="contact" element={<Contact />} />
+  </>
+);
+
 export function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<Home />} />
-        <Route path="about" element={<About />} />
-        <Route path="terms" element={<Terms />} />
-        <Route path="privacy" element={<Privacy />} />
-        <Route path="contact" element={<Contact />} />
+        {publicRoutes()}
+        {SUPPORTED_LANGUAGES.filter((l) => l !== DEFAULT_LANGUAGE).map((l) => (
+          <Route key={l} path={l}>
+            {publicRoutes()}
+          </Route>
+        ))}
         <Route element={<PrivateRoute />}>
           <Route path="user-settings" element={<UserSettings />} />
           <Route path="playground" element={<Playground />} />

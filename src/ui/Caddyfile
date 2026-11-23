@@ -9,6 +9,11 @@
 	# Brotli comes precompressed from the image (file_server below); other encodings are done on the fly.
 	encode zstd gzip
 
+	# Only production is meant to appear in search results: SEO_INDEXABLE=true (chart: ui.seo.indexable). Everywhere
+	# else (local, stg) every response says noindex and robots.txt closes the site.
+	@notindexable expression `"{$SEO_INDEXABLE:false}" != "true"`
+	header @notindexable X-Robots-Tag "noindex, nofollow, noarchive"
+
 	handle /healthz {
 		respond "ok" 200
 	}
@@ -20,13 +25,52 @@
 		respond `{"version":"{$APP_VERSION:dev}"}` 200
 	}
 
-	# Hashed build assets never change.
+	# Runtime settings for the app: the Google Analytics measurement id (GA_MEASUREMENT_ID, set only in production; empty = no
+	# analytics and no cookie banner). Same image on every environment, so it cannot be built in.
+	handle /config.json {
+		header Content-Type application/json
+		header Cache-Control no-cache
+		respond `{"analyticsId":"{$GA_MEASUREMENT_ID:}"}` 200
+	}
+
+	handle /robots.txt {
+		header Content-Type "text/plain; charset=utf-8"
+		handle @notindexable {
+			respond `User-agent: *
+Disallow: /
+` 200
+		}
+		# The signed-in pages are not listed here on purpose: they are `noindex`, which a crawler only sees when it may fetch them.
+		handle {
+			respond `User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /v1/
+
+Sitemap: https://{host}/sitemap.xml
+` 200
+		}
+	}
+
+	# The prerender writes the host as `{{.Host}}` (the same image runs on every environment); `templates` fills it in.
+	handle /sitemap.xml {
+		handle @notindexable {
+			respond 404
+		}
+		handle {
+			header Content-Type "application/xml; charset=utf-8"
+			templates {
+				mime application/xml
+			}
+			file_server
+		}
+	}
+
+	# Hashed build assets never change; everything else (pages, translations, icons) is revalidated.
 	@assets path /assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
-
-	# Translations and the shell must be revalidated.
-	@dynamic path / /index.html /locales/*
-	header @dynamic Cache-Control "no-cache"
+	@revalidate not path /assets/*
+	header @revalidate Cache-Control "no-cache"
 
 	header {
 		X-Content-Type-Options nosniff
@@ -34,12 +78,34 @@
 		X-Frame-Options DENY
 	}
 
-	# SPA fallback for client-side routes (BrowserRouter). In a handle of its own: a bare try_files runs before the
-	# handle blocks above and would rewrite /healthz and /version.json to the index page.
+	# The signed-in app: client-side routes, one content-less shell (noindex), never prerendered pages.
+	@app path /organisations /organisations/* /playground /user-settings
+	handle @app {
+		rewrite * /app.html
+		header X-Robots-Tag "noindex, nofollow"
+		file_server
+	}
+
+	# Everything else is a file: the prerendered public pages (dist/<path>/index.html, also under /ro), assets, icons.
+	# `{path}/` serves a page's directory index in place (no redirect to a trailing slash). Brotli copies are made for
+	# everything but html/xml (see scripts/precompress.mjs): `templates` needs the plain text.
 	handle {
-		try_files {path} /index.html
+		try_files {path} {path}/
+		templates {
+			mime text/html
+		}
 		file_server {
 			precompressed br
+		}
+	}
+
+	# Unknown URLs: a real 404 (not the index page with 200, which search engines treat as a soft 404). The shell shows
+	# the app's own "not found" page.
+	handle_errors {
+		rewrite * /app.html
+		header X-Robots-Tag "noindex, nofollow"
+		file_server {
+			status {err.status_code}
 		}
 	}
 }

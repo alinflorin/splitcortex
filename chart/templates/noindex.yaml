@@ -1,0 +1,16 @@
+{{- /*
+  Traefik middleware that tells search engines not to index a host: `X-Robots-Tag: noindex`. Attached (with the
+  rate limit) to the Ingresses of every host that is not the public site: dex, web-node, gateway and the `/api` and
+  `/v1` paths. The public site (ui) decides for itself (its Caddy, `ui.seo.indexable`).
+  Reference: traefik.ingress.kubernetes.io/router.middlewares: <release namespace>-noindex@kubernetescrd
+*/ -}}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: noindex
+  labels:
+    {{- include "splitcortex.labels" . | nindent 4 }}
+spec:
+  headers:
+    customResponseHeaders:
+      X-Robots-Tag: "noindex, nofollow, noarchive"

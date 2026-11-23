@@ -2,9 +2,33 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#4A5BE6" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <title>SplitCortex</title>
+    <!-- Dark theme: no white flash while the prerendered (light) page waits for the app. -->
+    <script>
+      try {
+        var stored = localStorage.getItem('sc-theme');
+        if (
+          stored === 'dark' ||
+          (stored !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+        ) {
+          document.documentElement.setAttribute('data-sc-dark', '');
+        }
+      } catch (e) {}
+    </script>
+    <style>
+      html[data-sc-dark] {
+        background: #292929;
+      }
+      html[data-sc-dark] #root[data-prerendered] {
+        visibility: hidden;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

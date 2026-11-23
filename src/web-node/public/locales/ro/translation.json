@@ -92,5 +92,13 @@
     "copy": "Copiază",
     "clear": "Șterge",
     "empty": "Nimic încă. Jurnalul arată stări și numere, niciodată prompturi sau răspunsuri."
+  },
+  "consent": {
+    "title": "Cookie-uri și statistici",
+    "body": "Am vrea să folosim Google Analytics ca să numărăm vizitele și să vedem ce pagini sunt folosite. Setează cookie-uri și pornește doar dacă accepți. Nu trimitem niciodată ce scrii, prompturi sau răspunsuri, chei ori coduri. Te poți răzgândi oricând din Setări cookie-uri, în meniu.",
+    "accept": "Acceptă",
+    "decline": "Refuză",
+    "privacy": "Politica de confidențialitate",
+    "settings": "Setări cookie-uri"
   }
 }

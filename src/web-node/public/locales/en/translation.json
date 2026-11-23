@@ -92,5 +92,13 @@
     "copy": "Copy",
     "clear": "Clear",
     "empty": "Nothing yet. Logs show states and counts, never prompts or answers."
+  },
+  "consent": {
+    "title": "Cookies and analytics",
+    "body": "We would like to use Google Analytics to count visits and see which pages are used. It sets cookies and only starts if you accept. We never send what you type, prompts or answers, keys or codes. You can change your mind any time under Cookie settings in the menu.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "privacy": "Privacy policy",
+    "settings": "Cookie settings"
   }
 }

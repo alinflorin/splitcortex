@@ -18,6 +18,7 @@
         "tchoupinax.tilt",
         "vitest.explorer",
         "msjsdiag.vscode-react-native",
-        "expo.vscode-expo-tools"
+        "expo.vscode-expo-tools",
+        "ms-playwright.playwright"
     ]
 }

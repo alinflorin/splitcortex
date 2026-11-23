@@ -31,10 +31,16 @@ dex:
 ui:
   image:
     repository: ghcr.io/alinflorin/splitcortex-ui
+  analytics:
+    measurementId: G-KYDDYPE4NM   # Google Analytics 4 stream of the web app (a public id, not a secret)
+  seo:
+    indexable: true   # the only environment that may appear in search results
 
 webNode:
   image:
     repository: ghcr.io/alinflorin/splitcortex-web-node
+  analytics:
+    measurementId: G-DY77W04DVM   # Google Analytics 4 stream of the web node (a public id, not a secret)
 
 gateway:
   image:

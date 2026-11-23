@@ -27,7 +27,7 @@ const STORAGE_KEY = 'sc-theme';
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function initialPreference(): ThemePreference {
-  const stored = window.localStorage.getItem(STORAGE_KEY);
+  const stored = typeof window === 'undefined' ? null : window.localStorage.getItem(STORAGE_KEY);
   return stored === 'light' || stored === 'dark' ? stored : 'system';
 }
 

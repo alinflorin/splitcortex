@@ -17,6 +17,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useChartVersion } from '../lib/useChartVersion';
+import { useLocalePath } from '../seo/useLocalePath';
 import {
   BRAND_FROM,
   BRAND_TO,
@@ -201,6 +202,7 @@ export function About() {
   const styles = useStyles();
   const { t } = useTranslation();
   const version = useChartVersion();
+  const localePath = useLocalePath();
   const list = (key: string) => t(key, { returnObjects: true }) as string[];
 
   const principles = [
@@ -327,7 +329,7 @@ export function About() {
       <Section title={t('legal.linksTitle')} subtitle={t('legal.linksSubtitle')}>
         <CardGrid>
           {legal.map(({ to, key, icon }) => (
-            <Link key={to} to={to} className={styles.legalLink}>
+            <Link key={to} to={localePath(to)} className={styles.legalLink}>
               <FeatureCard icon={icon} title={t(`${key}.title`)} body={t(`${key}.subtitle`)} />
             </Link>
           ))}

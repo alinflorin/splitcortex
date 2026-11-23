@@ -887,6 +887,10 @@
           "body": "Păstrezi toate drepturile asupra modelelor, prompturilor și răspunsurilor. Nu citim și nu stocăm prompturi sau răspunsuri dincolo de ce e necesar pentru a direcționa o cerere."
         },
         {
+          "title": "Cookie-uri și statistici",
+          "body": "Pe site-ul de producție, statisticile anonime despre paginile vizitate pornesc doar dacă le accepți în bannerul de cookie-uri. Dacă refuzi, nu îți limitezi folosirea serviciului, iar alegerea o poți schimba oricând din Setări cookie-uri. Cum sunt tratate datele este descris în Politica de confidențialitate."
+        },
+        {
           "title": "Disponibilitate",
           "body": "Serviciul este oferit ca atare, fără garanția disponibilității. Dispozitivele aparțin organizațiilor și pot ieși oricând din rețea."
         },
@@ -909,6 +913,10 @@
           "body": "Înregistrăm numărul de tokeni, de cereri și latența per cheie, pool și organizație, pentru rapoarte de consum și grafice. Metricile se păstrează 7 zile, iar intrările din jurnalul de audit 90 de zile."
         },
         {
+          "title": "Statistici și cookie-uri",
+          "body": "Pe site-ul de producție folosim Google Analytics (Google Ireland Limited, în numele nostru) ca să numărăm paginile vizitate și să vedem ce pagini sunt folosite, pentru a îmbunătăți serviciul. Pornește doar dacă accepți în bannerul de cookie-uri; poți refuza și folosi totul în continuare. Dacă accepți, setează cookie-uri și primește adresa paginii (fără id-urile organizației, pool-ului și dispozitivului), titlul paginii și detalii tehnice precum browserul, tipul dispozitivului și locația aproximativă. Nu primește niciodată ce scrii, prompturi, răspunsuri, chei sau coduri de înrolare. Nu îl folosim pentru publicitate: stocarea pentru reclame, Google signals și personalizarea reclamelor sunt oprite, iar datele nu sunt folosite pentru remarketing sau profilare. Google poate prelucra datele în afara Spațiului Economic European, cu garanțiile sale standard. Datele sunt păstrate o perioadă limitată, stabilită în contul nostru de analytics. Te poți răzgândi oricând din Setări cookie-uri, în meniu; colectarea se oprește și cookie-urile sunt șterse. Autentificarea, limba, tema și alegerile de aspect sunt păstrate în browser pentru că aplicația are nevoie de ele, nu pentru a te urmări."
+        },
+        {
           "title": "Ce nu stocăm niciodată",
           "body": "Prompturile, răspunsurile și materialul cheilor nu sunt niciodată înregistrate sau stocate. Cheile API se păstrează doar ca hash și se afișează o singură dată."
         },
@@ -918,11 +926,11 @@
         },
         {
           "title": "Partajare",
-          "body": "Nu vindem date. Datele sunt partajate doar cu furnizorii de infrastructură necesari serviciului și atunci când legea o cere."
+          "body": "Nu vindem date. Datele sunt partajate doar cu furnizorii de infrastructură necesari pentru a rula serviciul, cu Google pentru statistici dacă ai acceptat bannerul de cookie-uri (vezi mai sus) și atunci când legea o cere."
         },
         {
           "title": "Drepturile tale",
-          "body": "Poți cere acces, corectare sau ștergerea datelor. Proprietarii organizațiilor pot elimina oricând membri, chei și dispozitive."
+          "body": "Poți cere accesul, corectarea sau ștergerea datelor tale și poți să te opui sau să ceri restricționarea utilizării lor. Îți poți retrage oricând consimțământul pentru statistici din Setări cookie-uri. Poți depune și o plângere la autoritatea ta de protecție a datelor. Proprietarii organizațiilor pot elimina oricând membri, chei și dispozitive."
         },
         {
           "title": "Contact",
@@ -950,5 +958,41 @@
       "title": "Program suport",
       "body": "Luni–Vineri, 09:00–17:00"
     }
+  },
+  "seo": {
+    "imageAlt": "SplitCortex: sigla, două jumătăți de creier în violet și mentă",
+    "home": {
+      "title": "SplitCortex – Inferență LLM pe dispozitivele tale",
+      "description": "Transformă telefoanele, Raspberry Pi-urile, laptopurile și browserele tale într-o flotă privată de inferență LLM, cu un API compatibil OpenAI."
+    },
+    "about": {
+      "title": "Despre SplitCortex – Inferență pe dispozitivele tale",
+      "description": "De ce există SplitCortex, cum ajunge o cerere de la gateway la dispozitivele tale și principiile unui serviciu LLM privat."
+    },
+    "terms": {
+      "title": "Termeni și condiții – SplitCortex",
+      "description": "Termenii care se aplică la folosirea SplitCortex: conturi, organizații, dispozitive, chei API și utilizare acceptabilă."
+    },
+    "privacy": {
+      "title": "Politica de confidențialitate – SplitCortex",
+      "description": "Cum tratează SplitCortex datele tale: ce stocăm, ce nu înregistrăm niciodată (prompturi și răspunsuri) și ce opțiuni ai."
+    },
+    "contact": {
+      "title": "Contact – SplitCortex",
+      "description": "Ia legătura cu echipa SplitCortex despre platformă, dispozitivele tale sau contul tău."
+    }
+  },
+  "footer": {
+    "nav": "Subsol",
+    "rights": "© {{year}} SplitCortex",
+    "language": "Limbă"
+  },
+  "consent": {
+    "title": "Cookie-uri și statistici",
+    "body": "Am vrea să folosim Google Analytics ca să numărăm vizitele și să vedem ce pagini sunt folosite. Setează cookie-uri și pornește doar dacă accepți. Nu trimitem niciodată ce scrii, prompturi sau răspunsuri, chei ori coduri. Te poți răzgândi oricând din Setări cookie-uri, în meniu.",
+    "accept": "Acceptă",
+    "decline": "Refuză",
+    "privacy": "Politica de confidențialitate",
+    "settings": "Setări cookie-uri"
   }
 }

@@ -14,6 +14,7 @@ import { PanelLeftContract20Regular, PanelLeftExpand20Regular } from '@fluentui/
 import { useTranslation } from 'react-i18next';
 import { matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { useChartVersion } from '../../lib/useChartVersion';
+import { useLocalePath } from '../../seo/useLocalePath';
 import { GLOBAL_ITEMS } from './globalNav';
 import { NavEntry } from './NavEntry';
 import { OrgNav } from './OrgNav';
@@ -71,13 +72,14 @@ export function Sidebar({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const version = useChartVersion();
+  const localePath = useLocalePath();
   const { pathname } = useLocation();
   const collapsed = collapsedProp && !overlay;
 
   const orgId = matchPath('/organisations/:orgId/*', pathname)?.params.orgId;
-  const globalSelected = GLOBAL_ITEMS.find((i) =>
-    i.to === '/' ? pathname === '/' : pathname.startsWith(i.to),
-  )?.to;
+  const globalSelected = GLOBAL_ITEMS.map((i) => localePath(i.to)).find((to, n) =>
+    GLOBAL_ITEMS[n]?.to === '/' ? pathname === to : pathname.startsWith(to),
+  );
   const selected = orgId ? `/organisations/${orgId}/${sectionOf(pathname)}` : globalSelected;
   const showGlobal = !orgId || overlay;
 
@@ -107,11 +109,11 @@ export function Sidebar({
           GLOBAL_ITEMS.map(({ to, key, Icon }) => (
             <NavEntry
               key={to}
-              to={to}
+              to={localePath(to)}
               label={t(`nav.${key}`)}
               icon={<Icon />}
               collapsed={collapsed}
-              onClick={go(to)}
+              onClick={go(localePath(to))}
             />
           ))}
       </NavDrawerBody>

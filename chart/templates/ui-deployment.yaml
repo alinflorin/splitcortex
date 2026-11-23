@@ -25,6 +25,12 @@ spec:
             # Shown in the app (served as /version.json).
             - name: APP_VERSION
               value: {{ .Chart.Version | quote }}
+            # "true" only in production: otherwise noindex everywhere and a closed robots.txt (see values.yaml, ui.seo).
+            # Google Analytics measurement id (served as /config.json): empty everywhere but production.
+            - name: GA_MEASUREMENT_ID
+              value: {{ .Values.ui.analytics.measurementId | quote }}
+            - name: SEO_INDEXABLE
+              value: {{ .Values.ui.seo.indexable | quote }}
           ports:
             - name: http
               containerPort: 8080

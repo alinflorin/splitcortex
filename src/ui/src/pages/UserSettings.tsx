@@ -9,6 +9,7 @@ import { useConfirm } from '../components/feedback/useConfirm';
 import { useToast } from '../components/feedback/useToast';
 import { PageHeader } from '../components/layout/PageHeader';
 import { useCurrentUser } from '../auth/useCurrentUser';
+import { useLocalePath } from '../seo/useLocalePath';
 
 const useStyles = makeStyles({
   root: {
@@ -33,6 +34,7 @@ export function UserSettings() {
   const styles = useStyles();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const localePath = useLocalePath();
   const auth = useAuth();
   const user = useCurrentUser();
   const queryClient = useQueryClient();
@@ -54,7 +56,7 @@ export function UserSettings() {
       await auth.removeUser();
       queryClient.clear();
       toast.success(t('userSettings.deleted'));
-      void navigate('/');
+      void navigate(localePath('/'));
     } catch {
       // error toast shown by the mutation cache
     }

@@ -887,6 +887,10 @@
           "body": "You keep all rights to your models, prompts and completions. We do not read or store prompts or completions beyond what is needed to route a request."
         },
         {
+          "title": "Cookies and analytics",
+          "body": "On the production site, anonymous page-view analytics run only if you accept them in the cookie banner. Saying no does not limit your use of the service, and you can change your choice at any time under Cookie settings. How the data is handled is described in the Privacy Policy."
+        },
+        {
           "title": "Availability",
           "body": "The service is provided as is, without a guarantee of uptime. Devices are owned by their organisations and may go offline at any time."
         },
@@ -909,6 +913,10 @@
           "body": "We record token counts, request counts and latency per key, pool and organisation for usage reporting and charts. Metrics are kept for 7 days and audit entries for 90 days."
         },
         {
+          "title": "Analytics and cookies",
+          "body": "On the production site we use Google Analytics (Google Ireland Limited, acting for us) to count page views and see which pages are used, so we can improve the service. It runs only if you accept in the cookie banner; you can say no and keep using everything. If you accept, it sets cookies and receives the page address (organisation, pool and device ids removed), the page title and technical details such as your browser, device type and approximate location. It never receives what you type, prompts, answers, keys or enrollment codes. We do not use it for advertising: advertising storage, Google signals and ad personalisation are switched off, and the data is not used for remarketing or profiling. Google may process the data outside the European Economic Area under its standard safeguards. The data is kept for a limited period set in our analytics account. You can withdraw at any time under Cookie settings in the menu; that stops collection and removes the cookies. Your sign-in, language, theme and layout choices are kept in your browser because the app needs them to work, not to track you."
+        },
+        {
           "title": "What we never store",
           "body": "Prompts, completions and key material are never logged or stored. API keys are kept only as hashes and shown once."
         },
@@ -918,11 +926,11 @@
         },
         {
           "title": "Sharing",
-          "body": "We do not sell data. Data is shared only with infrastructure providers needed to run the service, and where the law requires it."
+          "body": "We do not sell data. Data is shared only with infrastructure providers needed to run the service, with Google for analytics if you accepted the cookie banner (see above), and where the law requires it."
         },
         {
           "title": "Your rights",
-          "body": "You can ask to access, correct or delete your data. Organisation owners can remove members, keys and devices at any time."
+          "body": "You can ask to access, correct or delete your data, and to object to or restrict its use. You can withdraw your analytics consent at any time under Cookie settings. You may also complain to your data protection authority. Organisation owners can remove members, keys and devices at any time."
         },
         {
           "title": "Contact",
@@ -950,5 +958,41 @@
       "title": "Support hours",
       "body": "Mon–Fri, 09:00–17:00"
     }
+  },
+  "seo": {
+    "imageAlt": "SplitCortex: the logo, two halves of a brain in violet and mint",
+    "home": {
+      "title": "SplitCortex – Run LLM inference on your own devices",
+      "description": "Turn the phones, Raspberry Pis, laptops and browsers you already own into one private LLM inference fleet, served through an OpenAI-compatible API."
+    },
+    "about": {
+      "title": "About SplitCortex – Inference on devices you already own",
+      "description": "Why SplitCortex exists, how a request travels from the gateway to your devices, and the principles behind private, bring-your-own-device LLM serving."
+    },
+    "terms": {
+      "title": "Terms of Service – SplitCortex",
+      "description": "The terms that apply when you use SplitCortex: accounts, organisations, devices, API keys and acceptable use."
+    },
+    "privacy": {
+      "title": "Privacy Policy – SplitCortex",
+      "description": "How SplitCortex handles your data: what we store, what we never log (prompts and completions) and the choices you have."
+    },
+    "contact": {
+      "title": "Contact – SplitCortex",
+      "description": "Get in touch with the SplitCortex team about the platform, your devices or your account."
+    }
+  },
+  "footer": {
+    "nav": "Footer",
+    "rights": "© {{year}} SplitCortex",
+    "language": "Language"
+  },
+  "consent": {
+    "title": "Cookies and analytics",
+    "body": "We would like to use Google Analytics to count visits and see which pages are used. It sets cookies and only starts if you accept. We never send what you type, prompts or answers, keys or codes. You can change your mind any time under Cookie settings in the menu.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "privacy": "Privacy policy",
+    "settings": "Cookie settings"
   }
 }

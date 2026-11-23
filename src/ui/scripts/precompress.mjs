@@ -1,13 +1,14 @@
 // Writes a Brotli copy (`file.br`) next to every compressible file of `dist`, for Caddy's `precompressed br`: the
 // static server then sends the smallest encoding without compressing on every request. Run after `pnpm build` (the
 // Dockerfile does). Already-compressed formats (fonts, images) are skipped, and so is any file where Brotli does not
-// pay off.
+// pay off. Not .html and .xml: Caddy's `templates` fills the host into the prerendered pages and the sitemap and needs
+// the plain text (they get zstd/gzip on the fly).
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { brotliCompressSync, constants } from 'node:zlib';
 
 const root = process.argv[2] ?? 'dist';
-const TYPES = new Set(['.html', '.js', '.mjs', '.css', '.json', '.svg', '.txt', '.wasm', '.xml']);
+const TYPES = new Set(['.js', '.mjs', '.css', '.json', '.svg', '.txt', '.wasm', '.webmanifest']);
 const MIN_BYTES = 512;
 
 let files = 0;

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { api, uniq, userPage } from '../lib/api';
-import { dialogsClosed } from '../lib/ui';
+import { dialogsClosed, menuLink } from '../lib/ui';
 import { authFile, baseUrl, dexUrl, users } from '../lib/env';
 
 // The web app outside an organisation: the signed-out visitor, Home, About, the sidebar, the account menu (theme,
@@ -30,9 +30,9 @@ test.describe('signed out', () => {
     await expect(page.getByText('Welcome back')).toHaveCount(0);
     // The top bar is the top-level menu; the org pages are not listed.
     for (const link of ['Home', 'Organisations', 'Playground', 'About']) {
-      await expect(page.getByRole('link', { name: link, exact: true }), link).toBeVisible();
+      await expect(menuLink(page, link), link).toBeVisible();
     }
-    await page.getByRole('link', { name: 'About', exact: true }).click();
+    await menuLink(page, 'About').click();
     await page.waitForURL(`${baseUrl()}/about`);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('About SplitCortex');
     await expect(page.getByText('How a request travels')).toBeVisible();
@@ -161,20 +161,20 @@ test.describe('signed in', () => {
     await expect(orgs).toHaveAttribute('aria-current', 'page');
     await page.getByRole('link', { name: 'Playground', exact: true }).click();
     await page.waitForURL(`${baseUrl()}/playground`);
-    await page.getByRole('link', { name: 'Home', exact: true }).click();
+    await menuLink(page, 'Home').click();
     await page.waitForURL(`${baseUrl()}/`);
     // The version is on About, not in the account menu.
     await page.getByRole('button', { name: 'Account' }).click();
     await expect(page.getByText(/^Version /)).toHaveCount(0);
     await page.keyboard.press('Escape');
-    await page.getByRole('link', { name: 'About', exact: true }).click();
+    await menuLink(page, 'About').click();
     await page.waitForURL(`${baseUrl()}/about`);
     await expect(page.getByText(/^Version /)).toBeVisible();
-    await page.getByRole('link', { name: 'Home', exact: true }).click();
+    await menuLink(page, 'Home').click();
     await page.waitForURL(`${baseUrl()}/`);
     // On a narrow screen the links move into a drawer, opened with the top bar button.
     await page.setViewportSize({ width: 600, height: 900 });
-    const nav = page.getByRole('link', { name: 'About', exact: true });
+    const nav = menuLink(page, 'About');
     await expect(nav).toBeHidden();
     await page.getByRole('button', { name: 'Toggle navigation' }).click();
     await expect(nav).toBeVisible();
@@ -310,11 +310,11 @@ test.describe('signed in', () => {
     try {
       await page.goto(`${baseUrl()}/organisations`);
       await expect(page.getByRole('heading', { level: 1, name: 'Organisations' })).toBeVisible();
-      await expect(page.getByRole('link', { name: 'About', exact: true })).toBeHidden();
+      await expect(menuLink(page, 'About')).toBeHidden();
       await page.getByRole('button', { name: 'Toggle navigation' }).click();
-      await page.getByRole('link', { name: 'About', exact: true }).click();
+      await menuLink(page, 'About').click();
       await page.waitForURL(`${baseUrl()}/about`);
-      await expect(page.getByRole('link', { name: 'About', exact: true })).toBeHidden();
+      await expect(menuLink(page, 'About')).toBeHidden();
       // No sideways scrolling on a phone.
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),

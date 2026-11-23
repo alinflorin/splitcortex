@@ -27,6 +27,8 @@ const version: Plugin = {
 export default defineConfig({
   // Experimental Rust port of React Compiler (oxc-transform-react).
   plugins: [react({ compiler: true }), healthz, version],
+  // The prerender build (`vite build --ssr`) bundles everything: Node cannot load Fluent's extension-less ESM imports.
+  ssr: { noExternal: true },
   server: {
     host: true,
     port: 5173,

@@ -3,8 +3,14 @@ import { makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import { matchPath, Outlet, useLocation } from 'react-router-dom';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import { useStoredBoolean } from '../../lib/useStoredBoolean';
+import { Analytics } from '../../analytics/Analytics';
+import { ConsentBanner } from '../../analytics/ConsentBanner';
+import { LocaleSync } from '../../seo/LocaleSync';
+import { parsePublicPath } from '../../seo/pages';
+import { Seo } from '../../seo/Seo';
 import { Breadcrumbs } from './Breadcrumbs';
 import { Sidebar } from './Sidebar';
+import { SiteFooter } from './SiteFooter';
 import { TopBar } from './TopBar';
 
 const useStyles = makeStyles({
@@ -42,11 +48,16 @@ export function AppShell() {
   const { pathname } = useLocation();
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const inOrg = !!matchPath('/organisations/:orgId/*', pathname);
+  const publicPage = parsePublicPath(pathname);
   const [collapsed, setCollapsed] = useStoredBoolean('sc-sidebar-collapsed');
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
     <div className={styles.root}>
+      <Seo />
+      <LocaleSync />
+      <Analytics />
+      <ConsentBanner />
       <TopBar showNavToggle={!isDesktop} onToggleNav={() => setDrawerOpen((o) => !o)} />
       <div className={styles.body}>
         {isDesktop && inOrg && (
@@ -60,12 +71,18 @@ export function AppShell() {
         )}
         {!isDesktop && <Sidebar open={drawerOpen} overlay onOpenChange={setDrawerOpen} />}
         <div className={styles.scroll}>
-          <main className={mergeClasses(styles.main, pathname === '/' && styles.mainFull)}>
+          <main
+            className={mergeClasses(
+              styles.main,
+              publicPage?.page.key === 'home' && styles.mainFull,
+            )}
+          >
             <Breadcrumbs />
             <div key={pathname} className="sc-enter">
               <Outlet />
             </div>
           </main>
+          {publicPage && <SiteFooter />}
         </div>
       </div>
     </div>

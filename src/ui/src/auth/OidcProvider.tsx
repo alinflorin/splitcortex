@@ -1,14 +1,18 @@
 import { useEffect, useMemo, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from 'react-oidc-context';
 import { useNavigate } from 'react-router-dom';
+import i18n from '../i18n';
+import { toLanguage } from '../i18n/languages';
 import { buildOidcConfig } from '../lib/oidc';
+import { localizedPath } from '../seo/pages';
 
 function returnToOf(state: unknown): string {
   if (typeof state === 'object' && state !== null && 'returnTo' in state) {
     const value = (state as { returnTo: unknown }).returnTo;
     if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) return value;
   }
-  return '/';
+  // no page asked for: the home page, in the language the user is reading
+  return localizedPath('/', toLanguage(i18n.resolvedLanguage));
 }
 
 const RETRY_MS = 30_000;

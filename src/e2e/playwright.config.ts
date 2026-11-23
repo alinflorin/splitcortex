@@ -48,7 +48,7 @@ export default defineConfig({
     {
       name: 'ui',
       dependencies: ['setup'],
-      testMatch: /(ui|ui-admin|ui-app|ui-org|web-node)\.spec\.ts/,
+      testMatch: /(ui|ui-admin|ui-app|ui-org|web-node|seo|analytics)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
     {

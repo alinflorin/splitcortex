@@ -25,6 +25,7 @@ import { CardList, ItemCard } from '../../components/cards/cards';
 import { useToast } from '../../components/feedback/useToast';
 import { NodeStatusBadge } from '../../components/status/StatusBadge';
 import { formatAgo } from '../../lib/format';
+import { useLocalePath } from '../../seo/useLocalePath';
 import { BulkEnrollDialog } from './BulkEnrollDialog';
 import { EnrollDeviceDialog } from './EnrollDeviceDialog';
 import { ModelCard } from './ModelCard';
@@ -52,6 +53,7 @@ export function PoolNodes({ pool, admin = false }: { pool: Pool; admin?: boolean
   const styles = useStyles();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const localePath = useLocalePath();
   const query = useNodes(pool.orgId, pool.id);
   const [enrolling, setEnrolling] = useState(false);
   const [bulk, setBulk] = useState(false);
@@ -72,7 +74,7 @@ export function PoolNodes({ pool, admin = false }: { pool: Pool; admin?: boolean
           </>
         )}
         {/* the apps and their install steps live on the home page; a new tab keeps this page where it is */}
-        <Link href="/#run" target="_blank" rel="noopener noreferrer" inline>
+        <Link href={localePath('/#run')} target="_blank" rel="noopener noreferrer" inline>
           {t('pools.getApp')} <Open16Regular />
         </Link>
       </div>

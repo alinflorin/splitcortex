@@ -92,7 +92,7 @@ dex:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       # <release namespace>-rate-limit-general@kubernetescrd (namespace `splitcortex`)
-      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd,splitcortex-noindex@kubernetescrd
     hosts:
       - host: "dex.{{ .Values.global.domain }}"
         paths:
@@ -188,6 +188,15 @@ ui:
   service:
     port: 80
   readOnlyRootFilesystem: true   # Tilt dev sets false (Vite writes caches, live_update syncs files)
+  analytics:
+    # Google Analytics 4 measurement id (G-XXXXXXXXXX), only in production (values-prd.yaml). Empty = no analytics and no
+    # cookie banner. Loaded in the browser only after the visitor accepts.
+    measurementId: ""
+  seo:
+    # true only where the site should appear in search results (production, values-prd.yaml). Otherwise every response
+    # carries `X-Robots-Tag: noindex` and /robots.txt disallows everything. The other hosts (dex, web-node, gateway,
+    # /api, /v1) are never indexed: their Ingresses attach the `noindex` middleware (templates/noindex.yaml).
+    indexable: false
   ingress:
     enabled: true
     className: traefik   # keep equal to ingress.className
@@ -220,6 +229,8 @@ webNode:
   service:
     port: 80
   readOnlyRootFilesystem: true   # Tilt dev sets false (Vite writes caches, live_update syncs files)
+  analytics:
+    measurementId: ""   # its own GA4 stream; production only (values-prd.yaml), see ui.analytics
   ingress:
     enabled: true
     className: traefik   # keep equal to ingress.className
@@ -227,7 +238,7 @@ webNode:
       cert-manager.io/cluster-issuer: letsencrypt
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
-      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd,splitcortex-noindex@kubernetescrd
     # The web app derives this host from its own (`<domain>` -> `web-node.<domain>`, ui/src/lib/webNode.ts).
     hosts:
       - host: "web-node.{{ .Values.global.domain }}"
@@ -338,7 +349,7 @@ controlPlane:
     annotations:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
-      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-general@kubernetescrd,splitcortex-noindex@kubernetescrd
     # Same host as the web app (same origin, no CORS), and the same on the web node's host (its browser enrolls and
     # downloads models through `/api` there). The TLS Secrets are issued via the UI's and the web node's Ingresses.
     hosts:
@@ -409,7 +420,7 @@ gateway:
       cert-manager.io/cluster-issuer: letsencrypt
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
-      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-gateway@kubernetescrd
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-gateway@kubernetescrd,splitcortex-noindex@kubernetescrd
     hosts:
       - host: "gateway.{{ .Values.global.domain }}"
         paths:
@@ -435,7 +446,7 @@ gateway:
     annotations:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
-      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-gateway@kubernetescrd
+      traefik.ingress.kubernetes.io/router.middlewares: splitcortex-rate-limit-gateway@kubernetescrd,splitcortex-noindex@kubernetescrd
     hosts:
       - host: "{{ .Values.global.domain }}"
         paths:

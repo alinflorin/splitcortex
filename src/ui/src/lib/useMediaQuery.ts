@@ -8,5 +8,7 @@ export function useMediaQuery(query: string): boolean {
       return () => mql.removeEventListener('change', onChange);
     },
     () => window.matchMedia(query).matches,
+    // prerender (no screen): the narrow layout, which is what mobile-first indexing sees
+    () => false,
   );
 }
