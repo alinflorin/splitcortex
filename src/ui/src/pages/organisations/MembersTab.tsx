@@ -113,7 +113,12 @@ export function MembersTab() {
                   key={m.email}
                   title={
                     <>
-                      {m.email} {self && <Badge appearance="outline">{t('members.you')}</Badge>}
+                      {m.email}{' '}
+                      {self && (
+                        <Badge appearance="outline" color="success">
+                          {t('members.you')}
+                        </Badge>
+                      )}
                     </>
                   }
                   subtitle={`${t('common.created')} ${new Date(m.createdAt).toLocaleDateString()}`}
@@ -133,7 +138,9 @@ export function MembersTab() {
                         ))}
                       </Dropdown>
                     ) : (
-                      <Badge appearance="tint">{t(`roles.${m.role}`)}</Badge>
+                      <Badge appearance="tint" color="success">
+                        {t(`roles.${m.role}`)}
+                      </Badge>
                     )
                   }
                   actions={

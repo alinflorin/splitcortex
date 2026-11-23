@@ -365,6 +365,7 @@
     "deleteTitle": "Ștergi {{name}}?",
     "deleteMessage": "Șterge definitiv organizația împreună cu pool-urile, membrii și istoricul de utilizare.",
     "subtitle": "Tot ce rulezi aparține unei organizații: dispozitivele, modelele, cheile și oamenii ei.",
+    "detailsTitle": "Detalii",
     "settingsSubtitle": "Redenumește organizația, setează limitele sau șterge-o."
   },
   "pools": {

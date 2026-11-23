@@ -365,6 +365,7 @@
     "deleteTitle": "Delete {{name}}?",
     "deleteMessage": "This permanently deletes the organisation with its pools, memberships and usage history.",
     "subtitle": "Everything you run belongs to an organisation: its devices, models, keys and people.",
+    "detailsTitle": "Details",
     "settingsSubtitle": "Rename the organisation, set its rate limits or delete it."
   },
   "pools": {

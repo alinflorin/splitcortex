@@ -151,7 +151,9 @@ export function AuditPage() {
                           {t(`audit.outcomes.${e.outcome}`)}
                         </Badge>
                         {e.source === 'gateway' && (
-                          <Badge appearance="outline">{t('audit.gateway')}</Badge>
+                          <Badge appearance="outline" color="success">
+                            {t('audit.gateway')}
+                          </Badge>
                         )}
                       </>
                     }

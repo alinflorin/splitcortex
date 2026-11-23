@@ -16,6 +16,7 @@ import {
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { useChartVersion } from '../lib/useChartVersion';
 import {
   BRAND_FROM,
   BRAND_TO,
@@ -199,6 +200,7 @@ function FlowArrow({ label, sub }: { label: string; sub: string }) {
 export function About() {
   const styles = useStyles();
   const { t } = useTranslation();
+  const version = useChartVersion();
   const list = (key: string) => t(key, { returnObjects: true }) as string[];
 
   const principles = [
@@ -228,6 +230,11 @@ export function About() {
         <Text size={200} className={styles.eyebrow}>
           {t('about.hero.eyebrow')}
         </Text>
+        {version && (
+          <Text size={200} className={styles.muted}>
+            {t('app.version', { version })}
+          </Text>
+        )}
         <h1 className={styles.h1}>
           {t('about.title')}: <GradientText>{t('about.hero.highlight')}</GradientText>
         </h1>

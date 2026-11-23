@@ -102,19 +102,21 @@ export function OrganisationSettingsTab() {
         title={t('settings.title')}
         subtitle={t('organisations.settingsSubtitle')}
       />
-      <form className={styles.form} noValidate onSubmit={(e) => void submit(e)}>
-        <TextField control={form.control} name="name" label={t('organisations.name')} />
-        <TextField control={form.control} name="slug" label={t('organisations.slug')} />
-        <div className={styles.actions}>
-          <Button
-            appearance="primary"
-            type="submit"
-            disabled={update.isPending || !form.formState.isDirty}
-          >
-            {t('settings.save')}
-          </Button>
-        </div>
-      </form>
+      <ItemCard title={t('organisations.detailsTitle')}>
+        <form className={styles.form} noValidate onSubmit={(e) => void submit(e)}>
+          <TextField control={form.control} name="name" label={t('organisations.name')} />
+          <TextField control={form.control} name="slug" label={t('organisations.slug')} />
+          <div className={styles.actions}>
+            <Button
+              appearance="primary"
+              type="submit"
+              disabled={update.isPending || !form.formState.isDirty}
+            >
+              {t('settings.save')}
+            </Button>
+          </div>
+        </form>
+      </ItemCard>
 
       <ItemCard title={t('limits.orgTitle')} subtitle={t('limits.orgHint')}>
         <LimitsFields value={limitsText} onChange={setLimitsText} />

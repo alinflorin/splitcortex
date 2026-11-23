@@ -82,7 +82,11 @@ export function OrganisationsPage() {
                   key={org.id}
                   title={org.name}
                   subtitle={org.slug}
-                  meta={<Badge appearance="tint">{t(`roles.${org.role}`)}</Badge>}
+                  meta={
+                    <Badge appearance="tint" color="success">
+                      {t(`roles.${org.role}`)}
+                    </Badge>
+                  }
                   onClick={() => void navigate(`/organisations/${org.id}`)}
                 />
               ))}

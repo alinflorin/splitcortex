@@ -7,6 +7,9 @@ const useStyles = makeStyles({
     backgroundColor: 'transparent',
     ':hover': { backgroundColor: tokens.colorNeutralBackground2Hover },
     '&[aria-current="page"]': { backgroundColor: tokens.colorBrandBackground2 },
+    // Centre the icon on the label's line (the icon slot otherwise sits on the text baseline).
+    alignItems: 'center',
+    '& .fui-NavItem__icon': { display: 'flex', alignItems: 'center', lineHeight: 0 },
   },
 });
 

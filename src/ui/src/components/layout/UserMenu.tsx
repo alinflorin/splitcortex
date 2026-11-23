@@ -17,7 +17,6 @@ import { useAuth } from 'react-oidc-context';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { startSignOut } from '../../auth/signOut';
 import { useCurrentUser } from '../../auth/useCurrentUser';
-import { useChartVersion } from '../../lib/useChartVersion';
 import { LanguageSubmenu, ThemeSubmenu } from './PreferencesMenu';
 
 const useStyles = makeStyles({
@@ -34,11 +33,6 @@ const useStyles = makeStyles({
     minWidth: '240px',
   },
   headerText: { display: 'flex', flexDirection: 'column', minWidth: 0 },
-  version: {
-    display: 'block',
-    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalL} ${tokens.spacingVerticalS}`,
-    color: tokens.colorNeutralForeground3,
-  },
   ellipsis: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
 });
 
@@ -49,7 +43,6 @@ export function UserMenu() {
   const location = useLocation();
   const auth = useAuth();
   const user = useCurrentUser();
-  const version = useChartVersion();
 
   return (
     <Menu positioning={{ align: 'end' }}>
@@ -117,11 +110,6 @@ export function UserMenu() {
             </MenuItem>
           )}
         </MenuList>
-        {version && (
-          <Text size={200} className={styles.version}>
-            {t('app.version', { version })}
-          </Text>
-        )}
       </MenuPopover>
     </Menu>
   );

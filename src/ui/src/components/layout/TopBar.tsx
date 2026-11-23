@@ -41,15 +41,15 @@ const useStyles = makeStyles({
     fontWeight: tokens.fontWeightRegular,
     textTransform: 'lowercase',
   },
-  // The wordmark carries the logo's two gradients: mint → cyan, violet.
+  // The wordmark carries the logo's two gradients: violet, mint → cyan.
   brandSplit: {
-    backgroundImage: `linear-gradient(180deg, ${BRAND.mint}, ${BRAND.cyan})`,
+    backgroundImage: `linear-gradient(180deg, ${BRAND.violetLight}, ${BRAND.violet})`,
     backgroundClip: 'text',
     WebkitBackgroundClip: 'text',
     color: 'transparent',
   },
   brandCortex: {
-    backgroundImage: `linear-gradient(180deg, ${BRAND.violetLight}, ${BRAND.violet})`,
+    backgroundImage: `linear-gradient(180deg, ${BRAND.mint}, ${BRAND.cyan})`,
     backgroundClip: 'text',
     WebkitBackgroundClip: 'text',
     color: 'transparent',

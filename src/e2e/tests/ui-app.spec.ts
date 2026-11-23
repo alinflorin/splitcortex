@@ -163,10 +163,15 @@ test.describe('signed in', () => {
     await page.waitForURL(`${baseUrl()}/playground`);
     await page.getByRole('link', { name: 'Home', exact: true }).click();
     await page.waitForURL(`${baseUrl()}/`);
-    // The version sits at the bottom of the account menu.
+    // The version is on About, not in the account menu.
     await page.getByRole('button', { name: 'Account' }).click();
-    await expect(page.getByText(/^Version /)).toBeVisible();
+    await expect(page.getByText(/^Version /)).toHaveCount(0);
     await page.keyboard.press('Escape');
+    await page.getByRole('link', { name: 'About', exact: true }).click();
+    await page.waitForURL(`${baseUrl()}/about`);
+    await expect(page.getByText(/^Version /)).toBeVisible();
+    await page.getByRole('link', { name: 'Home', exact: true }).click();
+    await page.waitForURL(`${baseUrl()}/`);
     // On a narrow screen the links move into a drawer, opened with the top bar button.
     await page.setViewportSize({ width: 600, height: 900 });
     const nav = page.getByRole('link', { name: 'About', exact: true });

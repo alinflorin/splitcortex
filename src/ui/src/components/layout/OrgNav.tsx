@@ -65,7 +65,7 @@ export function OrgNav({ orgId, go, collapsed = false }: OrgNavProps) {
         <div className={styles.org} aria-label={t('orgNav.current')}>
           <Caption1>{t('orgNav.current')}</Caption1>
           <Text className={styles.name}>{current.name}</Text>
-          <Badge appearance="tint" size="small" className={styles.role}>
+          <Badge appearance="tint" color="success" size="small" className={styles.role}>
             {t(`roles.${current.role}`)}
           </Badge>
         </div>
