@@ -87,15 +87,15 @@ Sitemap: https://{host}/sitemap.xml
 	}
 
 	# Everything else is a file: the prerendered public pages (dist/<path>/index.html, also under /ro), assets, icons.
-	# `{path}/` serves a page's directory index in place (no redirect to a trailing slash). Brotli copies are made for
-	# everything but html/xml (see scripts/precompress.mjs): `templates` needs the plain text.
+	# `disable_canonical_uris` serves a page's directory index in place, with or without a trailing slash (no 308 hop).
+	# Brotli copies are made for everything but html/xml (see scripts/precompress.mjs): `templates` needs the plain text.
 	handle {
-		try_files {path} {path}/
 		templates {
 			mime text/html
 		}
 		file_server {
 			precompressed br
+			disable_canonical_uris
 		}
 	}
 
