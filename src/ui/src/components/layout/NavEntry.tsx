@@ -8,8 +8,15 @@ const useStyles = makeStyles({
     ':hover': { backgroundColor: tokens.colorNeutralBackground2Hover },
     '&[aria-current="page"]': { backgroundColor: tokens.colorBrandBackground2 },
     // Centre the icon on the label's line (the icon slot otherwise sits on the text baseline).
+    // A grid, not flex: bundleIcon renders the Filled and Regular SVGs together and they must
+    // overlap, otherwise the selected item's icon slot doubles in width and the label jumps right.
     alignItems: 'center',
-    '& .fui-NavItem__icon': { display: 'flex', alignItems: 'center', lineHeight: 0 },
+    '& .fui-NavItem__icon': {
+      display: 'grid',
+      alignItems: 'center',
+      lineHeight: 0,
+      '& > svg': { gridArea: '1 / 1' },
+    },
   },
 });
 
