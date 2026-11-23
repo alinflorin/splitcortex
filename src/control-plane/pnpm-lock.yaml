@@ -12,11 +12,11 @@ importers:
   .:
     dependencies:
       '@aws-sdk/client-s3':
-        specifier: ^3.1170.0
-        version: 3.1170.0
+        specifier: ^3.1173.0
+        version: 3.1173.0
       '@aws-sdk/lib-storage':
-        specifier: ^3.1170.0
-        version: 3.1170.0(@aws-sdk/client-s3@3.1170.0)
+        specifier: ^3.1173.0
+        version: 3.1173.0(@aws-sdk/client-s3@3.1173.0)
       '@cipherman/pake-js':
         specifier: ^0.1.1
         version: 0.1.1
@@ -31,7 +31,7 @@ importers:
         version: 6.1.4
       drizzle-orm:
         specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.16)(@types/pg@8.23.1)(pg@8.23.1)
+        version: 0.45.4(@electric-sql/pglite@0.5.17)(@types/pg@8.23.1)(pg@8.23.1)
       fastify:
         specifier: ^5.12.8
         version: 5.12.8
@@ -42,8 +42,8 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0(@fastify/swagger@9.9.5)(fastify@5.12.8)(openapi-types@12.1.3)(zod@4.6.7)
       jose:
-        specifier: ^6.2.17
-        version: 6.2.17
+        specifier: ^6.2.18
+        version: 6.2.18
       pg:
         specifier: ^8.23.1
         version: 8.23.1
@@ -52,8 +52,8 @@ importers:
         version: 4.6.7
     devDependencies:
       '@electric-sql/pglite':
-        specifier: ^0.5.16
-        version: 0.5.16
+        specifier: ^0.5.17
+        version: 0.5.17
       '@types/node':
         specifier: ^26.6.6
         version: 26.6.6
@@ -76,8 +76,8 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
       vitest:
-        specifier: ^5.1.0
-        version: 5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: ^5.1.1
+        version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
 packages:
 
@@ -85,8 +85,8 @@ packages:
     resolution: {integrity: sha512-OHlfkNzDFjYnwNPABhwAkDTUi0HPjfsKUHJDR0bSMORpCXNzRpInPCNCIT08xKDhjaPlcLJ+2Av+Sk7hHnuC8A==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-s3@3.1170.0':
-    resolution: {integrity: sha512-Cl/cbJdfduZKSHKn7zegpIIhWKHWJKirhVX5HtcLesM6oGfTLLDszaFPW1gWprNoUSXnYvIO7kcSyVNBgFLphA==}
+  '@aws-sdk/client-s3@3.1173.0':
+    resolution: {integrity: sha512-eFlCOczCvpv1CN37d0BzUxoHmw2ARrMtqQ4JC0pkh5kx/SU9oUKlNtWkqrNg+QRNob0MAi3+SbQQnP5FCcKpHg==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/core@3.981.0':
@@ -125,14 +125,14 @@ packages:
     resolution: {integrity: sha512-duLeE3xlf0viHeH+1RM4z5duR3b32BCZTWVMu+MbxFPjQBxy7hmIGEqt5hekuFPRuXoyhMovjNl+PNNsb5oiGQ==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/lib-storage@3.1170.0':
-    resolution: {integrity: sha512-4+Y8D/UtKus1zW9h/MCmAVUGxUttXMzxEzh4hT6GYL3GmjU5/B8Azryn3jXc6MdQMVyiYrNjWv9nQwS4uphNqA==}
+  '@aws-sdk/lib-storage@3.1173.0':
+    resolution: {integrity: sha512-pVi5n39lAvRHSuysciVQRyjSStjlL48Q+ZeWp/uUvctyV7ogOCkEPLTpxTusiET9ZejsSDsYXR/7gkZ/i2qUEA==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
-      '@aws-sdk/client-s3': ^3.1170.0
+      '@aws-sdk/client-s3': ^3.1173.0
 
-  '@aws-sdk/middleware-sdk-s3@3.972.89':
-    resolution: {integrity: sha512-Lem2/ZT1eOicVATBukPRPm2S4JAmrTEkP3/dnJE9iTeyqIKqsJF2j04f5L0o+rrZIrwR13swiQMdzcE5jXRzNA==}
+  '@aws-sdk/middleware-sdk-s3@3.972.90':
+    resolution: {integrity: sha512-UtdPoeKTfUyk4WI6iGirvuN+2MkVMNiWyYwHlwbdOBIonD66+Jm8qR4zdlJJDLqTIDmtvULTH0ZUyEyf/BGTsA==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/nested-clients@3.998.3':
@@ -166,8 +166,8 @@ packages:
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
-  '@electric-sql/pglite@0.5.16':
-    resolution: {integrity: sha512-Nj8KcIsJL748W408U2N8q4+9IlONdpRIU8MJypIAAINMJ5nqKyqpX7Mgg/5XKkXiAib3AoZGR6hnJFlrlLBrcg==}
+  '@electric-sql/pglite@0.5.17':
+    resolution: {integrity: sha512-8SvKjiUjaU+0O0dbxjOfN+jXz14TEqDWbwDkYOW1aQ11y/ph2JvFVI27ABBo5nfw+ZfSqy4hKCNlbnbB1TDE+g==}
 
   '@emnapi/core@2.0.0-beta.2':
     resolution: {integrity: sha512-MzCVoWtcg4Pm2B3je5mMvYMvj3MmBKw+fU7vbsJc9/iT8ip6/eYIHo/Dsm/mr+wsHB6SEyJDuxB09Yy6r/8+4A==}
@@ -987,8 +987,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@vitest/mocker@5.1.0':
-    resolution: {integrity: sha512-5umB9/jlWcqVS6fsrFmv5Gdnpu6wAUio/lEOwAmvB7v+lFo/IW2B9FhAD0p19GCULTgMzLCdUmuCDCnAzWgppQ==}
+  '@vitest/mocker@5.1.1':
+    resolution: {integrity: sha512-b2OgTB4+3ImWIVafXKazJXwLKwQxUNnix6b3xUvUTMh7RyXlrtzoxfZr8aEz9zkHOMAS4K5lu3TvFWoiVeVTQg==}
     peerDependencies:
       msw: ^2.4.9 || ^3.0.0
       vite: ^6.0.0 || ^7.0.0 || ^8.0.0
@@ -998,8 +998,8 @@ packages:
       vite:
         optional: true
 
-  '@vitest/spy@5.1.0':
-    resolution: {integrity: sha512-2DPO5OMHWKrBngC+fCmTQqemNF0gidRhp3lxbBmRhW+M1XJrfgPpqNqWVevXtn2f2ufD5ZaR1B6B641aAlcX5A==}
+  '@vitest/spy@5.1.1':
+    resolution: {integrity: sha512-6K8C6alQG1/Yc8/ZI22iJS7JEsxPdVzqtqDq+/xM4Z0mGVykemMVjLhqMy/q6/IHYG3kKD8hKSwRen/ZdyI9vQ==}
 
   abstract-logging@2.0.1:
     resolution: {integrity: sha512-2BjRTZxTPvheOvGbBslFSYOUkr+SjPtOnrLP33f+VIWLzezQpZcqVg7ja3L4dBXmzzgwT+a029jRx5PCi3JuiA==}
@@ -1323,8 +1323,8 @@ packages:
     resolution: {integrity: sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w==}
     engines: {node: '>= 10'}
 
-  jose@6.2.17:
-    resolution: {integrity: sha512-wOuK9V1yujQFH5S0ZWmLcDZN7+IKh9bUCC2ZPCf2HDlol3WWHy+PPyNjEI75FXRLMp3vDKQcupP59xhVU95hcg==}
+  jose@6.2.18:
+    resolution: {integrity: sha512-doV4thUwgkrycJH4yLeqwTGIIZphHl+pk7CPReuMIhYhncmgzdko85MaCG4YQFTxqMFr1/oEH32tZuKKovcDEg==}
 
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
@@ -1840,20 +1840,20 @@ packages:
       yaml:
         optional: true
 
-  vitest@5.1.0:
-    resolution: {integrity: sha512-MzmNFnrwa8v8lF1bLxw3UJ4EREwVOVb75VqJZmUDRjJ6EluK/x9th7qTbaeDk41WxE1GxWqmTXcdsfobfH5sOA==}
+  vitest@5.1.1:
+    resolution: {integrity: sha512-trVmzUFOSraCZcI3uZIMD5FqBh4atFkC/XuJP/IU7qtyQay0FCs3Ia+0QiQ2JJwGyWG/xrcBoJNel2+O7kEZ0g==}
     engines: {node: ^22.12.0 || ^24.0.0 || >=26.0.0}
     hasBin: true
     peerDependencies:
       '@edge-runtime/vm': '*'
       '@opentelemetry/api': ^1.9.0
       '@types/node': ^22.0.0 || >=24.0.0
-      '@vitest/browser-playwright': 5.1.0
-      '@vitest/browser-preview': 5.1.0
+      '@vitest/browser-playwright': 5.1.1
+      '@vitest/browser-preview': 5.1.1
       '@vitest/browser-webdriverio': ^5.0.0-beta.5 || >=5.0.0
-      '@vitest/coverage-istanbul': 5.1.0
-      '@vitest/coverage-v8': 5.1.0
-      '@vitest/ui': 5.1.0
+      '@vitest/coverage-istanbul': 5.1.1
+      '@vitest/coverage-v8': 5.1.1
+      '@vitest/ui': 5.1.1
       happy-dom: '*'
       jsdom: '*'
       vite: ^6.4.0 || ^7.0.0 || ^8.0.0
@@ -1908,12 +1908,12 @@ snapshots:
       '@smithy/types': 4.20.0
       tslib: 2.9.1
 
-  '@aws-sdk/client-s3@3.1170.0':
+  '@aws-sdk/client-s3@3.1173.0':
     dependencies:
       '@aws-sdk/checksums': 3.1002.5
       '@aws-sdk/core': 3.981.0
       '@aws-sdk/credential-provider-node': 3.972.97
-      '@aws-sdk/middleware-sdk-s3': 3.972.89
+      '@aws-sdk/middleware-sdk-s3': 3.972.90
       '@aws-sdk/signature-v4-multi-region': 3.996.52
       '@aws-sdk/types': 3.975.1
       '@smithy/core': 3.40.0
@@ -2017,9 +2017,9 @@ snapshots:
       '@smithy/types': 4.20.0
       tslib: 2.9.1
 
-  '@aws-sdk/lib-storage@3.1170.0(@aws-sdk/client-s3@3.1170.0)':
+  '@aws-sdk/lib-storage@3.1173.0(@aws-sdk/client-s3@3.1173.0)':
     dependencies:
-      '@aws-sdk/client-s3': 3.1170.0
+      '@aws-sdk/client-s3': 3.1173.0
       '@smithy/core': 3.40.0
       '@smithy/types': 4.20.0
       buffer: 5.6.0
@@ -2027,7 +2027,7 @@ snapshots:
       stream-browserify: 3.0.0
       tslib: 2.9.1
 
-  '@aws-sdk/middleware-sdk-s3@3.972.89':
+  '@aws-sdk/middleware-sdk-s3@3.972.90':
     dependencies:
       '@aws-sdk/core': 3.981.0
       '@aws-sdk/signature-v4-multi-region': 3.996.52
@@ -2081,7 +2081,7 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@electric-sql/pglite@0.5.16': {}
+  '@electric-sql/pglite@0.5.17': {}
 
   '@emnapi/core@2.0.0-beta.2':
     dependencies:
@@ -2622,16 +2622,16 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  '@vitest/mocker@5.1.0(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))':
+  '@vitest/mocker@5.1.1(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
-      '@vitest/spy': 5.1.0
+      '@vitest/spy': 5.1.1
       estree-walker: 3.0.3
       magic-string: 1.4.5
     optionalDependencies:
       vite: 8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)
 
-  '@vitest/spy@5.1.0': {}
+  '@vitest/spy@5.1.1': {}
 
   abstract-logging@2.0.1: {}
 
@@ -2718,9 +2718,9 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.23.15
 
-  drizzle-orm@0.45.4(@electric-sql/pglite@0.5.16)(@types/pg@8.23.1)(pg@8.23.1):
+  drizzle-orm@0.45.4(@electric-sql/pglite@0.5.17)(@types/pg@8.23.1)(pg@8.23.1):
     optionalDependencies:
-      '@electric-sql/pglite': 0.5.16
+      '@electric-sql/pglite': 0.5.17
       '@types/pg': 8.23.1
       pg: 8.23.1
 
@@ -2892,7 +2892,7 @@ snapshots:
 
   ipaddr.js@2.5.0: {}
 
-  jose@6.2.17: {}
+  jose@6.2.18: {}
 
   joycon@3.1.1: {}
 
@@ -3373,10 +3373,10 @@ snapshots:
       tsx: 4.23.15
       yaml: 2.9.1
 
-  vitest@5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)):
+  vitest@5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.1.0(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@vitest/mocker': 5.1.1(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
