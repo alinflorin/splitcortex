@@ -45,7 +45,6 @@ export function ModelsPage() {
   return (
     <>
       <PageHeader
-        eyebrow={org.name}
         title={t('models.title')}
         subtitle={t('models.subtitle')}
         actions={

@@ -88,7 +88,6 @@ export function MembersTab() {
   return (
     <>
       <PageHeader
-        eyebrow={org.name}
         title={t('members.title')}
         subtitle={t('members.subtitle')}
         actions={

@@ -94,7 +94,6 @@ export function ApiKeysPage() {
   return (
     <>
       <PageHeader
-        eyebrow={org.name}
         title={t('apiKeys.title')}
         subtitle={t('apiKeys.subtitle')}
         actions={

@@ -86,7 +86,6 @@ export function AuditPage() {
   return (
     <>
       <PageHeader
-        eyebrow={org.name}
         title={t('audit.title')}
         subtitle={t('audit.subtitle')}
         actions={

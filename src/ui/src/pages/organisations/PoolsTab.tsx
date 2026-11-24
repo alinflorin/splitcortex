@@ -45,7 +45,6 @@ export function PoolsTab() {
   return (
     <>
       <PageHeader
-        eyebrow={org.name}
         title={t('pools.title')}
         subtitle={t('pools.subtitle')}
         actions={

@@ -97,11 +97,7 @@ export function OrganisationSettingsTab() {
 
   return (
     <div className={styles.root}>
-      <PageHeader
-        eyebrow={org.name}
-        title={t('settings.title')}
-        subtitle={t('organisations.settingsSubtitle')}
-      />
+      <PageHeader title={t('settings.title')} subtitle={t('organisations.settingsSubtitle')} />
       <ItemCard title={t('organisations.detailsTitle')}>
         <form className={styles.form} noValidate onSubmit={(e) => void submit(e)}>
           <TextField control={form.control} name="name" label={t('organisations.name')} />

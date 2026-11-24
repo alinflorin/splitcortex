@@ -195,3 +195,8 @@ body,
     -webkit-backdrop-filter: none;
   }
 }
+
+/* Room between the last field and the dialog buttons. */
+.fui-DialogActions {
+  padding-top: 12px;
+}

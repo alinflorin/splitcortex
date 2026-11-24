@@ -8,7 +8,7 @@ export function MetricsTab() {
   const org = useOrganisationContext();
   return (
     <>
-      <PageHeader eyebrow={org.name} title={t('metrics.title')} subtitle={t('metrics.subtitle')} />
+      <PageHeader title={t('metrics.title')} subtitle={t('metrics.subtitle')} />
       <MetricsView orgId={org.id} />
     </>
   );

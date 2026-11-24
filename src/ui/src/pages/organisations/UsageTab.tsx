@@ -8,7 +8,7 @@ export function UsageTab() {
   const org = useOrganisationContext();
   return (
     <>
-      <PageHeader eyebrow={org.name} title={t('usage.title')} subtitle={t('usage.subtitle')} />
+      <PageHeader title={t('usage.title')} subtitle={t('usage.subtitle')} />
       <UsageView orgId={org.id} />
     </>
   );

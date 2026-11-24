@@ -10,6 +10,8 @@ import { tokens } from '@fluentui/react-components';
 const BLUR = 'blur(16px) saturate(160%)';
 const SHEEN = 'linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02) 55%)';
 const RIM = 'inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.1)';
+/** An outer hairline in the text colour, so glass keeps an edge on a light page too. */
+const EDGE = `0 0 0 1px color-mix(in srgb, ${tokens.colorNeutralForeground1} 8%, transparent)`;
 
 export const GLASS = {
   panel: {
@@ -18,7 +20,7 @@ export const GLASS = {
     backdropFilter: BLUR,
     WebkitBackdropFilter: BLUR,
     border: 'none',
-    boxShadow: `${RIM}, 0 12px 32px -18px rgba(0, 0, 0, 0.4)`,
+    boxShadow: `${EDGE}, ${RIM}, 0 12px 32px -18px rgba(0, 0, 0, 0.4)`,
   },
   well: {
     backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 32%, transparent)`,
@@ -26,6 +28,6 @@ export const GLASS = {
     backdropFilter: 'blur(10px) saturate(150%)',
     WebkitBackdropFilter: 'blur(10px) saturate(150%)',
     border: 'none',
-    boxShadow: RIM,
+    boxShadow: `${EDGE}, ${RIM}`,
   },
 } satisfies Record<string, GriffelStyle>;
