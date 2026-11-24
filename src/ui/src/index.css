@@ -100,6 +100,8 @@ html {
 .fui-DialogSurface,
 .fui-MenuPopover,
 .fui-PopoverSurface,
+.fui-Listbox,
+.fui-Tooltip__content,
 .fui-OverlayDrawer,
 .fui-Toast {
   background-color: color-mix(in srgb, var(--colorNeutralBackground1) 52%, transparent) !important;
@@ -117,13 +119,40 @@ html {
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
     0 24px 64px rgba(0, 0, 0, 0.28) !important;
 }
+/* Menu items sit on the glass popover: clear until hovered or focused, then a light tint. */
+.fui-MenuPopover .fui-MenuItem,
+.fui-MenuPopover .fui-MenuItemLink {
+  background-color: transparent !important;
+  border-radius: 10px;
+}
+.fui-MenuPopover .fui-MenuItem:hover,
+.fui-MenuPopover .fui-MenuItem:focus-visible,
+.fui-MenuPopover .fui-MenuItem[aria-expanded='true'],
+.fui-MenuPopover .fui-MenuItemLink:hover,
+.fui-MenuPopover .fui-MenuItemLink:focus-visible {
+  background-color: color-mix(in srgb, var(--colorNeutralForeground1) 12%, transparent) !important;
+}
 .fui-DialogSurface {
   border-radius: 24px !important;
 }
 .fui-MenuPopover,
 .fui-PopoverSurface,
+.fui-Listbox,
 .fui-Toast {
   border-radius: 16px !important;
+}
+.fui-Tooltip__content {
+  border-radius: 10px !important;
+}
+/* Dropdown / Combobox options: clear on the glass list, a light tint for hover, focus and the chosen one. */
+.fui-Listbox .fui-Option {
+  background-color: transparent !important;
+  border-radius: 10px;
+}
+.fui-Listbox .fui-Option:hover,
+.fui-Listbox .fui-Option[data-activedescendant-focusvisible],
+.fui-Listbox .fui-Option[aria-selected='true'] {
+  background-color: color-mix(in srgb, var(--colorNeutralForeground1) 12%, transparent) !important;
 }
 .fui-DialogSurface__backdrop,
 .fui-DialogSurface::backdrop,
@@ -136,6 +165,8 @@ html {
   .fui-DialogSurface,
   .fui-MenuPopover,
   .fui-PopoverSurface,
+  .fui-Listbox,
+  .fui-Tooltip__content,
   .fui-OverlayDrawer,
   .fui-Toast {
     background-color: var(--colorNeutralBackground1) !important;
@@ -324,4 +355,11 @@ input[type='file']::file-selector-button {
 }
 .fui-MessageBar.sc-msg-info {
   --sc-msg: var(--colorNeutralBackground3);
+}
+
+/* Status badges: the status colour as a tint on glass, not a solid chip (the text colour carries the intent). */
+.fui-Badge {
+  background-color: color-mix(in srgb, currentColor 16%, transparent) !important;
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
 }

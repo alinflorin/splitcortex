@@ -1,6 +1,6 @@
 # Release tags of the current version. Pushing a change to this file on main runs
 # .github/workflows/create-tags.yaml, which creates the tags listed here that do not exist yet
 # (one per line; platform, mobile and CLI streams). Remove a line to skip that stream.
-v30.0.0
+v30.0.1
 mobile-node-v30.0.0
 cli-node-v30.0.0

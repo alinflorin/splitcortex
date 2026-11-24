@@ -5,8 +5,13 @@ const useStyles = makeStyles({
   // Inactive items are flat (no fill); only hover and the selected page get a background.
   item: {
     backgroundColor: 'transparent',
-    ':hover': { backgroundColor: tokens.colorNeutralBackground2Hover },
-    '&[aria-current="page"]': { backgroundColor: tokens.colorBrandBackground2 },
+    // Tints of the text/brand colour on the glass sidebar, never a solid block.
+    ':hover': {
+      backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralForeground1} 10%, transparent)`,
+    },
+    '&[aria-current="page"]': {
+      backgroundColor: `color-mix(in srgb, ${tokens.colorBrandBackground} 26%, transparent)`,
+    },
     // Centre the icon on the label's line (the icon slot otherwise sits on the text baseline).
     // A grid, not flex: bundleIcon renders the Filled and Regular SVGs together and they must
     // overlap, otherwise the selected item's icon slot doubles in width and the label jumps right.

@@ -64,7 +64,7 @@ const useStyles = makeStyles({
     textDecorationLine: 'none',
     ':hover': {
       color: tokens.colorBrandForeground1,
-      backgroundColor: tokens.colorBrandBackground2,
+      backgroundColor: `color-mix(in srgb, ${tokens.colorBrandBackground} 22%, transparent)`,
     },
   },
   banner: {

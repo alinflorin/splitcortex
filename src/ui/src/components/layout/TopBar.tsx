@@ -70,7 +70,9 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground2,
     textDecorationLine: 'none',
     fontSize: tokens.fontSizeBase300,
-    ':hover': { backgroundColor: tokens.colorNeutralBackground2Hover },
+    ':hover': {
+      backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralForeground1} 10%, transparent)`,
+    },
   },
   linkActive: { color: tokens.colorBrandForeground1, fontWeight: tokens.fontWeightSemibold },
   spacer: { flexGrow: 1 },
