@@ -204,6 +204,27 @@ test.describe('signed in', () => {
     await expect(glass).toBeVisible();
     const filter = await glass.evaluate((el) => getComputedStyle(el).backdropFilter);
     expect(filter, 'about: flow boxes are glass').not.toBe('none');
+
+    // The same material everywhere: buttons, inputs, the closing banner and the footer position.
+    const frosted = (el: Element) => getComputedStyle(el).backdropFilter;
+    await page.goto(`${baseUrl()}/help`);
+    const cta = page.locator('aside#start button').first();
+    await expect(cta).toHaveClass(/sc-btn-primary/);
+    expect(await cta.evaluate(frosted), 'help: primary button is glass').not.toBe('none');
+    // The closing banner is the last section of the page.
+    const band = page.locator('main section').last();
+    expect(await band.evaluate(frosted), 'help: closing banner is glass').not.toBe('none');
+    await page.goto(`${baseUrl()}/playground`);
+    const input = page.locator('.fui-Input').first();
+    await expect(input).toBeVisible();
+    expect(await input.evaluate(frosted), 'playground: input is glass').not.toBe('none');
+    // A short page keeps its footer at the bottom of the screen.
+    await page.goto(`${baseUrl()}/contact`);
+    const footer = page.getByRole('contentinfo');
+    await expect(footer).toBeVisible();
+    const box = await footer.boundingBox();
+    const height = page.viewportSize()!.height;
+    expect(box!.y + box!.height, 'contact: footer sits at the bottom').toBeGreaterThan(height - 8);
   });
 
   test('top bar: the top-level menu, the active item, the drawer on a narrow screen', async ({
