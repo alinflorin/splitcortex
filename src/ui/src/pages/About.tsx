@@ -1,6 +1,8 @@
 import { Button, Text, makeStyles, tokens } from '@fluentui/react-components';
 import {
   ArrowRight24Regular,
+  Cloud24Regular,
+  PhoneLaptop24Regular,
   Code24Regular,
   Eye24Regular,
   Document24Regular,
@@ -16,9 +18,18 @@ import {
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { LiquidGlass } from '../components/marketing/LiquidGlass';
+import { BRAND, BRAND_GRADIENT, BRAND_SHADOW } from '../theme/brand';
 import { useChartVersion } from '../lib/useChartVersion';
 import { useLocalePath } from '../seo/useLocalePath';
-import { CardGrid, CtaBand, FeatureCard, Section } from '../components/marketing/marketing';
+import {
+  CardGrid,
+  CtaBand,
+  FeatureCard,
+  GlassStage,
+  GradientText,
+  Section,
+} from '../components/marketing/marketing';
 
 const useStyles = makeStyles({
   hero: {
@@ -30,8 +41,8 @@ const useStyles = makeStyles({
   h1: {
     margin: 0,
     maxWidth: '820px',
-    fontSize: '60px',
-    lineHeight: '64px',
+    fontSize: '68px',
+    lineHeight: '70px',
     fontWeight: tokens.fontWeightBold,
     letterSpacing: '-0.04em',
     '@media (max-width: 599px)': { fontSize: '36px', lineHeight: '40px' },
@@ -80,11 +91,19 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalS,
-    padding: tokens.spacingVerticalXL,
-    borderRadius: '20px',
+    padding: tokens.spacingVerticalXXL,
   },
-  // The gateway is the one filled panel: it is the part every request passes through.
-  flowBoxHub: { backgroundColor: tokens.colorBrandBackground2 },
+  flowIcon: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '44px',
+    height: '44px',
+    borderRadius: '14px',
+    color: '#fff',
+    backgroundImage: BRAND_GRADIENT,
+    boxShadow: BRAND_SHADOW,
+  },
   flowArrow: {
     display: 'flex',
     flexDirection: 'column',
@@ -102,7 +121,12 @@ const useStyles = makeStyles({
   },
   flowArrowLine: {
     width: '100%',
-    height: '2px',
+    height: '3px',
+    borderRadius: '2px',
+    animationName: 'sc-dash',
+    animationDuration: '0.8s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite',
     backgroundImage: `repeating-linear-gradient(90deg, ${tokens.colorBrandForeground1} 0 6px, transparent 6px 12px)`,
     '@media (max-width: 899px)': {
       width: '2px',
@@ -135,23 +159,33 @@ const useStyles = makeStyles({
 function FlowBox({
   title,
   body,
+  icon,
   children,
   hub,
 }: {
   title: string;
   body: string;
+  icon: ReactNode;
   children?: ReactNode;
   hub?: boolean;
 }) {
   const styles = useStyles();
   return (
-    <div className={`${styles.flowBox} ${hub ? styles.flowBoxHub : ''}`}>
+    <LiquidGlass
+      radius={28}
+      bezel={22}
+      className={styles.flowBox}
+      style={
+        hub ? { outline: `1.5px solid ${BRAND.violetLight}`, outlineOffset: '-1px' } : undefined
+      }
+    >
+      <span className={styles.flowIcon}>{icon}</span>
       <Text weight="semibold" size={500}>
         {title}
       </Text>
       <Text className={styles.muted}>{body}</Text>
       {children}
-    </div>
+    </LiquidGlass>
   );
 }
 
@@ -162,7 +196,7 @@ function FlowArrow({ label, sub }: { label: string; sub: string }) {
       <Text size={200} weight="semibold">
         {label}
       </Text>
-      <span className={styles.flowArrowLine} />
+      <span className={`${styles.flowArrowLine} sc-motion`} />
       <Text size={100}>{sub}</Text>
     </div>
   );
@@ -205,13 +239,15 @@ export function About() {
           </Text>
         )}
         <h1 className={styles.h1}>
-          {t('about.title')}: {t('about.hero.highlight')}
+          {t('about.title')}: <GradientText>{t('about.hero.highlight')}</GradientText>
         </h1>
         <Text className={styles.lead}>{t('about.hero.lead')}</Text>
         <div className={styles.stats}>
           {(['nodes', 'inbound', 'api', 'engine'] as const).map((k) => (
             <div key={k} className={styles.stat}>
-              <span className={styles.statValue}>{t(`about.stats.${k}.value`)}</span>
+              <span className={styles.statValue}>
+                <GradientText>{t(`about.stats.${k}.value`)}</GradientText>
+              </span>
               <Text size={200} className={styles.muted}>
                 {t(`about.stats.${k}.label`)}
               </Text>
@@ -238,19 +274,34 @@ export function About() {
       </Section>
 
       <Section title={t('about.flow.title')} subtitle={t('about.flow.subtitle')}>
-        <div className={styles.flow}>
-          <FlowBox title={t('about.flow.client.title')} body={t('about.flow.client.body')} />
-          <FlowArrow label={t('about.flow.leg1')} sub={t('about.flow.leg1Sub')} />
-          <FlowBox hub title={t('about.flow.gateway.title')} body={t('about.flow.gateway.body')}>
-            <ol className={styles.list}>
-              {list('about.flow.gateway.steps').map((s) => (
-                <li key={s}>{s}</li>
-              ))}
-            </ol>
-          </FlowBox>
-          <FlowArrow label={t('about.flow.leg2')} sub={t('about.flow.leg2Sub')} />
-          <FlowBox title={t('about.flow.node.title')} body={t('about.flow.node.body')} />
-        </div>
+        <GlassStage>
+          <div className={styles.flow}>
+            <FlowBox
+              icon={<Code24Regular />}
+              title={t('about.flow.client.title')}
+              body={t('about.flow.client.body')}
+            />
+            <FlowArrow label={t('about.flow.leg1')} sub={t('about.flow.leg1Sub')} />
+            <FlowBox
+              hub
+              icon={<Cloud24Regular />}
+              title={t('about.flow.gateway.title')}
+              body={t('about.flow.gateway.body')}
+            >
+              <ol className={styles.list}>
+                {list('about.flow.gateway.steps').map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ol>
+            </FlowBox>
+            <FlowArrow label={t('about.flow.leg2')} sub={t('about.flow.leg2Sub')} />
+            <FlowBox
+              icon={<PhoneLaptop24Regular />}
+              title={t('about.flow.node.title')}
+              body={t('about.flow.node.body')}
+            />
+          </div>
+        </GlassStage>
       </Section>
 
       <Section title={t('about.principles.title')} subtitle={t('about.principles.subtitle')}>

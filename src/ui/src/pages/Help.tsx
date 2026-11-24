@@ -22,10 +22,13 @@ import {
   CardGrid,
   CodeBlock,
   CtaBand,
+  GlassStage,
+  ctaStyle,
   DividedList,
   FeatureCard,
   Section,
 } from '../components/marketing/marketing';
+import { LiquidGlass } from '../components/marketing/LiquidGlass';
 import { buildKeyExamples, getGatewayBaseUrl } from '../lib/gateway';
 import { useLocalePath } from '../seo/useLocalePath';
 
@@ -65,8 +68,6 @@ const useStyles = makeStyles({
     justifyContent: 'space-between',
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalXL,
-    borderRadius: '20px',
-    backgroundColor: tokens.colorBrandBackground2,
   },
   bannerText: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXXS },
   muted: { color: tokens.colorNeutralForeground2, lineHeight: tokens.lineHeightBase400 },
@@ -137,19 +138,28 @@ export function Help() {
         </div>
       </nav>
 
-      <aside id="start" className={styles.banner}>
-        <div className={styles.bannerText}>
-          <Text weight="semibold" size={500}>
-            {t('help.quickstart.title')}
-          </Text>
-          <Text className={styles.muted}>{t('help.quickstart.body')}</Text>
-        </div>
-        <Link to={localePath('/quick-start')}>
-          <Button appearance="primary" icon={<ArrowRight24Regular />} iconPosition="after">
-            {t('help.quickstart.button')}
-          </Button>
-        </Link>
-      </aside>
+      <GlassStage>
+        <LiquidGlass radius={28} bezel={20}>
+          <aside id="start" className={styles.banner}>
+            <div className={styles.bannerText}>
+              <Text weight="semibold" size={500}>
+                {t('help.quickstart.title')}
+              </Text>
+              <Text className={styles.muted}>{t('help.quickstart.body')}</Text>
+            </div>
+            <Link to={localePath('/quick-start')}>
+              <Button
+                appearance="primary"
+                style={ctaStyle}
+                icon={<ArrowRight24Regular />}
+                iconPosition="after"
+              >
+                {t('help.quickstart.button')}
+              </Button>
+            </Link>
+          </aside>
+        </LiquidGlass>
+      </GlassStage>
 
       <Section id="devices" title={t('help.devices.title')} subtitle={t('help.devices.subtitle')}>
         <CardGrid>

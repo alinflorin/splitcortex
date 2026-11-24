@@ -12,7 +12,13 @@
 }
 body,
 .theme-body {
-  background: var(--sc-bg);
+  background:
+    radial-gradient(1000px 600px at 90% -140px, rgba(74, 91, 230, 0.3), transparent 70%),
+    radial-gradient(800px 520px at 2% 20%, rgba(44, 230, 197, 0.16), transparent 70%),
+    radial-gradient(circle at 1px 1px, rgba(127, 135, 170, 0.28) 1.2px, transparent 1.6px) 0 0 / 28px
+      28px,
+    var(--sc-bg);
+  background-attachment: fixed;
   color: var(--sc-text);
   font-size: 14px;
   font-family:
@@ -39,10 +45,15 @@ body,
   width: auto;
 }
 .theme-panel {
-  background: var(--sc-panel);
+  background: color-mix(in srgb, var(--sc-panel) 55%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
   border: 0;
-  border-radius: 16px;
-  box-shadow: none;
+  border-radius: 24px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 24px 64px rgba(30, 40, 120, 0.18);
   padding: 32px 24px;
   max-width: 400px;
   margin: 0 auto;

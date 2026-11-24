@@ -57,6 +57,15 @@ html {
   }
 }
 
+@keyframes sc-dash {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 12px 12px;
+  }
+}
+
 .sc-enter {
   animation: sc-fade-up 0.45s ease-out both;
 }
@@ -80,5 +89,50 @@ html {
   .fui-NavItem,
   .fui-MenuItem {
     min-height: 44px;
+  }
+}
+
+/*
+ * Glass for every Fluent overlay (dialogs, menus, popovers, drawers, toasts): one rule set, so the
+ * whole app shares the look. Colours come from Fluent's own CSS variables, so light and dark follow
+ * the theme. The refracting version (LiquidGlass) is reserved for a few hero surfaces.
+ */
+.fui-DialogSurface,
+.fui-MenuPopover,
+.fui-PopoverSurface,
+.fui-OverlayDrawer,
+.fui-Toast {
+  background-color: color-mix(in srgb, var(--colorNeutralBackground1) 62%, transparent);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 24px 64px rgba(0, 0, 0, 0.28);
+}
+.fui-DialogSurface {
+  border-radius: 24px;
+}
+.fui-MenuPopover,
+.fui-PopoverSurface,
+.fui-Toast {
+  border-radius: 16px;
+}
+.fui-DialogSurface__backdrop,
+.fui-OverlayDrawer__backdrop {
+  background-color: rgba(8, 10, 24, 0.38);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .fui-DialogSurface,
+  .fui-MenuPopover,
+  .fui-PopoverSurface,
+  .fui-OverlayDrawer,
+  .fui-Toast {
+    background-color: var(--colorNeutralBackground1);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }

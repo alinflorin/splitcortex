@@ -195,6 +195,15 @@ test.describe('signed in', () => {
         );
       expect(bordered, `${path}: bordered cards`).toBe(0);
     }
+    // Liquid glass: the "How a request travels" boxes are glass (frosted at least, refracting in Chromium).
+    await page.goto(`${baseUrl()}/about`);
+    const glass = page
+      .getByText(/^(Your application|Aplicația ta)$/)
+      .first()
+      .locator('xpath=..');
+    await expect(glass).toBeVisible();
+    const filter = await glass.evaluate((el) => getComputedStyle(el).backdropFilter);
+    expect(filter, 'about: flow boxes are glass').not.toBe('none');
   });
 
   test('top bar: the top-level menu, the active item, the drawer on a narrow screen', async ({

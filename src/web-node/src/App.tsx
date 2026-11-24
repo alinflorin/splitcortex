@@ -15,13 +15,25 @@ import { opfsSupported } from './models/files';
 import { runtime } from './runtime';
 import { consumeRestarted } from './runtime/host';
 import { loadSettings } from './runtime/settings';
+import { BRAND_BACKDROP } from './theme/brand';
 
 const useStyles = makeStyles({
   page: {
     minHeight: '100dvh',
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: tokens.colorNeutralBackground1,
+    position: 'relative',
+    isolation: 'isolate',
+  },
+  // Something to see through the glass: aurora glows over a faint dot grid (same as the web app).
+  backdrop: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: -1,
+    pointerEvents: 'none',
+    backgroundImage: BRAND_BACKDROP,
+    backgroundSize: 'auto, auto, 28px 28px',
+    backgroundRepeat: 'no-repeat, no-repeat, repeat',
   },
   main: {
     width: '100%',
@@ -72,6 +84,7 @@ export function App() {
 
   return (
     <div className={styles.page}>
+      <div className={styles.backdrop} aria-hidden="true" />
       <TopBar />
       <Analytics />
       <ConsentBanner />

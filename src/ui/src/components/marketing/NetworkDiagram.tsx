@@ -8,7 +8,10 @@ import {
 } from '@fluentui/react-icons';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BRAND_FROM } from './marketing';
+import { BRAND } from '../../theme/brand';
+
+/** Mint reads on top of violet glass in both themes; violet lines vanished into it. */
+const LINE = BRAND.mint;
 
 const useStyles = makeStyles({
   root: {
@@ -19,9 +22,7 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalM,
     minHeight: '320px',
     padding: tokens.spacingVerticalL,
-    borderRadius: '28px',
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
-    backgroundColor: tokens.colorNeutralBackground2,
+    borderRadius: 'inherit',
     overflow: 'hidden',
   },
   lines: { position: 'absolute', inset: 0, width: '100%', height: '100%' },
@@ -45,9 +46,9 @@ const useStyles = makeStyles({
     padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
     minWidth: '76px',
     borderRadius: tokens.borderRadiusXLarge,
-    backgroundColor: tokens.colorNeutralBackground1,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    color: tokens.colorNeutralForeground2,
+    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 82%, transparent)`,
+    boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.18)',
+    color: tokens.colorNeutralForeground1,
   },
   tileLabel: { fontSize: tokens.fontSizeBase100 },
   hub: {
@@ -74,7 +75,7 @@ const useStyles = makeStyles({
     width: '76px',
     height: '76px',
     borderRadius: '24px',
-    border: `2px solid ${BRAND_FROM}`,
+    border: `2px solid ${BRAND.mint}`,
     animationName: 'sc-pulse',
     animationDuration: '2.8s',
     animationIterationCount: 'infinite',
@@ -119,8 +120,8 @@ export function NetworkDiagram() {
             className="sc-motion"
             d={`M 19 ${y} C 36 ${y}, 36 50, 50 50`}
             fill="none"
-            stroke={BRAND_FROM}
-            strokeWidth="1.6"
+            stroke={LINE}
+            strokeWidth="2.2"
             strokeDasharray="4 4"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
@@ -131,8 +132,8 @@ export function NetworkDiagram() {
           className="sc-motion"
           d="M 50 50 L 81 50"
           fill="none"
-          stroke={BRAND_FROM}
-          strokeWidth="1.6"
+          stroke={LINE}
+          strokeWidth="2.2"
           strokeDasharray="4 4"
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"

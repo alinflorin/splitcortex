@@ -7,6 +7,7 @@ import { Analytics } from '../../analytics/Analytics';
 import { ConsentBanner } from '../../analytics/ConsentBanner';
 import { LocaleSync } from '../../seo/LocaleSync';
 import { parsePublicPath } from '../../seo/pages';
+import { BRAND_BACKDROP } from '../../theme/brand';
 import { Seo } from '../../seo/Seo';
 import { Breadcrumbs } from './Breadcrumbs';
 import { Sidebar } from './Sidebar';
@@ -20,7 +21,18 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     height: '100dvh',
     overflow: 'hidden',
-    backgroundColor: tokens.colorNeutralBackground1,
+    position: 'relative',
+    isolation: 'isolate',
+  },
+  // Something to see through the glass: aurora glows over a faint dot grid, behind every page.
+  backdrop: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: -1,
+    pointerEvents: 'none',
+    backgroundImage: BRAND_BACKDROP,
+    backgroundSize: 'auto, auto, 28px 28px',
+    backgroundRepeat: 'no-repeat, no-repeat, repeat',
   },
   body: { display: 'flex', flexGrow: 1, minHeight: 0 },
   scroll: { flexGrow: 1, minWidth: 0, overflowY: 'auto' },
@@ -54,6 +66,7 @@ export function AppShell() {
 
   return (
     <div className={styles.root}>
+      <div className={styles.backdrop} aria-hidden="true" />
       <Seo />
       <LocaleSync />
       <Analytics />

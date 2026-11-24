@@ -16,8 +16,23 @@ const rgba = (hex: string, alpha: number): string => {
   return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 };
 
-/** The one decorative surface: a soft violet glow behind the Home diagram, fading out before the edges. */
-export const BRAND_GLOW = `radial-gradient(34% 50% at 70% 50%, ${rgba(BRAND.violet, 0.2)}, transparent 100%)`;
+/** Brand gradient (violet into cyan): icon tiles, big numbers, the call to action. */
+export const BRAND_GRADIENT = `linear-gradient(135deg, ${BRAND.violetLight} 0%, ${BRAND.violet} 45%, ${BRAND.cyan} 100%)`;
+
+/** Mint into cyan, the logo's right hemisphere. */
+export const BRAND_GRADIENT_MINT = `linear-gradient(135deg, ${BRAND.mint} 0%, ${BRAND.cyan} 100%)`;
+
+/** Soft coloured glow under brand-filled elements. */
+export const BRAND_SHADOW = `0 10px 28px ${rgba(BRAND.violet, 0.35)}`;
+
+/** Aurora behind public pages: violet top right, mint top left, fading out long before any edge. */
+export const BRAND_AURORA = `radial-gradient(900px 520px at 88% -120px, ${rgba(BRAND.violet, 0.22)}, transparent 70%), radial-gradient(700px 420px at 4% -80px, ${rgba(BRAND.mint, 0.12)}, transparent 70%)`;
+
+/**
+ * The page backdrop that glass refracts: two aurora glows plus a dot grid (last layer, tiled).
+ * Dots use `currentColor`-neutral grey at low alpha so they read in light and dark.
+ */
+export const BRAND_BACKDROP = `radial-gradient(1100px 640px at 90% -140px, ${rgba(BRAND.violet, 0.3)}, transparent 70%), radial-gradient(900px 560px at 2% 18%, ${rgba(BRAND.mint, 0.16)}, transparent 70%), radial-gradient(circle at 1px 1px, rgba(127, 135, 170, 0.28) 1.2px, transparent 1.6px)`;
 
 /**
  * Fluent's brand tokens (buttons, links, focus, active nav, ...) generated from `BRAND.violet`

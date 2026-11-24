@@ -26,6 +26,7 @@ import {
   Section,
 } from '../components/marketing/marketing';
 import { buildKeyExamples, getGatewayBaseUrl } from '../lib/gateway';
+import { BRAND_GRADIENT, BRAND_SHADOW } from '../theme/brand';
 import { useLocalePath } from '../seo/useLocalePath';
 
 const useStyles = makeStyles({
@@ -51,8 +52,9 @@ const useStyles = makeStyles({
     width: '40px',
     height: '40px',
     borderRadius: tokens.borderRadiusCircular,
-    backgroundColor: tokens.colorBrandBackground2,
-    color: tokens.colorBrandForeground1,
+    backgroundImage: BRAND_GRADIENT,
+    boxShadow: BRAND_SHADOW,
+    color: '#fff',
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
   },

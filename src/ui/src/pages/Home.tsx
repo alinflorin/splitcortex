@@ -9,7 +9,7 @@ import {
   PhoneLaptop24Regular,
   PlugConnected24Regular,
 } from '@fluentui/react-icons';
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
@@ -17,17 +17,20 @@ import { AppDownloads } from '../components/AppDownloads';
 import { Endpoints } from '../components/Endpoints';
 import {
   BRAND_TO,
-  CardGrid,
+  Bento,
+  BentoTile,
   Chips,
   CodeBlock,
   CtaBand,
-  FeatureCard,
+  GlassStage,
+  GradientText,
   Section,
+  ctaStyle,
 } from '../components/marketing/marketing';
+import { LiquidGlass } from '../components/marketing/LiquidGlass';
 import { NetworkDiagram } from '../components/marketing/NetworkDiagram';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import { buildKeyExamples, getGatewayBaseUrl } from '../lib/gateway';
-import { BRAND_GLOW } from '../theme/brand';
 import { useLocalePath } from '../seo/useLocalePath';
 
 const ScrollTour = lazy(() => import('../components/marketing/ScrollTour'));
@@ -50,11 +53,8 @@ const useStyles = makeStyles({
     gridTemplateColumns: '1.1fr 1fr',
     alignItems: 'center',
     gap: tokens.spacingHorizontalXXXL,
-    padding: '56px',
-    borderRadius: '36px',
-    backgroundImage: BRAND_GLOW,
-    '@media (max-width: 1000px)': { gridTemplateColumns: '1fr', padding: '40px 28px' },
-    '@media (max-width: 599px)': { padding: '28px 20px', borderRadius: '24px' },
+    padding: '40px 0 24px',
+    '@media (max-width: 1000px)': { gridTemplateColumns: '1fr', padding: '24px 0' },
   },
   heroText: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
   welcome: { color: tokens.colorNeutralForeground3 },
@@ -77,12 +77,12 @@ const useStyles = makeStyles({
   },
   h1: {
     margin: 0,
-    fontSize: '56px',
-    lineHeight: '60px',
+    fontSize: '72px',
+    lineHeight: '74px',
     fontWeight: tokens.fontWeightBold,
-    letterSpacing: '-0.035em',
-    '@media (max-width: 1000px)': { fontSize: '44px', lineHeight: '48px' },
-    '@media (max-width: 599px)': { fontSize: '34px', lineHeight: '38px' },
+    letterSpacing: '-0.045em',
+    '@media (max-width: 1000px)': { fontSize: '52px', lineHeight: '56px' },
+    '@media (max-width: 599px)': { fontSize: '38px', lineHeight: '42px' },
   },
   lead: {
     color: tokens.colorNeutralForeground2,
@@ -111,7 +111,6 @@ const useStyles = makeStyles({
     lineHeight: tokens.lineHeightHero800,
     fontWeight: tokens.fontWeightBold,
     letterSpacing: '-0.03em',
-    color: tokens.colorBrandForeground1,
   },
   muted: { color: tokens.colorNeutralForeground2, lineHeight: tokens.lineHeightBase300 },
   split: {
@@ -141,14 +140,19 @@ export function Home() {
     if (id) document.getElementById(id)?.scrollIntoView();
   }, []);
 
-  const features = [
-    { key: 'pools', icon: <BrainCircuit24Regular /> },
-    { key: 'enroll', icon: <PhoneLaptop24Regular /> },
-    { key: 'api', icon: <PlugConnected24Regular /> },
-    { key: 'security', icon: <LockClosed24Regular /> },
-    { key: 'limits', icon: <Gauge24Regular /> },
-    { key: 'insights', icon: <DataTrending24Regular /> },
-  ] as const;
+  const features: {
+    key: string;
+    icon: ReactNode;
+    size: 'third' | 'half' | 'full';
+    mint?: boolean;
+  }[] = [
+    { key: 'pools', icon: <BrainCircuit24Regular />, size: 'third' },
+    { key: 'enroll', icon: <PhoneLaptop24Regular />, size: 'third', mint: true },
+    { key: 'api', icon: <PlugConnected24Regular />, size: 'third' },
+    { key: 'security', icon: <LockClosed24Regular />, size: 'half', mint: true },
+    { key: 'limits', icon: <Gauge24Regular />, size: 'half' },
+    { key: 'insights', icon: <DataTrending24Regular />, size: 'full', mint: true },
+  ];
 
   const example = buildKeyExamples(getGatewayBaseUrl(), 'sc_…').curl;
 
@@ -165,7 +169,7 @@ export function Home() {
               {t('home.hero.badge')}
             </span>
             <h1 className={styles.h1}>
-              {t('home.hero.titleA')} {t('home.hero.titleB')}
+              {t('home.hero.titleA')} <GradientText>{t('home.hero.titleB')}</GradientText>
             </h1>
             <Text className={styles.lead}>{t('home.subtitle')}</Text>
             <div className={styles.actions}>
@@ -173,6 +177,7 @@ export function Home() {
                 <Button
                   appearance="primary"
                   size="large"
+                  style={ctaStyle}
                   icon={<ArrowRight20Regular />}
                   iconPosition="after"
                   onClick={() => void navigate('/organisations')}
@@ -183,6 +188,7 @@ export function Home() {
                 <Button
                   appearance="primary"
                   size="large"
+                  style={ctaStyle}
                   icon={<ArrowRight20Regular />}
                   iconPosition="after"
                   onClick={signIn}
@@ -195,7 +201,11 @@ export function Home() {
               </Button>
             </div>
           </div>
-          <NetworkDiagram />
+          <GlassStage>
+            <LiquidGlass radius={36} bezel={26}>
+              <NetworkDiagram />
+            </LiquidGlass>
+          </GlassStage>
         </section>
 
         <div className={styles.trust}>
@@ -212,7 +222,9 @@ export function Home() {
           <div className={styles.steps}>
             {(['one', 'two', 'three'] as const).map((k, i) => (
               <div key={k} className={styles.step}>
-                <span className={styles.stepNum}>{`0${i + 1}`}</span>
+                <span className={styles.stepNum}>
+                  <GradientText>{`0${i + 1}`}</GradientText>
+                </span>
                 <Text weight="semibold" size={500}>
                   {t(`home.how.steps.${k}.title`)}
                 </Text>
@@ -223,16 +235,20 @@ export function Home() {
         </Section>
 
         <Section title={t('home.features.title')} subtitle={t('home.features.subtitle')}>
-          <CardGrid>
-            {features.map(({ key, icon }) => (
-              <FeatureCard
-                key={key}
-                icon={icon}
-                title={t(`home.features.items.${key}.title`)}
-                body={t(`home.features.items.${key}.body`)}
-              />
-            ))}
-          </CardGrid>
+          <GlassStage>
+            <Bento>
+              {features.map(({ key, icon, size, mint }) => (
+                <BentoTile
+                  key={key}
+                  icon={icon}
+                  size={size}
+                  mint={mint}
+                  title={t(`home.features.items.${key}.title`)}
+                  body={t(`home.features.items.${key}.body`)}
+                />
+              ))}
+            </Bento>
+          </GlassStage>
         </Section>
 
         <Section title={t('home.code.title')} subtitle={t('home.code.body')}>
@@ -273,7 +289,7 @@ export function Home() {
           <AppDownloads bare />
         </Section>
 
-        <Section title={t('endpoints.title')} subtitle={t('endpoints.body')}>
+        <Section center title={t('endpoints.title')} subtitle={t('endpoints.body')}>
           <Endpoints bare />
         </Section>
 
@@ -282,12 +298,13 @@ export function Home() {
             <Button
               size="large"
               appearance="secondary"
+              style={ctaStyle}
               onClick={() => void navigate('/organisations')}
             >
               {t('home.hero.ctaOrgs')}
             </Button>
           ) : (
-            <Button size="large" appearance="secondary" onClick={signIn}>
+            <Button size="large" appearance="secondary" style={ctaStyle} onClick={signIn}>
               {t('home.hero.ctaStart')}
             </Button>
           )}

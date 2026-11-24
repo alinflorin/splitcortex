@@ -10,6 +10,18 @@ export const BRAND = {
   cyan: '#14B8D4',
 } as const;
 
+/** `#rrggbb` + alpha → `rgba(...)`, for soft brand glows. */
+const rgba = (hex: string, alpha: number): string => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+};
+
+/**
+ * The page backdrop that glass refracts: two aurora glows plus a dot grid (last layer, tiled).
+ * Dots use `currentColor`-neutral grey at low alpha so they read in light and dark.
+ */
+export const BRAND_BACKDROP = `radial-gradient(1100px 640px at 90% -140px, ${rgba(BRAND.violet, 0.3)}, transparent 70%), radial-gradient(900px 560px at 2% 18%, ${rgba(BRAND.mint, 0.16)}, transparent 70%), radial-gradient(circle at 1px 1px, rgba(127, 135, 170, 0.28) 1.2px, transparent 1.6px)`;
+
 /**
  * Fluent's brand tokens (buttons, links, focus, active nav, ...) generated from `BRAND.violet`
  * (`createLightTheme` / `createDarkTheme`), laid over the Teams themes so only the brand colour

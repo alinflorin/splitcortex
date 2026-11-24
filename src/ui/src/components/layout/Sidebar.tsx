@@ -25,7 +25,9 @@ export const SIDEBAR_RAIL_WIDTH = '56px';
 const useStyles = makeStyles({
   drawer: {
     width: SIDEBAR_WIDTH,
-    backgroundColor: tokens.colorNeutralBackground2,
+    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground2} 50%, transparent)`,
+    backdropFilter: 'blur(18px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(18px) saturate(160%)',
     borderRight: `1px solid ${tokens.colorNeutralStroke3}`,
   },
   rail: { width: SIDEBAR_RAIL_WIDTH },
