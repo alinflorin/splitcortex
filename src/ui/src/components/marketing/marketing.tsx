@@ -75,7 +75,8 @@ const useStyles = makeStyles({
     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
   },
   // Bento: a stage of soft colour blobs with a few glass tiles over it.
-  stage: { position: 'relative', isolation: 'isolate' },
+  // Clipped sideways so the blobs never make a phone-width page scroll sideways.
+  stage: { position: 'relative', isolation: 'isolate', overflowX: 'clip' },
   blob: {
     position: 'absolute',
     zIndex: -1,

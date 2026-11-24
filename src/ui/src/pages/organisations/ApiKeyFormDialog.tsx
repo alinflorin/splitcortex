@@ -27,6 +27,12 @@ const DEFAULTS: ApiKeyForm = { name: '', scope: 'org', poolIds: [], expiry: 'nev
 const useStyles = makeStyles({
   pools: { display: 'flex', flexDirection: 'column' },
   error: { color: tokens.colorPaletteRedForeground1 },
+  radioHint: {
+    // Lines up under the radio's label, not under its circle.
+    marginLeft: '28px',
+    marginTop: `-${tokens.spacingVerticalXS}`,
+    color: tokens.colorNeutralForeground3,
+  },
 });
 
 interface Props {
@@ -87,9 +93,13 @@ export function ApiKeyFormDialog({ orgId, open, onClose, onCreated }: Props) {
           <Field label={t('apiKeys.scope')}>
             <RadioGroup value={field.value} onChange={(_, d) => field.onChange(d.value)}>
               <Radio value="org" label={t('apiKeys.scopeOrg')} />
-              <Text size={200}>{t('apiKeys.scopeOrgHint')}</Text>
+              <Text size={200} className={styles.radioHint}>
+                {t('apiKeys.scopeOrgHint')}
+              </Text>
               <Radio value="pools" label={t('apiKeys.scopePools')} />
-              <Text size={200}>{t('apiKeys.scopePoolsHint')}</Text>
+              <Text size={200} className={styles.radioHint}>
+                {t('apiKeys.scopePoolsHint')}
+              </Text>
             </RadioGroup>
           </Field>
         )}

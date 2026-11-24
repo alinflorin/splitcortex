@@ -20,6 +20,11 @@ const customStyleHooks = {
     const s = state as { appearance?: string; root: { className?: string } };
     s.root.className = mergeClasses(s.root.className, `sc-btn-${s.appearance ?? 'secondary'}`);
   },
+  // Message bars get `sc-msg-<intent>` so index.css can tint them as glass.
+  useMessageBarStyles_unstable: (state: unknown) => {
+    const s = state as { intent?: string; root: { className?: string } };
+    s.root.className = mergeClasses(s.root.className, `sc-msg-${s.intent ?? 'info'}`);
+  },
 };
 
 export type ThemePreference = 'system' | 'light' | 'dark';

@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  Badge,
-  Button,
-  Subtitle1,
-  Title3,
-  makeStyles,
-  mergeClasses,
-  tokens,
-} from '@fluentui/react-components';
+import { Badge, Button, Subtitle1, makeStyles, tokens } from '@fluentui/react-components';
 import { Delete20Regular, Edit20Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -23,7 +15,6 @@ import { PoolModels, PoolNodes } from './PoolSections';
 import { UsageView } from './UsageView';
 import { MetricsView } from './MetricsView';
 import { useDeletePoolAction } from './useDeletePoolAction';
-import { GLASS } from '../../theme/glass';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXL },
@@ -36,13 +27,6 @@ const useStyles = makeStyles({
   title: { flex: '1 1 200px', minWidth: 0, overflowWrap: 'anywhere' },
   actions: { display: 'flex', gap: tokens.spacingHorizontalS },
   section: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
-  // the device list is the main thing on this page: larger heading, a brand accent and a soft panel
-  primary: {
-    padding: tokens.spacingVerticalL,
-    borderRadius: tokens.borderRadiusXLarge,
-    ...GLASS.panel,
-    boxShadow: `${GLASS.panel.boxShadow}, inset 3px 0 0 ${tokens.colorBrandStroke1}`,
-  },
 });
 
 /** One pool: its settings, its devices (once enrollment exists) and its usage. */
@@ -104,8 +88,8 @@ export function PoolPage() {
               </StatRow>
             </ItemCard>
 
-            <section className={mergeClasses(styles.section, styles.primary)}>
-              <Title3>{t('pools.devices')}</Title3>
+            <section className={styles.section}>
+              <Subtitle1>{t('pools.devices')}</Subtitle1>
               <PoolNodes pool={pool} admin={admin} />
             </section>
 

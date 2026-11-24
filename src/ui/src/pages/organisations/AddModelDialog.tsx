@@ -185,12 +185,7 @@ export function AddModelDialog({
 
               {mode === 'url' ? (
                 <>
-                  <TextField
-                    control={urlForm.control}
-                    name="name"
-                    label={t('models.name')}
-                    autoFocus
-                  />
+                  <TextField control={urlForm.control} name="name" label={t('models.name')} />
                   <TextField
                     control={urlForm.control}
                     name="url"

@@ -80,57 +80,57 @@ export function MetricsView({
       <QueryBoundary query={query}>
         {(m: Metrics) => (
           <div className={styles.section}>
-            {!nodeId && (
-              <CardList variant="grid">
-                <ChartCard
-                  title={t('metrics.requests')}
-                  stacked
-                  series={[
-                    line(t('metrics.requests'), m.pools, (p) => p.requests - p.errors),
-                    line(t('metrics.errors'), m.pools, (p) => p.errors),
-                  ]}
-                />
-                <ChartCard
-                  title={t('metrics.tokens')}
-                  stacked
-                  series={[
-                    line(t('usage.tokensIn'), m.pools, (p) => p.tokensIn),
-                    line(t('usage.tokensOut'), m.pools, (p) => p.tokensOut),
-                  ]}
-                />
-                <ChartCard
-                  title={t('metrics.latency')}
-                  subtitle={t('metrics.latencyHint')}
-                  format={ms}
-                  series={[
-                    line('p50', m.pools, (p) => p.latencyP50Ms),
-                    line('p95', m.pools, (p) => p.latencyP95Ms),
-                  ]}
-                />
-                <ChartCard
-                  title={t('metrics.ttft')}
-                  subtitle={t('metrics.latencyHint')}
-                  format={ms}
-                  series={[
-                    line('p50', m.pools, (p) => p.ttftP50Ms),
-                    line('p95', m.pools, (p) => p.ttftP95Ms),
-                  ]}
-                />
-                <ChartCard
-                  title={t('metrics.refused')}
-                  stacked
-                  series={[
-                    line(t('metrics.rateLimited'), m.pools, (p) => p.rateLimited),
-                    line(t('metrics.unavailable'), m.pools, (p) => p.unavailable),
-                  ]}
-                />
-                <ChartCard
-                  title={t('metrics.peakInFlight')}
-                  series={[line(t('metrics.peakInFlight'), m.pools, (p) => p.peakInFlight)]}
-                />
-              </CardList>
-            )}
             <CardList variant="grid">
+              {!nodeId && (
+                <>
+                  <ChartCard
+                    title={t('metrics.requests')}
+                    stacked
+                    series={[
+                      line(t('metrics.requests'), m.pools, (p) => p.requests - p.errors),
+                      line(t('metrics.errors'), m.pools, (p) => p.errors),
+                    ]}
+                  />
+                  <ChartCard
+                    title={t('metrics.tokens')}
+                    stacked
+                    series={[
+                      line(t('usage.tokensIn'), m.pools, (p) => p.tokensIn),
+                      line(t('usage.tokensOut'), m.pools, (p) => p.tokensOut),
+                    ]}
+                  />
+                  <ChartCard
+                    title={t('metrics.latency')}
+                    subtitle={t('metrics.latencyHint')}
+                    format={ms}
+                    series={[
+                      line('p50', m.pools, (p) => p.latencyP50Ms),
+                      line('p95', m.pools, (p) => p.latencyP95Ms),
+                    ]}
+                  />
+                  <ChartCard
+                    title={t('metrics.ttft')}
+                    subtitle={t('metrics.latencyHint')}
+                    format={ms}
+                    series={[
+                      line('p50', m.pools, (p) => p.ttftP50Ms),
+                      line('p95', m.pools, (p) => p.ttftP95Ms),
+                    ]}
+                  />
+                  <ChartCard
+                    title={t('metrics.refused')}
+                    stacked
+                    series={[
+                      line(t('metrics.rateLimited'), m.pools, (p) => p.rateLimited),
+                      line(t('metrics.unavailable'), m.pools, (p) => p.unavailable),
+                    ]}
+                  />
+                  <ChartCard
+                    title={t('metrics.peakInFlight')}
+                    series={[line(t('metrics.peakInFlight'), m.pools, (p) => p.peakInFlight)]}
+                  />
+                </>
+              )}
               <ChartCard
                 title={t('metrics.measuredTokensPerSec')}
                 subtitle={t('metrics.measuredHint')}
