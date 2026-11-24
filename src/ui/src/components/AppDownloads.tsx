@@ -59,7 +59,7 @@ const useStyles = makeStyles({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: tokens.spacingHorizontalM,
-    marginTop: 'auto',
+    marginTop: tokens.spacingVerticalXS,
   },
 });
 

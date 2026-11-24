@@ -47,9 +47,14 @@ const useStyles = makeStyles({
   toc: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalS,
+    gap: tokens.spacingVerticalM,
+    marginBottom: tokens.spacingVerticalXXXL,
   },
-  tocList: { display: 'flex', flexWrap: 'wrap', gap: tokens.spacingHorizontalS },
+  tocList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: tokens.spacingVerticalS + ' ' + tokens.spacingHorizontalS,
+  },
   tocLink: {
     padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalM}`,
     borderRadius: tokens.borderRadiusCircular,

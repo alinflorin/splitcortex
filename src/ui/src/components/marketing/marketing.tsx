@@ -50,14 +50,14 @@ const useStyles = makeStyles({
     WebkitTextFillColor: 'transparent',
   },
   // Flat feature: a gradient icon tile (the logo's colours), a title and a paragraph on the page itself.
-  card: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXS },
+  card: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS },
   iconTile: {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     width: '48px',
     height: '48px',
-    marginBottom: tokens.spacingVerticalS,
+    marginBottom: tokens.spacingVerticalM,
     borderRadius: '16px',
     color: '#fff',
     backgroundImage: BRAND_GRADIENT,
