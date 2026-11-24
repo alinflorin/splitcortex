@@ -29,14 +29,14 @@ const useStyles = makeStyles({
   },
   chapter: {
     position: 'absolute',
-    left: 'max(56px, calc((100% - 1280px) / 2 + 40px))',
+    left: 'max(32px, calc((100% - 1280px) / 2 + 32px))',
     bottom: '18%',
     maxWidth: '440px',
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalS,
     opacity: 0,
-    '@media (max-width: 799px)': { left: '24px', right: '24px', bottom: '14%' },
+    '@media (max-width: 799px)': { left: '12px', right: '12px', bottom: '14%' },
   },
   eyebrow: {
     color: BRAND.mint,

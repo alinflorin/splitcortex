@@ -35,11 +35,12 @@ const useStyles = makeStyles({
     backgroundRepeat: 'no-repeat, no-repeat, repeat',
   },
   body: { display: 'flex', flexGrow: 1, minHeight: 0 },
-  scroll: { flexGrow: 1, minWidth: 0, overflowY: 'auto' },
+  scroll: { flexGrow: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' },
   // One content width for every page; pages fill it (forms keep their own narrower column).
   // Home is full width: it lays out its own column so the tour can span the screen.
   mainFull: { maxWidth: 'none', padding: 0 },
   main: {
+    flexGrow: 1,
     width: '100%',
     maxWidth: '1280px',
     margin: '0 auto',

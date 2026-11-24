@@ -120,6 +120,7 @@ html {
   border-radius: 16px;
 }
 .fui-DialogSurface__backdrop,
+.fui-DialogSurface::backdrop,
 .fui-OverlayDrawer__backdrop {
   background-color: rgba(8, 10, 24, 0.38);
   backdrop-filter: blur(6px);

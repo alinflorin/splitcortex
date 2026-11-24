@@ -4,13 +4,13 @@ import type { ReactNode } from 'react';
 const useStyles = makeStyles({
   root: {
     display: 'flex',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: tokens.spacingVerticalM + ' ' + tokens.spacingHorizontalL,
     marginBottom: tokens.spacingVerticalXXXL,
   },
-  text: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXS, minWidth: 0 },
+  text: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS, minWidth: 0 },
   eyebrow: {
     color: tokens.colorNeutralForeground3,
   },
@@ -29,6 +29,7 @@ const useStyles = makeStyles({
   subtitle: {
     color: tokens.colorNeutralForeground2,
     maxWidth: '640px',
+    textWrap: 'balance',
     fontSize: tokens.fontSizeBase400,
     lineHeight: tokens.lineHeightBase400,
   },

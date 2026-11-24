@@ -13,6 +13,7 @@ const useStyles = makeStyles({
   // The chart fills its parent (height: 100%) and measures it, so the parent needs a definite height: with an
   // auto height it depends on the chart itself and the chart resizes forever ("Maximum update depth exceeded").
   chart: { width: '100%', minWidth: 0, height: `${CHART_BOX_HEIGHT}px` },
+  empty: { width: '100%', minWidth: 0 },
   muted: { color: tokens.colorNeutralForeground3 },
 });
 
@@ -66,7 +67,7 @@ export function ChartCard({
 
   return (
     <ItemCard title={title} subtitle={subtitle}>
-      <div className={styles.chart} role="img" aria-label={title}>
+      <div className={any ? styles.chart : styles.empty} role="img" aria-label={title}>
         {any ? (
           <Suspense fallback={<Spinner size="tiny" />}>
             <ChartBody series={filled} title={title} stacked={stacked} format={format} />

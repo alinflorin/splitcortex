@@ -122,7 +122,7 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalXS,
     padding: '32px',
-    minHeight: '220px',
+    minHeight: '168px',
     gridColumn: 'span 2',
     '@media (max-width: 899px)': { gridColumn: 'span 1', padding: '24px' },
   },

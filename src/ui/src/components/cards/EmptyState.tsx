@@ -11,9 +11,15 @@ const useStyles = makeStyles({
     padding: `${tokens.spacingVerticalXXXL} ${tokens.spacingHorizontalXL}`,
     borderRadius: tokens.borderRadiusXLarge,
     border: `1px dashed ${tokens.colorNeutralStroke2}`,
+    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 40%, transparent)`,
   },
   icon: { color: tokens.colorBrandForeground1, display: 'flex', fontSize: '32px' },
-  text: { color: tokens.colorNeutralForeground2, maxWidth: '440px' },
+  text: {
+    display: 'block',
+    color: tokens.colorNeutralForeground2,
+    maxWidth: '440px',
+    textWrap: 'balance',
+  },
 });
 
 /** A list with nothing in it yet: an icon, one sentence and (when the user may) the primary action. */
