@@ -23,7 +23,7 @@ const useStyles = makeStyles({
     flexShrink: 0,
     padding: `0 ${tokens.spacingHorizontalXL}`,
     backgroundColor: tokens.colorNeutralBackground1,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+    boxShadow: `0 1px 0 ${tokens.colorNeutralStroke3}`,
     '@media (max-width: 599px)': {
       padding: `0 ${tokens.spacingHorizontalM}`,
       gap: tokens.spacingHorizontalS,

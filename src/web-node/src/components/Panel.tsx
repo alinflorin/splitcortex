@@ -5,10 +5,10 @@ const useStyles = makeStyles({
   card: {
     width: '100%',
     boxSizing: 'border-box',
-    borderRadius: tokens.borderRadiusXLarge,
+    borderRadius: '16px',
     backgroundColor: tokens.colorNeutralBackground2,
     boxShadow: 'none',
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    border: 'none',
     padding: tokens.spacingVerticalL,
     gap: tokens.spacingVerticalM,
   },
@@ -17,7 +17,7 @@ const useStyles = makeStyles({
   muted: { color: tokens.colorNeutralForeground3 },
 });
 
-/** The one card layout of the app: hairline border, no shadow, a title and optional side content. */
+/** The one card layout of the app: filled surface, no border or shadow, a title and optional side content. */
 export function Panel({
   title,
   side,

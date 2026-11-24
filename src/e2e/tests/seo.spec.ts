@@ -64,7 +64,19 @@ test('robots.txt and the sitemap follow the environment', async ({ request }) =>
     expect(header).toBeUndefined();
     expect(sitemap.status()).toBe(200);
     const xml = await sitemap.text();
-    for (const path of ['/', '/quick-start', '/help', '/about', '/terms', '/privacy', '/contact', '/ro', '/ro/quick-start', '/ro/help', '/ro/about']) {
+    for (const path of [
+      '/',
+      '/quick-start',
+      '/help',
+      '/about',
+      '/terms',
+      '/privacy',
+      '/contact',
+      '/ro',
+      '/ro/quick-start',
+      '/ro/help',
+      '/ro/about',
+    ]) {
       expect(xml).toContain(`<loc>${baseUrl()}${path}</loc>`);
     }
     expect(xml).toContain('hreflang="ro"');

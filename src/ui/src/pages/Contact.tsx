@@ -13,11 +13,7 @@ export function Contact() {
   ] as const;
   return (
     <>
-      <PageHeader
-        eyebrow={t('contact.eyebrow')}
-        title={t('contact.title')}
-        subtitle={t('contact.subtitle')}
-      />
+      <PageHeader title={t('contact.title')} subtitle={t('contact.subtitle')} />
       <CardGrid>
         {items.map(({ key, icon }) => (
           <FeatureCard

@@ -22,12 +22,12 @@ import {
   CodeBlock,
   CtaBand,
   FeatureCard,
-  GradientText,
   Section,
 } from '../components/marketing/marketing';
 import { NetworkDiagram } from '../components/marketing/NetworkDiagram';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import { buildKeyExamples, getGatewayBaseUrl } from '../lib/gateway';
+import { BRAND_GLOW } from '../theme/brand';
 import { useLocalePath } from '../seo/useLocalePath';
 
 const ScrollTour = lazy(() => import('../components/marketing/ScrollTour'));
@@ -51,8 +51,8 @@ const useStyles = makeStyles({
     alignItems: 'center',
     gap: tokens.spacingHorizontalXXXL,
     padding: '56px',
-    borderRadius: '32px',
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    borderRadius: '36px',
+    backgroundImage: BRAND_GLOW,
     '@media (max-width: 1000px)': { gridTemplateColumns: '1fr', padding: '40px 28px' },
     '@media (max-width: 599px)': { padding: '28px 20px', borderRadius: '24px' },
   },
@@ -65,7 +65,6 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalS,
     padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalM}`,
     borderRadius: tokens.borderRadiusCircular,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
     backgroundColor: tokens.colorNeutralBackground1,
     color: tokens.colorNeutralForeground2,
     fontSize: tokens.fontSizeBase200,
@@ -95,9 +94,9 @@ const useStyles = makeStyles({
   trust: { marginTop: tokens.spacingVerticalXXL },
   steps: {
     display: 'grid',
-    gap: tokens.spacingHorizontalL,
+    columnGap: tokens.spacingHorizontalXXXL,
+    rowGap: tokens.spacingVerticalXXL,
     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
-    counterReset: 'step',
   },
   step: {
     position: 'relative',
@@ -105,13 +104,14 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalS,
     paddingTop: tokens.spacingVerticalL,
-    borderTop: `2px solid ${tokens.colorNeutralStroke2}`,
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   stepNum: {
     fontSize: tokens.fontSizeHero800,
     lineHeight: tokens.lineHeightHero800,
     fontWeight: tokens.fontWeightBold,
     letterSpacing: '-0.03em',
+    color: tokens.colorBrandForeground1,
   },
   muted: { color: tokens.colorNeutralForeground2, lineHeight: tokens.lineHeightBase300 },
   split: {
@@ -165,7 +165,7 @@ export function Home() {
               {t('home.hero.badge')}
             </span>
             <h1 className={styles.h1}>
-              {t('home.hero.titleA')} <GradientText>{t('home.hero.titleB')}</GradientText>
+              {t('home.hero.titleA')} {t('home.hero.titleB')}
             </h1>
             <Text className={styles.lead}>{t('home.subtitle')}</Text>
             <div className={styles.actions}>
@@ -208,18 +208,11 @@ export function Home() {
       </Suspense>
 
       <div className={mergeClasses(styles.column, styles.columnLast)}>
-        <Section
-          id="how"
-          eyebrow={t('home.how.eyebrow')}
-          title={t('home.how.title')}
-          subtitle={t('home.how.subtitle')}
-        >
+        <Section id="how" title={t('home.how.title')} subtitle={t('home.how.subtitle')}>
           <div className={styles.steps}>
             {(['one', 'two', 'three'] as const).map((k, i) => (
               <div key={k} className={styles.step}>
-                <span className={styles.stepNum}>
-                  <GradientText>{`0${i + 1}`}</GradientText>
-                </span>
+                <span className={styles.stepNum}>{`0${i + 1}`}</span>
                 <Text weight="semibold" size={500}>
                   {t(`home.how.steps.${k}.title`)}
                 </Text>
@@ -229,11 +222,7 @@ export function Home() {
           </div>
         </Section>
 
-        <Section
-          eyebrow={t('home.features.eyebrow')}
-          title={t('home.features.title')}
-          subtitle={t('home.features.subtitle')}
-        >
+        <Section title={t('home.features.title')} subtitle={t('home.features.subtitle')}>
           <CardGrid>
             {features.map(({ key, icon }) => (
               <FeatureCard
@@ -280,12 +269,7 @@ export function Home() {
           </div>
         </Section>
 
-        <Section
-          id="run"
-          eyebrow={t('home.run.eyebrow')}
-          title={t('home.run.title')}
-          subtitle={t('home.run.subtitle')}
-        >
+        <Section id="run" title={t('home.run.title')} subtitle={t('home.run.subtitle')}>
           <AppDownloads bare />
         </Section>
 

@@ -151,6 +151,52 @@ test.describe('signed in', () => {
     await expect(page.getByText('Something went wrong')).toHaveCount(0);
   });
 
+  test('public pages: no raw translation keys, no dead anchors, no boxed-in wall of cards', async ({
+    page,
+  }) => {
+    const paths = ['/', '/quick-start', '/help', '/about', '/terms', '/privacy', '/contact'];
+    for (const prefix of ['', '/ro']) {
+      for (const path of paths) {
+        const url = `${baseUrl()}${prefix}${path === '/' && prefix ? '' : path}`;
+        await page.goto(url);
+        await expect(page.getByRole('heading', { level: 1 }).first(), url).toBeVisible();
+        // an i18n key shown as text ("help.sections.start") means a missing translation
+        const raw = await page
+          .locator('main')
+          .evaluate((el) =>
+            (
+              (el as HTMLElement).innerText.match(
+                /\b(help|home|about|legal|quickstart|contact|apps|endpoints|playground|notFound|footer|nav|app)(\.[a-zA-Z]+)+\b/g,
+              ) ?? []
+            ).slice(0, 5),
+          );
+        expect(raw, `${url}: untranslated keys`).toEqual([]);
+        // every in-page link must point at an element that exists
+        const dead = await page.evaluate(() =>
+          [...document.querySelectorAll<HTMLAnchorElement>('main a[href^="#"]')]
+            .map((a) => a.getAttribute('href')!.slice(1))
+            .filter((id) => id && !document.getElementById(id)),
+        );
+        expect(dead, `${url}: dead anchors`).toEqual([]);
+      }
+    }
+    // Calm pages: the static pages have no fully outlined cards (they used to be a wall of bordered cards).
+    for (const path of ['/about', '/help', '/quick-start']) {
+      await page.goto(`${baseUrl()}${path}`);
+      const bordered = await page
+        .locator('main article')
+        .evaluateAll(
+          (els) =>
+            els.filter(
+              (el) =>
+                getComputedStyle(el).borderTopWidth !== '0px' &&
+                getComputedStyle(el).borderLeftWidth !== '0px',
+            ).length,
+        );
+      expect(bordered, `${path}: bordered cards`).toBe(0);
+    }
+  });
+
   test('top bar: the top-level menu, the active item, the drawer on a narrow screen', async ({
     page,
   }) => {

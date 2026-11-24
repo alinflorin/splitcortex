@@ -21,6 +21,7 @@ import {
   Chips,
   CodeBlock,
   CtaBand,
+  DividedList,
   FeatureCard,
   Section,
 } from '../components/marketing/marketing';
@@ -31,7 +32,6 @@ const useStyles = makeStyles({
   steps: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalL,
     margin: 0,
     padding: 0,
     listStyleType: 'none',
@@ -40,11 +40,9 @@ const useStyles = makeStyles({
     display: 'grid',
     gridTemplateColumns: 'auto minmax(0, 1fr)',
     gap: tokens.spacingHorizontalL,
-    padding: tokens.spacingVerticalXL,
-    borderRadius: tokens.borderRadiusXLarge,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
-    backgroundColor: tokens.colorNeutralBackground2,
-    '@media (max-width: 599px)': { gridTemplateColumns: '1fr', padding: tokens.spacingVerticalL },
+    padding: `${tokens.spacingVerticalXXL} 0`,
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    '@media (max-width: 599px)': { gridTemplateColumns: '1fr' },
   },
   stepNumber: {
     display: 'inline-flex',
@@ -53,8 +51,8 @@ const useStyles = makeStyles({
     width: '40px',
     height: '40px',
     borderRadius: tokens.borderRadiusCircular,
-    backgroundColor: tokens.colorBrandBackground,
-    color: tokens.colorNeutralForegroundOnBrand,
+    backgroundColor: tokens.colorBrandBackground2,
+    color: tokens.colorBrandForeground1,
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
   },
@@ -79,9 +77,8 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalS,
-    padding: tokens.spacingVerticalL,
-    borderRadius: tokens.borderRadiusXLarge,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    padding: tokens.spacingVerticalXL,
+    borderRadius: '20px',
     backgroundColor: tokens.colorNeutralBackground2,
   },
   subhead: { marginTop: tokens.spacingVerticalM },
@@ -144,11 +141,7 @@ export function QuickStart() {
 
   return (
     <>
-      <PageHeader
-        eyebrow={t('quickstart.eyebrow')}
-        title={t('quickstart.title')}
-        subtitle={t('quickstart.subtitle')}
-      />
+      <PageHeader title={t('quickstart.title')} subtitle={t('quickstart.subtitle')} />
 
       <div className={styles.need}>
         <Text weight="semibold" size={400}>
@@ -192,7 +185,6 @@ export function QuickStart() {
 
       <Section
         id="software"
-        eyebrow={t('quickstart.software.eyebrow')}
         title={t('quickstart.software.title')}
         subtitle={t('quickstart.software.subtitle')}
       >
@@ -226,7 +218,6 @@ export function QuickStart() {
 
       <Section
         id="agents"
-        eyebrow={t('quickstart.agents.eyebrow')}
         title={t('quickstart.agents.title')}
         subtitle={t('quickstart.agents.subtitle')}
       >
@@ -243,11 +234,7 @@ export function QuickStart() {
       </Section>
 
       <Section id="notes" title={t('quickstart.notes.title')}>
-        <CardGrid>
-          {list<Note>('quickstart.notes.items').map((n) => (
-            <FeatureCard key={n.title} icon={<Flash24Regular />} title={n.title} body={n.body} />
-          ))}
-        </CardGrid>
+        <DividedList items={list<Note>('quickstart.notes.items')} />
       </Section>
 
       <CtaBand title={t('quickstart.cta.title')} body={t('quickstart.cta.body')}>

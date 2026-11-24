@@ -12,7 +12,6 @@ import {
   People24Regular,
   Phone24Regular,
   Speaker224Regular,
-  Wrench24Regular,
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -23,6 +22,7 @@ import {
   CardGrid,
   CodeBlock,
   CtaBand,
+  DividedList,
   FeatureCard,
   Section,
 } from '../components/marketing/marketing';
@@ -49,12 +49,14 @@ const useStyles = makeStyles({
   tocLink: {
     padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalM}`,
     borderRadius: tokens.borderRadiusCircular,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    backgroundColor: tokens.colorNeutralBackground1,
+    backgroundColor: tokens.colorNeutralBackground3,
     color: tokens.colorNeutralForeground2,
     fontSize: tokens.fontSizeBase300,
     textDecorationLine: 'none',
-    ':hover': { color: tokens.colorBrandForeground1 },
+    ':hover': {
+      color: tokens.colorBrandForeground1,
+      backgroundColor: tokens.colorBrandBackground2,
+    },
   },
   banner: {
     display: 'flex',
@@ -62,21 +64,11 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: tokens.spacingVerticalM,
-    padding: tokens.spacingVerticalL,
-    borderRadius: tokens.borderRadiusXLarge,
-    border: `1px solid ${tokens.colorBrandStroke1}`,
-    backgroundColor: tokens.colorNeutralBackground2,
+    padding: tokens.spacingVerticalXL,
+    borderRadius: '20px',
+    backgroundColor: tokens.colorBrandBackground2,
   },
   bannerText: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXXS },
-  card: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: tokens.spacingVerticalXS,
-    padding: tokens.spacingVerticalL,
-    borderRadius: tokens.borderRadiusXLarge,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
-    backgroundColor: tokens.colorNeutralBackground2,
-  },
   muted: { color: tokens.colorNeutralForeground2, lineHeight: tokens.lineHeightBase400 },
   subhead: { marginTop: tokens.spacingVerticalM },
   list: {
@@ -130,11 +122,7 @@ export function Help() {
 
   return (
     <>
-      <PageHeader
-        eyebrow={t('help.eyebrow')}
-        title={t('help.title')}
-        subtitle={t('help.subtitle')}
-      />
+      <PageHeader title={t('help.title')} subtitle={t('help.subtitle')} />
 
       <nav className={styles.toc} aria-label={t('help.toc')}>
         <Text size={200} weight="semibold">
@@ -163,12 +151,7 @@ export function Help() {
         </Link>
       </aside>
 
-      <Section
-        id="devices"
-        eyebrow={t('help.devices.eyebrow')}
-        title={t('help.devices.title')}
-        subtitle={t('help.devices.subtitle')}
-      >
+      <Section id="devices" title={t('help.devices.title')} subtitle={t('help.devices.subtitle')}>
         <CardGrid>
           {devices.map(({ key, icon }) => (
             <FeatureCard
@@ -182,28 +165,14 @@ export function Help() {
         <Text weight="semibold" size={500} className={styles.subhead}>
           {t('help.devices.enrollTitle')}
         </Text>
-        <CardGrid>
-          {entries('help.devices.enroll').map((e) => (
-            <article key={e.title} className={styles.card}>
-              <Text weight="semibold" size={400}>
-                {e.title}
-              </Text>
-              <Text className={styles.muted}>{e.body}</Text>
-            </article>
-          ))}
-        </CardGrid>
+        <DividedList numbered items={entries('help.devices.enroll')} />
         <Text weight="semibold" size={500} className={styles.subhead}>
           {t('help.devices.downloadsTitle')}
         </Text>
         <AppDownloads bare />
       </Section>
 
-      <Section
-        id="models"
-        eyebrow={t('help.models.eyebrow')}
-        title={t('help.models.title')}
-        subtitle={t('help.models.subtitle')}
-      >
+      <Section id="models" title={t('help.models.title')} subtitle={t('help.models.subtitle')}>
         <CardGrid>
           {models.map(({ key, icon }) => (
             <FeatureCard
@@ -216,12 +185,7 @@ export function Help() {
         </CardGrid>
       </Section>
 
-      <Section
-        id="api"
-        eyebrow={t('help.api.eyebrow')}
-        title={t('help.api.title')}
-        subtitle={t('help.api.subtitle')}
-      >
+      <Section id="api" title={t('help.api.title')} subtitle={t('help.api.subtitle')}>
         <Endpoints bare />
         <Text weight="semibold" size={500}>
           {t('help.api.curlTitle')}
@@ -239,12 +203,7 @@ export function Help() {
         <Text className={styles.muted}>{t('help.api.balancing')}</Text>
       </Section>
 
-      <Section
-        id="access"
-        eyebrow={t('help.access.eyebrow')}
-        title={t('help.access.title')}
-        subtitle={t('help.access.subtitle')}
-      >
+      <Section id="access" title={t('help.access.title')} subtitle={t('help.access.subtitle')}>
         <CardGrid>
           {access.map(({ key, icon }) => (
             <FeatureCard
@@ -257,12 +216,7 @@ export function Help() {
         </CardGrid>
       </Section>
 
-      <Section
-        id="monitor"
-        eyebrow={t('help.monitor.eyebrow')}
-        title={t('help.monitor.title')}
-        subtitle={t('help.monitor.subtitle')}
-      >
+      <Section id="monitor" title={t('help.monitor.title')} subtitle={t('help.monitor.subtitle')}>
         <CardGrid>
           {monitor.map(({ key, icon }) => (
             <FeatureCard
@@ -277,15 +231,10 @@ export function Help() {
 
       <Section
         id="troubleshoot"
-        eyebrow={t('help.troubleshoot.eyebrow')}
         title={t('help.troubleshoot.title')}
         subtitle={t('help.troubleshoot.subtitle')}
       >
-        <CardGrid>
-          {entries('help.troubleshoot.items').map((e) => (
-            <FeatureCard key={e.title} icon={<Wrench24Regular />} title={e.title} body={e.body} />
-          ))}
-        </CardGrid>
+        <DividedList items={entries('help.troubleshoot.items')} />
       </Section>
 
       <CtaBand title={t('help.cta.title')} body={t('help.cta.body')}>

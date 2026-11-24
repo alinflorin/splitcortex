@@ -12,30 +12,24 @@ const useStyles = makeStyles({
   section: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalXL,
-    marginTop: '72px',
+    gap: tokens.spacingVerticalXXXL,
+    marginTop: '112px',
     scrollMarginTop: '88px',
-    '@media (max-width: 599px)': { marginTop: '48px' },
+    '@media (max-width: 599px)': { marginTop: '64px' },
   },
   head: {
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalS,
-    maxWidth: '680px',
+    maxWidth: '720px',
   },
   headCenter: { alignItems: 'center', textAlign: 'center', marginInline: 'auto' },
-  eyebrow: {
-    color: tokens.colorBrandForeground1,
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    fontWeight: tokens.fontWeightSemibold,
-  },
   title: {
     margin: 0,
-    fontSize: tokens.fontSizeHero700,
-    lineHeight: tokens.lineHeightHero700,
+    fontSize: '40px',
+    lineHeight: '44px',
     fontWeight: tokens.fontWeightSemibold,
-    letterSpacing: '-0.02em',
+    letterSpacing: '-0.03em',
     '@media (max-width: 599px)': {
       fontSize: tokens.fontSizeBase600,
       lineHeight: tokens.lineHeightBase600,
@@ -46,28 +40,11 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase400,
     lineHeight: tokens.lineHeightBase500,
   },
-  gradientText: {
-    color: BRAND_FROM,
-  },
+  // Flat: an icon, a title and a paragraph on the page itself. No box, no border.
   card: {
-    position: 'relative',
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalS,
-    padding: tokens.spacingVerticalXL,
-    borderRadius: tokens.borderRadiusXLarge,
-    backgroundColor: tokens.colorNeutralBackground2,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
-    transitionProperty: 'transform, border-color, background-color',
-    transitionDuration: tokens.durationNormal,
-    transitionTimingFunction: tokens.curveEasyEase,
-    ':hover': {
-      transform: 'translateY(-3px)',
-      borderTopColor: tokens.colorBrandStroke1,
-      borderRightColor: tokens.colorBrandStroke1,
-      borderBottomColor: tokens.colorBrandStroke1,
-      borderLeftColor: tokens.colorBrandStroke1,
-    },
+    gap: tokens.spacingVerticalXS,
   },
   iconTile: {
     display: 'inline-flex',
@@ -75,25 +52,25 @@ const useStyles = makeStyles({
     justifyContent: 'center',
     width: '44px',
     height: '44px',
-    marginBottom: tokens.spacingVerticalXS,
-    borderRadius: tokens.borderRadiusLarge,
-    color: '#fff',
-    backgroundColor: BRAND_FROM,
+    marginBottom: tokens.spacingVerticalS,
+    borderRadius: '14px',
+    color: tokens.colorBrandForeground1,
+    backgroundColor: tokens.colorBrandBackground2,
   },
   cardBody: { color: tokens.colorNeutralForeground2, lineHeight: tokens.lineHeightBase300 },
   grid: {
     display: 'grid',
-    gap: tokens.spacingHorizontalL,
-    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+    columnGap: tokens.spacingHorizontalXXXL,
+    rowGap: tokens.spacingVerticalXXXL,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
   },
   code: {
     position: 'relative',
     margin: 0,
     padding: tokens.spacingVerticalL,
     paddingRight: '56px',
-    borderRadius: tokens.borderRadiusXLarge,
+    borderRadius: '16px',
     backgroundColor: tokens.colorNeutralBackground3,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
     fontFamily: tokens.fontFamilyMonospace,
     fontSize: tokens.fontSizeBase200,
     lineHeight: tokens.lineHeightBase300,
@@ -109,8 +86,7 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalXS,
     padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalM}`,
     borderRadius: tokens.borderRadiusCircular,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    backgroundColor: tokens.colorNeutralBackground1,
+    backgroundColor: tokens.colorNeutralBackground3,
     color: tokens.colorNeutralForeground2,
     fontSize: tokens.fontSizeBase200,
   },
@@ -120,12 +96,12 @@ const useStyles = makeStyles({
     alignItems: 'center',
     textAlign: 'center',
     gap: tokens.spacingVerticalM,
-    marginTop: '72px',
-    padding: `${tokens.spacingVerticalXXXL} ${tokens.spacingHorizontalXXL}`,
-    borderRadius: '28px',
+    marginTop: '112px',
+    padding: '72px 32px',
+    borderRadius: '32px',
     color: '#fff',
     backgroundColor: BRAND_FROM,
-    '@media (max-width: 599px)': { marginTop: '48px', padding: tokens.spacingVerticalXXL },
+    '@media (max-width: 599px)': { marginTop: '64px', padding: '48px 20px', borderRadius: '24px' },
   },
   bandTitle: {
     margin: 0,
@@ -139,6 +115,18 @@ const useStyles = makeStyles({
     },
   },
   bandBody: { maxWidth: '560px', opacity: 0.92, fontSize: tokens.fontSizeBase400 },
+  rows: { display: 'flex', flexDirection: 'column', margin: 0, padding: 0, listStyleType: 'none' },
+  row: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)',
+    columnGap: tokens.spacingHorizontalXXXL,
+    rowGap: tokens.spacingVerticalXS,
+    padding: `${tokens.spacingVerticalXL} 0`,
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    '@media (max-width: 799px)': { gridTemplateColumns: 'minmax(0, 1fr)' },
+  },
+  rowTitle: { display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'baseline' },
+  rowIndex: { color: tokens.colorNeutralForeground3, fontVariantNumeric: 'tabular-nums' },
   bandActions: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -150,14 +138,12 @@ const useStyles = makeStyles({
 /** A landing-page section: centred or left-aligned heading block, then content. */
 export function Section({
   id,
-  eyebrow,
   title,
   subtitle,
   center,
   children,
 }: {
   id?: string;
-  eyebrow?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
   center?: boolean;
@@ -167,22 +153,12 @@ export function Section({
   return (
     <section id={id} className={styles.section}>
       <div className={mergeClasses(styles.head, center && styles.headCenter)}>
-        {eyebrow && (
-          <Text size={200} className={styles.eyebrow}>
-            {eyebrow}
-          </Text>
-        )}
         <h2 className={styles.title}>{title}</h2>
         {subtitle && <Text className={styles.subtitle}>{subtitle}</Text>}
       </div>
       {children}
     </section>
   );
-}
-
-export function GradientText({ children }: { children: ReactNode }) {
-  const styles = useStyles();
-  return <span className={styles.gradientText}>{children}</span>;
 }
 
 /** An icon tile, a title and a short paragraph. */
@@ -274,5 +250,31 @@ export function CtaBand({
       <Text className={styles.bandBody}>{body}</Text>
       <div className={styles.bandActions}>{children}</div>
     </section>
+  );
+}
+
+/** Title left, text right, hairlines between: the borderless way to list FAQs, steps and clauses. */
+export function DividedList({
+  items,
+  numbered,
+}: {
+  items: { title: ReactNode; body: ReactNode }[];
+  numbered?: boolean;
+}) {
+  const styles = useStyles();
+  return (
+    <ol className={styles.rows}>
+      {items.map((item, i) => (
+        <li key={i} className={styles.row}>
+          <div className={styles.rowTitle}>
+            {numbered && <Text className={styles.rowIndex}>{String(i + 1).padStart(2, '0')}</Text>}
+            <Text weight="semibold" size={400}>
+              {item.title}
+            </Text>
+          </div>
+          <Text className={styles.cardBody}>{item.body}</Text>
+        </li>
+      ))}
+    </ol>
   );
 }

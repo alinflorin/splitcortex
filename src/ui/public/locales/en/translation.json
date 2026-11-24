@@ -92,7 +92,6 @@
       "Runs on phones, laptops, Pis and browsers"
     ],
     "how": {
-      "eyebrow": "How it works",
       "title": "From idle hardware to an API in three steps",
       "subtitle": "No servers to rent, no ports to open.",
       "steps": {
@@ -111,7 +110,6 @@
       }
     },
     "features": {
-      "eyebrow": "Everything included",
       "title": "A complete serving platform, not just a connection",
       "subtitle": "The control plane and the gateway run for you. You bring the compute.",
       "items": {
@@ -146,7 +144,6 @@
       "body": "Same request format, same streaming. Swap the base URL and you are done."
     },
     "run": {
-      "eyebrow": "Get a node running",
       "title": "Pick where to run a node",
       "subtitle": "Install an app or the command line node, or open the web node in a browser. Each one joins a pool with a code from Add device."
     },
@@ -201,7 +198,6 @@
   "about": {
     "title": "About SplitCortex",
     "hero": {
-      "eyebrow": "About",
       "highlight": "idle compute, put to work",
       "lead": "SplitCortex is a platform that reuses the devices you already own as inference serving nodes. We run the control plane and the gateway; you bring the phones, laptops and Raspberry Pis."
     },
@@ -224,7 +220,6 @@
       }
     },
     "story": {
-      "eyebrow": "Why we exist",
       "title": "Billions of capable devices sit idle",
       "problemTitle": "The problem",
       "problem": "Phones and small computers now run capable language models, yet most of them spend the day idle in a drawer or on a desk. Renting GPUs in a datacenter is costly, and sending private prompts to someone else's hardware is not always an option.",
@@ -232,7 +227,6 @@
       "answer": "Turn those devices into a pool you control. Each device keeps one outbound, encrypted connection to our gateway, which receives OpenAI-format requests and relays them to a healthy device in your pool. Your hardware, your models, one familiar API."
     },
     "flow": {
-      "eyebrow": "Under the hood",
       "title": "How a request travels",
       "subtitle": "Two separate legs, kept apart on purpose: your client talks to the gateway, and your devices talk to the gateway. Nothing ever connects into a device.",
       "client": {
@@ -259,7 +253,6 @@
       }
     },
     "principles": {
-      "eyebrow": "Principles",
       "title": "Built to be trusted with your prompts",
       "subtitle": "Security and privacy are part of the architecture, not a feature list.",
       "items": {
@@ -290,7 +283,6 @@
       }
     },
     "nodes": {
-      "eyebrow": "Devices",
       "title": "Runs on what you have",
       "subtitle": "Every node enrolls with the same short code and serves the same way.",
       "items": {
@@ -315,7 +307,6 @@
     }
   },
   "help": {
-    "eyebrow": "Help",
     "title": "Help and documentation",
     "subtitle": "Everything you need to put your devices to work: set up an organisation, enroll devices, add a model and call the API.",
     "toc": "On this page",
@@ -329,7 +320,6 @@
       "troubleshoot": "Troubleshooting"
     },
     "devices": {
-      "eyebrow": "Devices",
       "title": "Any device can be a node",
       "subtitle": "Pick the kind that suits the device. Each one joins a pool with a code from Add device.",
       "items": {
@@ -372,7 +362,6 @@
       "downloadsTitle": "Get a node"
     },
     "models": {
-      "eyebrow": "Models and pools",
       "title": "One pool, one model",
       "subtitle": "How models and pools fit together.",
       "items": {
@@ -395,7 +384,6 @@
       }
     },
     "api": {
-      "eyebrow": "Using the API",
       "title": "Change the base URL and the key",
       "subtitle": "The gateway speaks the OpenAI format, so existing clients and libraries work as they are.",
       "curlTitle": "Example request",
@@ -411,7 +399,6 @@
       "balancing": "Requests are balanced across the healthy devices of the pool. If a device fails before the first token, the gateway tries another one."
     },
     "access": {
-      "eyebrow": "Access",
       "title": "Keys, limits and roles",
       "subtitle": "Decide who can call what, and how much.",
       "items": {
@@ -430,7 +417,6 @@
       }
     },
     "monitor": {
-      "eyebrow": "Testing and monitoring",
       "title": "See what your devices are doing",
       "subtitle": "Prompts and answers are never logged. Only counts and timings are kept.",
       "items": {
@@ -457,7 +443,6 @@
       }
     },
     "troubleshoot": {
-      "eyebrow": "Troubleshooting",
       "title": "When something does not work",
       "subtitle": "The most common problems and what to do about them.",
       "items": [
@@ -507,7 +492,6 @@
     }
   },
   "quickstart": {
-    "eyebrow": "Quick start",
     "title": "From zero to your first answer",
     "subtitle": "Six steps: make an organisation, add a model, create a pool, enroll devices, create a key and call the OpenAI-compatible API. Then use it from the software you already have.",
     "needTitle": "What you need",
@@ -572,7 +556,6 @@
     "downloadsTitle": "Get a node app",
     "examplesTitle": "Try it from a terminal",
     "software": {
-      "eyebrow": "Use it everywhere",
       "title": "Works with the software you already use",
       "subtitle": "Any tool that lets you set a custom OpenAI-compatible provider can use your pools. Enter three things:",
       "fields": {
@@ -634,7 +617,6 @@
       "trademark": "Names belong to their owners. They are examples of software that supports custom OpenAI-compatible endpoints; SplitCortex is not affiliated with them."
     },
     "agents": {
-      "eyebrow": "Agents",
       "title": "Yes, you can build agents on it",
       "subtitle": "An agent is a program that calls a model in a loop. Your pools answer standard chat completions, so you can build them on top.",
       "items": {
@@ -1225,7 +1207,6 @@
   },
   "legal": {
     "updated": "Last updated: 21 November 2026",
-    "eyebrow": "Legal",
     "terms": {
       "title": "Terms of Service",
       "subtitle": "The rules for using SplitCortex.",
@@ -1307,7 +1288,6 @@
     "open": "Read"
   },
   "contact": {
-    "eyebrow": "Contact",
     "title": "Get in touch",
     "subtitle": "Questions, feedback or support. This page is a placeholder for now.",
     "email": {

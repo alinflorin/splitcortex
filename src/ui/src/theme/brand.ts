@@ -10,6 +10,15 @@ export const BRAND = {
   cyan: '#14B8D4',
 } as const;
 
+/** `#rrggbb` + alpha → `rgba(...)`, for soft brand glows. */
+const rgba = (hex: string, alpha: number): string => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+};
+
+/** The one decorative surface: a soft violet glow behind the Home diagram, fading out before the edges. */
+export const BRAND_GLOW = `radial-gradient(34% 50% at 70% 50%, ${rgba(BRAND.violet, 0.2)}, transparent 100%)`;
+
 /**
  * Fluent's brand tokens (buttons, links, focus, active nav, ...) generated from `BRAND.violet`
  * (`createLightTheme` / `createDarkTheme`), laid over the Teams themes so only the brand colour

@@ -8,8 +8,7 @@ const useStyles = makeStyles({
     maxWidth: '420px',
     aspectRatio: '1',
     objectFit: 'cover',
-    borderRadius: tokens.borderRadiusXLarge,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    borderRadius: '16px',
     backgroundColor: tokens.colorNeutralBackground3,
   },
 });

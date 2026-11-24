@@ -6,28 +6,29 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalXS,
-    paddingBottom: tokens.spacingVerticalL,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+    paddingBottom: tokens.spacingVerticalXL,
   },
   eyebrow: {
-    color: tokens.colorBrandForeground1,
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground3,
   },
   title: {
     margin: 0,
-    fontSize: tokens.fontSizeHero800,
-    lineHeight: tokens.lineHeightHero800,
+    fontSize: '36px',
+    lineHeight: '40px',
     fontWeight: tokens.fontWeightSemibold,
-    letterSpacing: '-0.02em',
+    letterSpacing: '-0.03em',
     overflowWrap: 'anywhere',
     '@media (max-width: 599px)': {
       fontSize: tokens.fontSizeBase600,
       lineHeight: tokens.lineHeightBase600,
     },
   },
-  subtitle: { color: tokens.colorNeutralForeground3, maxWidth: '640px' },
+  subtitle: {
+    color: tokens.colorNeutralForeground2,
+    maxWidth: '640px',
+    fontSize: tokens.fontSizeBase400,
+    lineHeight: tokens.lineHeightBase400,
+  },
 });
 
 /** The page heading of the web app (eyebrow, title, subtitle), so the node looks like it. */

@@ -1,7 +1,7 @@
 import { View, type ViewProps } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
-/** Hairline border, generous padding, no shadow: matches the web cards. */
+/** Filled surface, no border or shadow, generous padding: matches the web cards. */
 export function Card({ style, ...rest }: ViewProps) {
   const { theme: t } = useTheme();
   return (
@@ -10,9 +10,7 @@ export function Card({ style, ...rest }: ViewProps) {
       style={[
         {
           backgroundColor: t.colorNeutralBackground2,
-          borderColor: t.colorNeutralStroke3,
-          borderWidth: parseFloat(t.strokeWidthThin),
-          borderRadius: parseFloat(t.borderRadiusXLarge),
+          borderRadius: 16,
           padding: parseFloat(t.spacingHorizontalXL),
           gap: parseFloat(t.spacingVerticalM),
         },

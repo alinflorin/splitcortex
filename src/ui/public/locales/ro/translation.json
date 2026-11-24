@@ -92,7 +92,6 @@
       "Rulează pe telefoane, laptopuri, Pi-uri și în browser"
     ],
     "how": {
-      "eyebrow": "Cum funcționează",
       "title": "De la hardware nefolosit la un API, în trei pași",
       "subtitle": "Fără servere de închiriat, fără porturi de deschis.",
       "steps": {
@@ -111,7 +110,6 @@
       }
     },
     "features": {
-      "eyebrow": "Totul inclus",
       "title": "O platformă completă de servire, nu doar o conexiune",
       "subtitle": "Planul de control și gateway-ul rulează pentru tine. Tu aduci puterea de calcul.",
       "items": {
@@ -146,7 +144,6 @@
       "body": "Același format de cerere, același streaming. Schimbi URL-ul de bază și gata."
     },
     "run": {
-      "eyebrow": "Pornește un nod",
       "title": "Alege unde rulezi un nod",
       "subtitle": "Instalează o aplicație sau nodul din linia de comandă, ori deschide nodul web în browser. Fiecare se alătură unui pool cu un cod din Adaugă dispozitiv."
     },
@@ -201,7 +198,6 @@
   "about": {
     "title": "Despre SplitCortex",
     "hero": {
-      "eyebrow": "Despre",
       "highlight": "putere de calcul nefolosită, pusă la treabă",
       "lead": "SplitCortex este o platformă care refolosește dispozitivele pe care le ai deja ca noduri de inferență. Noi rulăm planul de control și gateway-ul; tu aduci telefoanele, laptopurile și Raspberry Pi-urile."
     },
@@ -224,7 +220,6 @@
       }
     },
     "story": {
-      "eyebrow": "De ce existăm",
       "title": "Miliarde de dispozitive capabile stau degeaba",
       "problemTitle": "Problema",
       "problem": "Telefoanele și computerele mici pot rula acum modele de limbaj performante, dar cele mai multe își petrec ziua nefolosite, într-un sertar sau pe birou. GPU-urile din datacenter sunt scumpe, iar trimiterea prompturilor private pe hardware străin nu e mereu o opțiune.",
@@ -232,7 +227,6 @@
       "answer": "Transformă acele dispozitive într-un pool pe care îl controlezi. Fiecare dispozitiv păstrează o conexiune criptată către gateway, care primește cereri în format OpenAI și le trimite unui dispozitiv sănătos din pool-ul tău. Hardware-ul tău, modelele tale, un singur API familiar."
     },
     "flow": {
-      "eyebrow": "Pe dinăuntru",
       "title": "Cum călătorește o cerere",
       "subtitle": "Două segmente separate, intenționat: clientul vorbește cu gateway-ul, iar dispozitivele vorbesc tot cu gateway-ul. Nimic nu se conectează vreodată din exterior la un dispozitiv.",
       "client": {
@@ -259,7 +253,6 @@
       }
     },
     "principles": {
-      "eyebrow": "Principii",
       "title": "Construit ca să-i poți încredința prompturile",
       "subtitle": "Securitatea și confidențialitatea fac parte din arhitectură, nu dintr-o listă de funcții.",
       "items": {
@@ -290,7 +283,6 @@
       }
     },
     "nodes": {
-      "eyebrow": "Dispozitive",
       "title": "Rulează pe ce ai",
       "subtitle": "Fiecare nod se înrolează cu același cod scurt și servește la fel.",
       "items": {
@@ -315,7 +307,6 @@
     }
   },
   "help": {
-    "eyebrow": "Ajutor",
     "title": "Ajutor și documentație",
     "subtitle": "Tot ce ai nevoie ca să-ți pui dispozitivele la treabă: creezi o organizație, înrolezi dispozitive, adaugi un model și apelezi API-ul.",
     "toc": "Pe această pagină",
@@ -329,7 +320,6 @@
       "troubleshoot": "Depanare"
     },
     "devices": {
-      "eyebrow": "Dispozitive",
       "title": "Orice dispozitiv poate fi un nod",
       "subtitle": "Alege varianta potrivită dispozitivului. Fiecare intră într-un pool cu un cod din Adaugă dispozitiv.",
       "items": {
@@ -372,7 +362,6 @@
       "downloadsTitle": "Obține un nod"
     },
     "models": {
-      "eyebrow": "Modele și pool-uri",
       "title": "Un pool, un model",
       "subtitle": "Cum se leagă modelele de pool-uri.",
       "items": {
@@ -395,7 +384,6 @@
       }
     },
     "api": {
-      "eyebrow": "Folosirea API-ului",
       "title": "Schimbi adresa de bază și cheia",
       "subtitle": "Gateway-ul vorbește formatul OpenAI, deci clienții și bibliotecile existente merg așa cum sunt.",
       "curlTitle": "Exemplu de cerere",
@@ -411,7 +399,6 @@
       "balancing": "Cererile sunt echilibrate între dispozitivele sănătoase ale pool-ului. Dacă un dispozitiv cade înainte de primul token, gateway-ul încearcă altul."
     },
     "access": {
-      "eyebrow": "Acces",
       "title": "Chei, limite și roluri",
       "subtitle": "Hotărăști cine poate apela ce și cât.",
       "items": {
@@ -430,7 +417,6 @@
       }
     },
     "monitor": {
-      "eyebrow": "Testare și monitorizare",
       "title": "Vezi ce fac dispozitivele tale",
       "subtitle": "Prompturile și răspunsurile nu se înregistrează niciodată. Se păstrează doar numărători și durate.",
       "items": {
@@ -457,7 +443,6 @@
       }
     },
     "troubleshoot": {
-      "eyebrow": "Depanare",
       "title": "Când ceva nu merge",
       "subtitle": "Cele mai frecvente probleme și ce poți face.",
       "items": [
@@ -507,7 +492,6 @@
     }
   },
   "quickstart": {
-    "eyebrow": "Start rapid",
     "title": "De la zero la primul răspuns",
     "subtitle": "Șase pași: creezi o organizație, adaugi un model, creezi un pool, înrolezi dispozitive, creezi o cheie și apelezi API-ul compatibil OpenAI. Apoi îl folosești din software-ul pe care îl ai deja.",
     "needTitle": "De ce ai nevoie",
@@ -572,7 +556,6 @@
     "downloadsTitle": "Obține o aplicație nod",
     "examplesTitle": "Încearcă din terminal",
     "software": {
-      "eyebrow": "Folosește-l oriunde",
       "title": "Merge cu software-ul pe care îl folosești deja",
       "subtitle": "Orice unealtă care te lasă să setezi un furnizor propriu compatibil OpenAI poate folosi pool-urile tale. Introduci trei lucruri:",
       "fields": {
@@ -634,7 +617,6 @@
       "trademark": "Numele aparțin proprietarilor lor. Sunt exemple de software care suportă endpoint-uri proprii compatibile OpenAI; SplitCortex nu este afiliat cu ele."
     },
     "agents": {
-      "eyebrow": "Agenți",
       "title": "Da, poți construi agenți pe el",
       "subtitle": "Un agent e un program care apelează un model într-o buclă. Pool-urile tale răspund la chat completions standard, deci poți construi agenți deasupra lor.",
       "items": {
@@ -1225,7 +1207,6 @@
   },
   "legal": {
     "updated": "Ultima actualizare: 21 noiembrie 2026",
-    "eyebrow": "Legal",
     "terms": {
       "title": "Termeni și condiții",
       "subtitle": "Regulile de folosire a SplitCortex.",
@@ -1307,7 +1288,6 @@
     "open": "Citește"
   },
   "contact": {
-    "eyebrow": "Contact",
     "title": "Contactează-ne",
     "subtitle": "Întrebări, feedback sau suport. Această pagină este deocamdată un exemplu.",
     "email": {

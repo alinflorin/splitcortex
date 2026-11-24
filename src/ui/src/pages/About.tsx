@@ -18,40 +18,23 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useChartVersion } from '../lib/useChartVersion';
 import { useLocalePath } from '../seo/useLocalePath';
-import {
-  BRAND_FROM,
-  BRAND_TO,
-  CardGrid,
-  CtaBand,
-  FeatureCard,
-  GradientText,
-  Section,
-} from '../components/marketing/marketing';
+import { CardGrid, CtaBand, FeatureCard, Section } from '../components/marketing/marketing';
 
 const useStyles = makeStyles({
   hero: {
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalL,
-    padding: '64px 56px',
-    borderRadius: '32px',
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
-    '@media (max-width: 599px)': { padding: '32px 20px', borderRadius: '24px' },
-  },
-  eyebrow: {
-    color: tokens.colorBrandForeground1,
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    fontWeight: tokens.fontWeightSemibold,
+    paddingTop: tokens.spacingVerticalXXL,
   },
   h1: {
     margin: 0,
-    maxWidth: '760px',
-    fontSize: '52px',
-    lineHeight: '56px',
+    maxWidth: '820px',
+    fontSize: '60px',
+    lineHeight: '64px',
     fontWeight: tokens.fontWeightBold,
-    letterSpacing: '-0.035em',
-    '@media (max-width: 599px)': { fontSize: '34px', lineHeight: '38px' },
+    letterSpacing: '-0.04em',
+    '@media (max-width: 599px)': { fontSize: '36px', lineHeight: '40px' },
   },
   lead: {
     maxWidth: '640px',
@@ -61,18 +44,15 @@ const useStyles = makeStyles({
   },
   stats: {
     display: 'grid',
-    gap: tokens.spacingHorizontalL,
-    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
-    marginTop: tokens.spacingVerticalL,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
+    marginTop: tokens.spacingVerticalXXL,
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   stat: {
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
-    padding: tokens.spacingVerticalM,
-    borderRadius: tokens.borderRadiusXLarge,
-    backgroundColor: tokens.colorNeutralBackground1,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalL} 0 0`,
   },
   statValue: {
     fontSize: tokens.fontSizeHero800,
@@ -83,21 +63,12 @@ const useStyles = makeStyles({
   muted: { color: tokens.colorNeutralForeground2, lineHeight: tokens.lineHeightBase400 },
   story: {
     display: 'grid',
-    gap: tokens.spacingHorizontalXL,
+    columnGap: tokens.spacingHorizontalXXXL,
+    rowGap: tokens.spacingVerticalXXL,
     gridTemplateColumns: '1fr 1fr',
     '@media (max-width: 799px)': { gridTemplateColumns: '1fr' },
   },
-  storyCard: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: tokens.spacingVerticalS,
-    padding: tokens.spacingVerticalXL,
-    borderRadius: tokens.borderRadiusXLarge,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
-    backgroundColor: tokens.colorNeutralBackground2,
-  },
-  storyAccent: { borderTop: `3px solid ${BRAND_FROM}` },
-  storyAccent2: { borderTop: `3px solid ${BRAND_TO}` },
+  storyCol: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS },
   flow: {
     display: 'grid',
     alignItems: 'stretch',
@@ -109,17 +80,11 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalS,
-    padding: tokens.spacingVerticalL,
-    borderRadius: tokens.borderRadiusXLarge,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
-    backgroundColor: tokens.colorNeutralBackground2,
+    padding: tokens.spacingVerticalXL,
+    borderRadius: '20px',
   },
-  flowBoxHub: {
-    borderTopColor: tokens.colorBrandStroke1,
-    borderRightColor: tokens.colorBrandStroke1,
-    borderBottomColor: tokens.colorBrandStroke1,
-    borderLeftColor: tokens.colorBrandStroke1,
-  },
+  // The gateway is the one filled panel: it is the part every request passes through.
+  flowBoxHub: { backgroundColor: tokens.colorBrandBackground2 },
   flowArrow: {
     display: 'flex',
     flexDirection: 'column',
@@ -138,11 +103,11 @@ const useStyles = makeStyles({
   flowArrowLine: {
     width: '100%',
     height: '2px',
-    backgroundImage: `repeating-linear-gradient(90deg, ${BRAND_FROM} 0 6px, transparent 6px 12px)`,
+    backgroundImage: `repeating-linear-gradient(90deg, ${tokens.colorBrandForeground1} 0 6px, transparent 6px 12px)`,
     '@media (max-width: 899px)': {
       width: '2px',
       height: '24px',
-      backgroundImage: `repeating-linear-gradient(180deg, ${BRAND_FROM} 0 6px, transparent 6px 12px)`,
+      backgroundImage: `repeating-linear-gradient(180deg, ${tokens.colorBrandForeground1} 0 6px, transparent 6px 12px)`,
     },
   },
   list: {
@@ -153,13 +118,18 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalXXS,
     color: tokens.colorNeutralForeground2,
   },
+  legalLinks: { display: 'flex', flexDirection: 'column', margin: 0, padding: 0 },
   legalLink: {
-    color: 'inherit',
-    textDecoration: 'none',
     display: 'flex',
-    '& > *': { flexGrow: 1 },
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalL,
+    padding: `${tokens.spacingVerticalL} 0`,
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    color: 'inherit',
+    textDecorationLine: 'none',
+    ':hover': { color: tokens.colorBrandForeground1 },
   },
-  nodeChip: { alignSelf: 'flex-start' },
+  legalText: { display: 'flex', flexDirection: 'column', flexGrow: 1 },
 });
 
 function FlowBox({
@@ -229,24 +199,19 @@ export function About() {
   return (
     <>
       <section className={styles.hero}>
-        <Text size={200} className={styles.eyebrow}>
-          {t('about.hero.eyebrow')}
-        </Text>
         {version && (
           <Text size={200} className={styles.muted}>
             {t('app.version', { version })}
           </Text>
         )}
         <h1 className={styles.h1}>
-          {t('about.title')}: <GradientText>{t('about.hero.highlight')}</GradientText>
+          {t('about.title')}: {t('about.hero.highlight')}
         </h1>
         <Text className={styles.lead}>{t('about.hero.lead')}</Text>
         <div className={styles.stats}>
           {(['nodes', 'inbound', 'api', 'engine'] as const).map((k) => (
             <div key={k} className={styles.stat}>
-              <span className={styles.statValue}>
-                <GradientText>{t(`about.stats.${k}.value`)}</GradientText>
-              </span>
+              <span className={styles.statValue}>{t(`about.stats.${k}.value`)}</span>
               <Text size={200} className={styles.muted}>
                 {t(`about.stats.${k}.label`)}
               </Text>
@@ -255,15 +220,15 @@ export function About() {
         </div>
       </section>
 
-      <Section eyebrow={t('about.story.eyebrow')} title={t('about.story.title')}>
+      <Section title={t('about.story.title')}>
         <div className={styles.story}>
-          <div className={`${styles.storyCard} ${styles.storyAccent}`}>
+          <div className={styles.storyCol}>
             <Text weight="semibold" size={500}>
               {t('about.story.problemTitle')}
             </Text>
             <Text className={styles.muted}>{t('about.story.problem')}</Text>
           </div>
-          <div className={`${styles.storyCard} ${styles.storyAccent2}`}>
+          <div className={styles.storyCol}>
             <Text weight="semibold" size={500}>
               {t('about.story.answerTitle')}
             </Text>
@@ -272,11 +237,7 @@ export function About() {
         </div>
       </Section>
 
-      <Section
-        eyebrow={t('about.flow.eyebrow')}
-        title={t('about.flow.title')}
-        subtitle={t('about.flow.subtitle')}
-      >
+      <Section title={t('about.flow.title')} subtitle={t('about.flow.subtitle')}>
         <div className={styles.flow}>
           <FlowBox title={t('about.flow.client.title')} body={t('about.flow.client.body')} />
           <FlowArrow label={t('about.flow.leg1')} sub={t('about.flow.leg1Sub')} />
@@ -292,11 +253,7 @@ export function About() {
         </div>
       </Section>
 
-      <Section
-        eyebrow={t('about.principles.eyebrow')}
-        title={t('about.principles.title')}
-        subtitle={t('about.principles.subtitle')}
-      >
+      <Section title={t('about.principles.title')} subtitle={t('about.principles.subtitle')}>
         <CardGrid>
           {principles.map(({ key, icon }) => (
             <FeatureCard
@@ -309,11 +266,7 @@ export function About() {
         </CardGrid>
       </Section>
 
-      <Section
-        eyebrow={t('about.nodes.eyebrow')}
-        title={t('about.nodes.title')}
-        subtitle={t('about.nodes.subtitle')}
-      >
+      <Section title={t('about.nodes.title')} subtitle={t('about.nodes.subtitle')}>
         <CardGrid>
           {nodes.map(({ key, icon }) => (
             <FeatureCard
@@ -327,13 +280,18 @@ export function About() {
       </Section>
 
       <Section title={t('legal.linksTitle')} subtitle={t('legal.linksSubtitle')}>
-        <CardGrid>
+        <div className={styles.legalLinks}>
           {legal.map(({ to, key, icon }) => (
             <Link key={to} to={localePath(to)} className={styles.legalLink}>
-              <FeatureCard icon={icon} title={t(`${key}.title`)} body={t(`${key}.subtitle`)} />
+              {icon}
+              <span className={styles.legalText}>
+                <Text weight="semibold">{t(`${key}.title`)}</Text>
+                <Text className={styles.muted}>{t(`${key}.subtitle`)}</Text>
+              </span>
+              <ArrowRight24Regular />
             </Link>
           ))}
-        </CardGrid>
+        </div>
       </Section>
 
       <CtaBand title={t('about.cta.title')} body={t('about.cta.body')}>
