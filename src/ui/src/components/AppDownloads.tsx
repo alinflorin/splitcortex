@@ -13,6 +13,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getWebNodeUrl } from '../lib/webNode';
 import { useToast } from './feedback/useToast';
+import { GLASS } from '../theme/glass';
 
 const RELEASES = 'https://github.com/alinflorin/splitcortex/releases';
 /** Each app has its own rolling release (`<stream>-latest`, kept current by .github/workflows/rolling-release.yaml). */
@@ -48,7 +49,7 @@ const useStyles = makeStyles({
     minWidth: 0,
     padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
     borderRadius: tokens.borderRadiusMedium,
-    backgroundColor: tokens.colorNeutralBackground4,
+    ...GLASS.well,
     fontFamily: tokens.fontFamilyMonospace,
     fontSize: tokens.fontSizeBase200,
     wordBreak: 'break-all',

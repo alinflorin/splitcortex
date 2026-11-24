@@ -23,6 +23,7 @@ import { PoolModels, PoolNodes } from './PoolSections';
 import { UsageView } from './UsageView';
 import { MetricsView } from './MetricsView';
 import { useDeletePoolAction } from './useDeletePoolAction';
+import { GLASS } from '../../theme/glass';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXL },
@@ -39,9 +40,8 @@ const useStyles = makeStyles({
   primary: {
     padding: tokens.spacingVerticalL,
     borderRadius: tokens.borderRadiusXLarge,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
-    borderLeft: `3px solid ${tokens.colorBrandStroke1}`,
-    backgroundColor: tokens.colorNeutralBackground1,
+    ...GLASS.panel,
+    boxShadow: `${GLASS.panel.boxShadow}, inset 3px 0 0 ${tokens.colorBrandStroke1}`,
   },
 });
 

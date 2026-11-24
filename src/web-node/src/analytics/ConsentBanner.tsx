@@ -2,6 +2,7 @@ import { Button, Link, Text, makeStyles, tokens } from '@fluentui/react-componen
 import { useTranslation } from 'react-i18next';
 import { useAnalyticsId } from './config';
 import { setConsent, useConsent } from './consent';
+import { GLASS } from '../theme/glass';
 
 const useStyles = makeStyles({
   root: {
@@ -17,9 +18,8 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalL,
     borderRadius: tokens.borderRadiusXLarge,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    backgroundColor: tokens.colorNeutralBackground1,
-    boxShadow: tokens.shadow8,
+    ...GLASS.panel,
+    boxShadow: `${GLASS.panel.boxShadow}, ${tokens.shadow16}`,
     '@media (max-width: 599px)': {
       right: tokens.spacingHorizontalM,
       bottom: tokens.spacingVerticalM,

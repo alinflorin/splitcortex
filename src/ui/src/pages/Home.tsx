@@ -32,6 +32,7 @@ import { NetworkDiagram } from '../components/marketing/NetworkDiagram';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import { buildKeyExamples, getGatewayBaseUrl } from '../lib/gateway';
 import { useLocalePath } from '../seo/useLocalePath';
+import { GLASS } from '../theme/glass';
 
 const ScrollTour = lazy(() => import('../components/marketing/ScrollTour'));
 
@@ -65,7 +66,7 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalS,
     padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalM}`,
     borderRadius: tokens.borderRadiusCircular,
-    backgroundColor: tokens.colorNeutralBackground1,
+    ...GLASS.well,
     color: tokens.colorNeutralForeground2,
     fontSize: tokens.fontSizeBase200,
   },

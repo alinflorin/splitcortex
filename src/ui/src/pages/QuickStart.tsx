@@ -28,6 +28,7 @@ import {
 import { buildKeyExamples, getGatewayBaseUrl } from '../lib/gateway';
 import { BRAND_GRADIENT, BRAND_SHADOW } from '../theme/brand';
 import { useLocalePath } from '../seo/useLocalePath';
+import { GLASS } from '../theme/glass';
 
 const useStyles = makeStyles({
   steps: {
@@ -81,7 +82,7 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalS,
     padding: tokens.spacingVerticalXL,
     borderRadius: '20px',
-    backgroundColor: tokens.colorNeutralBackground2,
+    ...GLASS.panel,
   },
   subhead: { marginTop: tokens.spacingVerticalM },
   note: { color: tokens.colorNeutralForeground3 },

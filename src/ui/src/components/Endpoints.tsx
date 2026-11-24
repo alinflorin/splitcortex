@@ -3,6 +3,7 @@ import { Copy20Regular, Link24Regular } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { getApiBaseUrl, getGatewayBaseUrl } from '../lib/gateway';
 import { useToast } from './feedback/useToast';
+import { GLASS } from '../theme/glass';
 
 const useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
@@ -28,7 +29,7 @@ const useStyles = makeStyles({
     minWidth: 0,
     padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
     borderRadius: tokens.borderRadiusMedium,
-    backgroundColor: tokens.colorNeutralBackground4,
+    ...GLASS.well,
     fontFamily: tokens.fontFamilyMonospace,
     fontSize: tokens.fontSizeBase200,
     wordBreak: 'break-all',

@@ -5,16 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { BRAND, BRAND_GRADIENT, BRAND_GRADIENT_MINT, BRAND_SHADOW } from '../../theme/brand';
 import { useToast } from '../feedback/useToast';
 import { LiquidGlass } from './LiquidGlass';
+import { GLASS } from '../../theme/glass';
 
 export const BRAND_FROM: string = BRAND.violet;
 export const BRAND_TO: string = BRAND.mint;
 
 /** Pill-shaped call-to-action buttons with a soft brand glow; spread onto a primary `Button`. */
-export const ctaStyle: CSSProperties = {
-  borderRadius: '999px',
-  boxShadow: BRAND_SHADOW,
-  paddingInline: '28px',
-};
+export const ctaStyle: CSSProperties = { paddingInline: '28px' };
 
 const useStyles = makeStyles({
   section: {
@@ -147,8 +144,7 @@ const useStyles = makeStyles({
     maxWidth: '100%',
     overflow: 'hidden',
     borderRadius: '20px',
-    backgroundColor: tokens.colorNeutralBackground3,
-    boxShadow: 'inset 0 0 0 1px rgba(127, 127, 127, 0.18)',
+    ...GLASS.well,
   },
   codeBar: {
     display: 'flex',
@@ -169,8 +165,7 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalXS,
     padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalM}`,
     borderRadius: tokens.borderRadiusCircular,
-    backgroundColor: tokens.colorNeutralBackground3,
-    boxShadow: 'inset 0 0 0 1px rgba(127, 127, 127, 0.16)',
+    ...GLASS.well,
     color: tokens.colorNeutralForeground2,
     fontSize: tokens.fontSizeBase200,
   },
@@ -181,8 +176,8 @@ const useStyles = makeStyles({
     marginTop: '120px',
     padding: '80px 32px',
     borderRadius: '40px',
-    color: '#fff',
-    backgroundImage: BRAND_GRADIENT,
+    ...GLASS.panel,
+    backgroundImage: 'linear-gradient(135deg, rgba(74, 91, 230, 0.34), rgba(20, 184, 212, 0.2))',
     '@media (max-width: 599px)': { marginTop: '72px', padding: '40px 16px', borderRadius: '28px' },
   },
   bandBlobA: {
@@ -194,7 +189,7 @@ const useStyles = makeStyles({
     left: '-60px',
     borderRadius: '50%',
     backgroundColor: BRAND.mint,
-    opacity: 0.55,
+    opacity: 0.35,
     filter: 'blur(60px)',
   },
   bandBlobB: {
@@ -206,7 +201,7 @@ const useStyles = makeStyles({
     right: '-40px',
     borderRadius: '50%',
     backgroundColor: BRAND.violetLight,
-    opacity: 0.6,
+    opacity: 0.4,
     filter: 'blur(60px)',
   },
   bandGlass: {
@@ -430,11 +425,11 @@ export function CtaBand({
     <section className={styles.band}>
       <span className={styles.bandBlobA} aria-hidden="true" />
       <span className={styles.bandBlobB} aria-hidden="true" />
-      <LiquidGlass radius={32} bezel={20} className={styles.bandGlass}>
+      <div className={styles.bandGlass}>
         <h2 className={styles.bandTitle}>{title}</h2>
         <Text className={styles.bandBody}>{body}</Text>
         <div className={styles.bandActions}>{children}</div>
-      </LiquidGlass>
+      </div>
     </section>
   );
 }

@@ -26,9 +26,7 @@ export interface ConfirmOptions {
 
 const useStyles = makeStyles({
   danger: {
-    backgroundColor: tokens.colorPaletteRedBackground3,
-    ':hover': { backgroundColor: tokens.colorPaletteRedForeground1 },
-    ':hover:active': { backgroundColor: tokens.colorPaletteRedForeground1 },
+    '--sc-btn-color': tokens.colorPaletteRedBackground3,
   },
 });
 

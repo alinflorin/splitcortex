@@ -26,10 +26,10 @@ export function TextField({ label, hint, error, mono, style, ...rest }: TextFiel
           {
             minHeight: 44,
             paddingHorizontal: parseFloat(t.spacingHorizontalM),
-            borderRadius: parseFloat(t.borderRadiusMedium),
+            borderRadius: 12,
             borderWidth: parseFloat(t.strokeWidthThin),
-            borderColor: error ? t.colorPaletteRedBorder2 : t.colorNeutralStroke1,
-            backgroundColor: t.colorNeutralBackground1,
+            borderColor: error ? t.colorPaletteRedBorder2 : 'rgba(255, 255, 255, 0.2)',
+            backgroundColor: `${t.colorNeutralBackground1}59`,
             color: t.colorNeutralForeground1,
             fontFamily: mono ? 'monospace' : fontFamilyForWeight(t.fontWeightRegular),
             fontSize: parseFloat(t.fontSizeBase300),

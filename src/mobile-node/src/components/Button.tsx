@@ -22,16 +22,16 @@ export function Button({
   const off = disabled || loading;
   const palette = {
     primary: {
-      bg: t.colorBrandBackground,
-      pressed: t.colorBrandBackgroundPressed,
+      bg: `${t.colorBrandBackground}d0`,
+      pressed: `${t.colorBrandBackgroundPressed}f0`,
       fg: t.colorNeutralForegroundOnBrand,
-      border: 'transparent',
+      border: 'rgba(255, 255, 255, 0.3)',
     },
     secondary: {
-      bg: t.colorNeutralBackground1,
-      pressed: t.colorNeutralBackground1Pressed,
+      bg: `${t.colorNeutralBackground1}8f`,
+      pressed: `${t.colorNeutralBackground1}d0`,
       fg: t.colorNeutralForeground1,
-      border: t.colorNeutralStroke1,
+      border: 'rgba(255, 255, 255, 0.18)',
     },
     subtle: {
       bg: 'transparent',
@@ -49,9 +49,10 @@ export function Button({
       style={({ pressed }) => ({
         minHeight: 44,
         paddingHorizontal: parseFloat(t.spacingHorizontalL),
-        borderRadius: parseFloat(t.borderRadiusMedium),
+        borderRadius: 12,
         borderWidth: parseFloat(t.strokeWidthThin),
         borderColor: palette.border,
+        borderTopColor: appearance === 'subtle' ? 'transparent' : 'rgba(255, 255, 255, 0.42)',
         backgroundColor: pressed ? palette.pressed : palette.bg,
         opacity: off ? 0.5 : 1,
         alignItems: 'center',

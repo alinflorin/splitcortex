@@ -9,6 +9,7 @@ import {
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BRAND } from '../../theme/brand';
+import { GLASS } from '../../theme/glass';
 
 /** Mint reads on top of violet glass in both themes; violet lines vanished into it. */
 const LINE = BRAND.mint;
@@ -47,8 +48,7 @@ const useStyles = makeStyles({
     boxSizing: 'border-box',
     width: '96px',
     borderRadius: tokens.borderRadiusXLarge,
-    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 82%, transparent)`,
-    boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.18)',
+    ...GLASS.well,
     color: tokens.colorNeutralForeground1,
   },
   tileLabel: { fontSize: tokens.fontSizeBase100 },
@@ -65,9 +65,8 @@ const useStyles = makeStyles({
     height: '76px',
     padding: '14px',
     borderRadius: '24px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    boxShadow: '0 12px 32px -12px rgba(79, 93, 240, 0.55)',
+    ...GLASS.panel,
+    boxShadow: `${GLASS.panel.boxShadow}, 0 12px 32px -12px rgba(79, 93, 240, 0.55)`,
   },
   ring: {
     position: 'absolute',

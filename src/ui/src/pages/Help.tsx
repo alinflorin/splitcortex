@@ -31,6 +31,7 @@ import {
 import { LiquidGlass } from '../components/marketing/LiquidGlass';
 import { buildKeyExamples, getGatewayBaseUrl } from '../lib/gateway';
 import { useLocalePath } from '../seo/useLocalePath';
+import { GLASS } from '../theme/glass';
 
 const SECTIONS = [
   'start',
@@ -52,7 +53,7 @@ const useStyles = makeStyles({
   tocLink: {
     padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalM}`,
     borderRadius: tokens.borderRadiusCircular,
-    backgroundColor: tokens.colorNeutralBackground3,
+    ...GLASS.well,
     color: tokens.colorNeutralForeground2,
     fontSize: tokens.fontSizeBase300,
     textDecorationLine: 'none',

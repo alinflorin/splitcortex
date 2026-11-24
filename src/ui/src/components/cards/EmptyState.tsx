@@ -1,5 +1,6 @@
 import { Button, Text, makeStyles, tokens } from '@fluentui/react-components';
 import type { ReactElement, ReactNode } from 'react';
+import { GLASS } from '../../theme/glass';
 
 const useStyles = makeStyles({
   root: {
@@ -10,14 +11,14 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalM,
     padding: `${tokens.spacingVerticalXXXL} ${tokens.spacingHorizontalXL}`,
     borderRadius: tokens.borderRadiusXLarge,
-    border: `1px dashed ${tokens.colorNeutralStroke2}`,
-    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 40%, transparent)`,
+    ...GLASS.well,
   },
   icon: { color: tokens.colorBrandForeground1, display: 'flex', fontSize: '32px' },
   text: {
     display: 'block',
     color: tokens.colorNeutralForeground2,
     maxWidth: '440px',
+    textAlign: 'center',
     textWrap: 'balance',
   },
 });

@@ -1,6 +1,7 @@
-import { makeStyles, tokens } from '@fluentui/react-components';
+import { makeStyles } from '@fluentui/react-components';
 import jsQR from 'jsqr';
 import { useEffect, useRef } from 'react';
+import { GLASS } from '../theme/glass';
 
 const useStyles = makeStyles({
   video: {
@@ -9,7 +10,7 @@ const useStyles = makeStyles({
     aspectRatio: '1',
     objectFit: 'cover',
     borderRadius: '16px',
-    backgroundColor: tokens.colorNeutralBackground3,
+    ...GLASS.well,
   },
 });
 

@@ -20,6 +20,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildKeyExamples, getGatewayBaseUrl } from '../../lib/gateway';
 import { useToast } from '../../components/feedback/useToast';
+import { GLASS } from '../../theme/glass';
 
 const useStyles = makeStyles({
   body: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
@@ -30,8 +31,7 @@ const useStyles = makeStyles({
     overflowX: 'auto',
     fontFamily: tokens.fontFamilyMonospace,
     fontSize: tokens.fontSizeBase200,
-    backgroundColor: tokens.colorNeutralBackground2,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    ...GLASS.well,
     borderRadius: tokens.borderRadiusMedium,
   },
   input: { flexGrow: 1, fontFamily: tokens.fontFamilyMonospace },

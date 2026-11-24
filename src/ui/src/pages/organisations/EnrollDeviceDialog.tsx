@@ -20,6 +20,7 @@ import { useCancelEnrollment, useCreateEnrollment, useNodes } from '../../api/ho
 import type { CreatedEnrollment, Pool } from '../../api/schemas';
 import { useToast } from '../../components/feedback/useToast';
 import { getApiBaseUrl } from '../../lib/gateway';
+import { GLASS } from '../../theme/glass';
 
 const useStyles = makeStyles({
   body: {
@@ -54,8 +55,7 @@ const useStyles = makeStyles({
     minWidth: 0,
     padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
     borderRadius: tokens.borderRadiusMedium,
-    backgroundColor: tokens.colorNeutralBackground3,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    ...GLASS.well,
     fontFamily: tokens.fontFamilyMonospace,
     fontSize: tokens.fontSizeBase200,
     wordBreak: 'break-all',

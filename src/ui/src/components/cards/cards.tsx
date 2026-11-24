@@ -1,5 +1,6 @@
 import { Card, Text, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import type { ReactNode } from 'react';
+import { GLASS } from '../../theme/glass';
 
 const useStyles = makeStyles({
   // Mobile first: one column. Wider screens flow cards into several columns (`grid` variant) or keep one (`list`).
@@ -18,11 +19,7 @@ const useStyles = makeStyles({
     width: '100%',
     boxSizing: 'border-box',
     borderRadius: '16px',
-    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground2} 62%, transparent)`,
-    backdropFilter: 'blur(14px) saturate(150%)',
-    WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-    border: 'none',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 1px rgba(127, 127, 127, 0.16)',
+    ...GLASS.panel,
     transitionProperty: 'background-color, box-shadow',
     transitionDuration: tokens.durationFast,
     transitionTimingFunction: tokens.curveEasyEase,
@@ -30,7 +27,7 @@ const useStyles = makeStyles({
   clickable: {
     cursor: 'pointer',
     ':hover': {
-      backgroundColor: tokens.colorNeutralBackground2Hover,
+      backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 70%, transparent)`,
       boxShadow: `inset 0 0 0 1px ${tokens.colorBrandStroke1}`,
     },
   },

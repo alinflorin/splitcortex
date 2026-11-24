@@ -1,16 +1,13 @@
 import { Card, Text, makeStyles, tokens } from '@fluentui/react-components';
 import type { ReactNode } from 'react';
+import { GLASS } from '../theme/glass';
 
 const useStyles = makeStyles({
   card: {
     width: '100%',
     boxSizing: 'border-box',
     borderRadius: '16px',
-    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground2} 62%, transparent)`,
-    backdropFilter: 'blur(14px) saturate(150%)',
-    WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 1px rgba(127, 127, 127, 0.16)',
-    border: 'none',
+    ...GLASS.panel,
     padding: tokens.spacingVerticalL,
     gap: tokens.spacingVerticalM,
   },

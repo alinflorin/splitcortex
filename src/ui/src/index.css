@@ -143,3 +143,135 @@ html {
     -webkit-backdrop-filter: none !important;
   }
 }
+
+/*
+ * Glass controls: inputs, selects, buttons. Same material as the surfaces (tint, sheen, lit rim),
+ * so a form on glass is glass all the way down. Fluent's own classes carry opaque fills, hence !important.
+ * Buttons get `sc-btn-<appearance>` from the FluentProvider hook (ThemeContext).
+ */
+.fui-Input,
+.fui-Textarea,
+.fui-Dropdown,
+.fui-Combobox,
+.fui-SpinButton,
+.fui-Select {
+  background-color: color-mix(in srgb, var(--colorNeutralBackground1) 30%, transparent) !important;
+  background-image: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.1),
+    rgba(255, 255, 255, 0.05)
+  ) !important;
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  border-color: color-mix(in srgb, var(--colorNeutralForeground1) 20%, transparent) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  transition:
+    border-color 150ms,
+    box-shadow 150ms;
+}
+.fui-Input:hover,
+.fui-Textarea:hover,
+.fui-Dropdown:hover,
+.fui-Combobox:hover,
+.fui-SpinButton:hover,
+.fui-Select:hover {
+  border-color: color-mix(in srgb, var(--colorNeutralForeground1) 34%, transparent) !important;
+}
+.fui-Input:focus-within,
+.fui-Textarea:focus-within,
+.fui-Dropdown:focus-within,
+.fui-Combobox:focus-within,
+.fui-SpinButton:focus-within,
+.fui-Select:focus-within {
+  border-color: var(--colorBrandStroke1) !important;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.14),
+    0 0 0 3px color-mix(in srgb, var(--colorBrandStroke1) 28%, transparent) !important;
+}
+.fui-Input__input,
+.fui-Textarea__textarea,
+.fui-Select__select,
+.fui-SpinButton__input {
+  background-color: transparent !important;
+}
+.fui-Input input::placeholder,
+.fui-Textarea textarea::placeholder {
+  color: color-mix(in srgb, var(--colorNeutralForeground1) 45%, transparent);
+}
+
+.fui-Button.sc-btn-secondary,
+.fui-Button.sc-btn-outline,
+.fui-Button.sc-btn-subtle:hover {
+  background-color: color-mix(in srgb, var(--colorNeutralBackground1) 36%, transparent) !important;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.02)
+  ) !important;
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 6px 16px -8px rgba(0, 0, 0, 0.35) !important;
+}
+.fui-Button.sc-btn-secondary:hover,
+.fui-Button.sc-btn-outline:hover,
+.fui-Button.sc-btn-subtle:hover {
+  background-color: color-mix(in srgb, var(--colorNeutralBackground1) 56%, transparent) !important;
+}
+.fui-Button.sc-btn-primary {
+  background-color: color-mix(
+    in srgb,
+    var(--sc-btn-color, var(--colorBrandBackground)) 80%,
+    transparent
+  ) !important;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.34),
+    rgba(255, 255, 255, 0) 60%
+  ) !important;
+  backdrop-filter: blur(10px) saturate(170%);
+  -webkit-backdrop-filter: blur(10px) saturate(170%);
+  border-color: transparent !important;
+  color: var(--colorNeutralForegroundOnBrand) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 10px 24px -8px
+      color-mix(in srgb, var(--sc-btn-color, var(--colorBrandBackground)) 80%, transparent) !important;
+}
+.fui-Button.sc-btn-primary:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--sc-btn-color, var(--colorBrandBackground)) 94%,
+    transparent
+  ) !important;
+}
+.fui-Button.sc-btn-primary,
+.fui-Button.sc-btn-secondary,
+.fui-Button.sc-btn-outline {
+  border-radius: 12px !important;
+}
+.fui-Button:disabled,
+.fui-Button[aria-disabled='true'] {
+  opacity: 0.62;
+  box-shadow: none !important;
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .fui-Input,
+  .fui-Textarea,
+  .fui-Dropdown,
+  .fui-Combobox,
+  .fui-SpinButton,
+  .fui-Select {
+    background-color: var(--colorNeutralBackground1) !important;
+    background-image: none !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

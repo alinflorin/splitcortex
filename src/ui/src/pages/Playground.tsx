@@ -54,6 +54,7 @@ import {
   type GatewayModel,
 } from '../lib/chatStream';
 import { getPlaygroundBaseUrl } from '../lib/gateway';
+import { GLASS } from '../theme/glass';
 
 // Messages are i18n keys; they are translated where they are rendered. Numbers are free text, empty = the default.
 const optionalNumber = (min: number, max: number, integer: boolean) =>
@@ -99,8 +100,7 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalL,
     borderRadius: tokens.borderRadiusXLarge,
-    backgroundColor: tokens.colorNeutralBackground2,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
+    ...GLASS.panel,
   },
   row: {
     display: 'grid',
@@ -119,11 +119,10 @@ const useStyles = makeStyles({
   turn: {
     padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
     borderRadius: tokens.borderRadiusXLarge,
-    border: `1px solid ${tokens.colorNeutralStroke3}`,
     overflowWrap: 'anywhere',
   },
-  user: { backgroundColor: tokens.colorNeutralBackground2 },
-  assistant: { backgroundColor: tokens.colorNeutralBackground1 },
+  user: { ...GLASS.well },
+  assistant: { ...GLASS.panel },
   who: {
     color: tokens.colorNeutralForeground3,
     display: 'block',
@@ -136,7 +135,7 @@ const useStyles = makeStyles({
       overflowX: 'auto',
       padding: tokens.spacingVerticalS,
       borderRadius: tokens.borderRadiusMedium,
-      backgroundColor: tokens.colorNeutralBackground3,
+      ...GLASS.well,
     },
     '& code': { fontFamily: tokens.fontFamilyMonospace, fontSize: tokens.fontSizeBase200 },
     '& > :last-child': { marginBottom: 0 },
@@ -164,8 +163,7 @@ const useStyles = makeStyles({
     maxWidth: '100%',
     padding: `${tokens.spacingVerticalXXS} ${tokens.spacingHorizontalS}`,
     borderRadius: tokens.borderRadiusLarge,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    backgroundColor: tokens.colorNeutralBackground1,
+    ...GLASS.well,
   },
   chipName: {
     overflow: 'hidden',

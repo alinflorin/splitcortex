@@ -1,5 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { FluentProvider, teamsDarkTheme, teamsLightTheme } from '@fluentui/react-components';
+import {
+  FluentProvider,
+  mergeClasses,
+  teamsDarkTheme,
+  teamsLightTheme,
+} from '@fluentui/react-components';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { DARK_BRAND_TOKENS, LIGHT_BRAND_TOKENS } from './brand';
 
@@ -8,6 +13,14 @@ const FONT_FAMILY =
   "'Inter Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif";
 const lightTheme = { ...teamsLightTheme, ...LIGHT_BRAND_TOKENS, fontFamilyBase: FONT_FAMILY };
 const darkTheme = { ...teamsDarkTheme, ...DARK_BRAND_TOKENS, fontFamilyBase: FONT_FAMILY };
+
+// Buttons get `sc-btn-<appearance>` so index.css can style each appearance as glass.
+const customStyleHooks = {
+  useButtonStyles_unstable: (state: unknown) => {
+    const s = state as { appearance?: string; root: { className?: string } };
+    s.root.className = mergeClasses(s.root.className, `sc-btn-${s.appearance ?? 'secondary'}`);
+  },
+};
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ThemeMode = 'light' | 'dark';
@@ -51,6 +64,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <ThemeContext value={value}>
       <FluentProvider
+        customStyleHooks_unstable={customStyleHooks}
         theme={mode === 'dark' ? darkTheme : lightTheme}
         style={{ minHeight: '100dvh' }}
       >
