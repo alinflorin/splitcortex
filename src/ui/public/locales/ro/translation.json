@@ -320,6 +320,7 @@
     "subtitle": "Tot ce ai nevoie ca să-ți pui dispozitivele la treabă: creezi o organizație, înrolezi dispozitive, adaugi un model și apelezi API-ul.",
     "toc": "Pe această pagină",
     "sections": {
+      "start": "Începe aici",
       "devices": "Dispozitive",
       "models": "Modele și pool-uri",
       "api": "Folosirea API-ului",

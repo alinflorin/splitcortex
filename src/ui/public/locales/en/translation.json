@@ -320,6 +320,7 @@
     "subtitle": "Everything you need to put your devices to work: set up an organisation, enroll devices, add a model and call the API.",
     "toc": "On this page",
     "sections": {
+      "start": "Get started",
       "devices": "Devices",
       "models": "Models and pools",
       "api": "Using the API",

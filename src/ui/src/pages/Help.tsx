@@ -149,7 +149,7 @@ export function Help() {
         </div>
       </nav>
 
-      <aside className={styles.banner}>
+      <aside id="start" className={styles.banner}>
         <div className={styles.bannerText}>
           <Text weight="semibold" size={500}>
             {t('help.quickstart.title')}
