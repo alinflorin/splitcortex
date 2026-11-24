@@ -5,6 +5,8 @@ import {
   Chat24Regular,
   Home24Filled,
   Home24Regular,
+  QuestionCircle24Filled,
+  QuestionCircle24Regular,
   Info24Filled,
   Info24Regular,
   Mail24Filled,
@@ -21,6 +23,7 @@ export const GLOBAL_ITEMS = [
     Icon: bundleIcon(Building24Filled, Building24Regular),
   },
   { to: '/playground', key: 'playground', Icon: bundleIcon(Chat24Filled, Chat24Regular) },
+  { to: '/help', key: 'help', Icon: bundleIcon(QuestionCircle24Filled, QuestionCircle24Regular) },
   { to: '/about', key: 'about', Icon: bundleIcon(Info24Filled, Info24Regular) },
   { to: '/contact', key: 'contact', Icon: bundleIcon(Mail24Filled, Mail24Regular) },
 ] as const;

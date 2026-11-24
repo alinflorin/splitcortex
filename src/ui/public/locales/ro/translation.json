@@ -13,7 +13,9 @@
     "expand": "Extinde bara laterală",
     "collapse": "Restrânge bara laterală",
     "main": "Principal",
-    "breadcrumb": "Traseu"
+    "breadcrumb": "Traseu",
+    "help": "Ajutor",
+    "quickstart": "Start rapid"
   },
   "auth": {
     "signIn": "Autentificare",
@@ -310,6 +312,367 @@
       "title": "Vezi cu ochii tăi",
       "body": "Creează o organizație și înrolează primul dispozitiv.",
       "button": "Deschide aplicația"
+    }
+  },
+  "help": {
+    "eyebrow": "Ajutor",
+    "title": "Ajutor și documentație",
+    "subtitle": "Tot ce ai nevoie ca să-ți pui dispozitivele la treabă: creezi o organizație, înrolezi dispozitive, adaugi un model și apelezi API-ul.",
+    "toc": "Pe această pagină",
+    "sections": {
+      "devices": "Dispozitive",
+      "models": "Modele și pool-uri",
+      "api": "Folosirea API-ului",
+      "access": "Chei, limite și roluri",
+      "monitor": "Testare și monitorizare",
+      "troubleshoot": "Depanare"
+    },
+    "devices": {
+      "eyebrow": "Dispozitive",
+      "title": "Orice dispozitiv poate fi un nod",
+      "subtitle": "Alege varianta potrivită dispozitivului. Fiecare intră într-un pool cu un cod din Adaugă dispozitiv.",
+      "items": {
+        "mobile": {
+          "title": "Telefon Android",
+          "body": "Instalează aplicația, apasă Înrolează și tastează codul sau scanează QR-ul. Aplicația continuă să servească și cu ecranul stins."
+        },
+        "cli": {
+          "title": "Linie de comandă",
+          "body": "Pentru servere, Raspberry Pi și calculatoare fără ecran. Se instalează cu o singură comandă pe Linux, macOS sau Windows, apoi te înscrii cu un cod."
+        },
+        "web": {
+          "title": "Nod web",
+          "body": "Nu instalezi nimic: deschide nodul web într-un browser cu WebGPU și introdu codul. Servește doar cât timp fila rămâne deschisă."
+        }
+      },
+      "enrollTitle": "Înrolarea unui dispozitiv",
+      "enroll": [
+        {
+          "title": "Codul e de scurtă durată",
+          "body": "Un cod arată ca XXXX-XXXXXX, merge o singură dată și expiră după 10 minute. După trei încercări greșite se anulează: creează unul nou."
+        },
+        {
+          "title": "Multe dispozitive deodată",
+          "body": "Cu Adaugă mai multe dispozitive creezi până la 50 de coduri odată și le descarci ca CSV."
+        },
+        {
+          "title": "Aprobare opțională",
+          "body": "Un pool poate cere aprobare. Dispozitivul așteaptă și arată o amprentă scurtă; compar-o cu cea din aplicație și aprobă-l."
+        },
+        {
+          "title": "Nimic de deschis în rețeaua ta",
+          "body": "Dispozitivele se conectează spre exterior, la gateway, deci telefoanele pe date mobile și calculatoarele din spatele unui router merg fără nicio configurare."
+        },
+        {
+          "title": "Administrează dispozitivul mai târziu",
+          "body": "Deschide un dispozitiv ca să vezi starea și telemetria, să-l repornești de la distanță cât timp e online sau să-l revoci. Un dispozitiv revocat e deconectat imediat."
+        }
+      ],
+      "downloadsTitle": "Obține un nod"
+    },
+    "models": {
+      "eyebrow": "Modele și pool-uri",
+      "title": "Un pool, un model",
+      "subtitle": "Cum se leagă modelele de pool-uri.",
+      "items": {
+        "pool": {
+          "title": "Fiecare dispozitiv are o copie completă",
+          "body": "Un pool servește exact un model, replicat pe fiecare dispozitiv al lui. Mai multe dispozitive înseamnă mai multe cereri servite în același timp, fiindcă fiecare răspunde la una pe rând."
+        },
+        "kind": {
+          "title": "Chat sau embeddings",
+          "body": "Modelele de chat răspund la mesaje. Modelele de embeddings transformă textul în vectori pentru căutare. Dă-le embeddings-urilor propriul pool: un pool servește un singur model."
+        },
+        "media": {
+          "title": "Imagini și audio",
+          "body": "Trimite imagini sau audio doar către modele care le acceptă. Dacă niciun dispozitiv din pool nu poate trata tipul respectiv, cererea e refuzată cu o eroare clară."
+        },
+        "context": {
+          "title": "Lungimea contextului",
+          "body": "O cerere prea lungă pentru toate dispozitivele din pool e refuzată. Scurteaz-o sau mărește contextul pe pagina dispozitivului (de la 512 la 131072)."
+        }
+      }
+    },
+    "api": {
+      "eyebrow": "Folosirea API-ului",
+      "title": "Schimbi adresa de bază și cheia",
+      "subtitle": "Gateway-ul vorbește formatul OpenAI, deci clienții și bibliotecile existente merg așa cum sunt.",
+      "curlTitle": "Exemplu de cerere",
+      "modelHint": "Înlocuiește <model> cu numele modelului unui pool la care ajunge cheia ta. GET /v1/models le listează.",
+      "supportedTitle": "Ce e suportat",
+      "supported": [
+        "POST /v1/chat/completions: JSON sau streaming (SSE).",
+        "POST /v1/embeddings: pentru modele de embeddings.",
+        "GET /v1/models: modelele pe care le poate folosi cheia ta.",
+        "Imagini (JPEG, PNG, GIF, BMP ca data URL base64) și audio (WAV, MP3, FLAC) ca intrare.",
+        "Indisponibile: tool calling, ieșire imagine sau audio, video."
+      ],
+      "balancing": "Cererile sunt echilibrate între dispozitivele sănătoase ale pool-ului. Dacă un dispozitiv cade înainte de primul token, gateway-ul încearcă altul."
+    },
+    "access": {
+      "eyebrow": "Acces",
+      "title": "Chei, limite și roluri",
+      "subtitle": "Hotărăști cine poate apela ce și cât.",
+      "items": {
+        "keys": {
+          "title": "Chei API",
+          "body": "O cheie acoperă toată organizația sau doar pool-uri alese și poate expira. Se stochează doar un hash, deci un secret pierdut nu se poate recupera: creează o cheie nouă și revocă-o pe cea veche."
+        },
+        "limits": {
+          "title": "Limite de rată",
+          "body": "Plafonează cererile pe minut, tokenii pe minut și tokenii pe zi (UTC), pentru organizație și pentru fiecare cheie. Peste limită, API-ul răspunde 429 cu antetul Retry-After."
+        },
+        "roles": {
+          "title": "Roluri",
+          "body": "Proprietarii și administratorii gestionează pool-urile, dispozitivele, modelele, cheile, limitele, membrii și jurnalul de audit. Membrii pot privi, dar nu pot schimba acestea."
+        }
+      }
+    },
+    "monitor": {
+      "eyebrow": "Testare și monitorizare",
+      "title": "Vezi ce fac dispozitivele tale",
+      "subtitle": "Prompturile și răspunsurile nu se înregistrează niciodată. Se păstrează doar numărători și durate.",
+      "items": {
+        "playground": {
+          "title": "Playground",
+          "body": "Discută cu un pool în browser, cu o cheie API. Cheia rămâne în filă, iar conversația nu se stochează. Poți atașa imagini, audio și fișiere text."
+        },
+        "usage": {
+          "title": "Utilizare",
+          "body": "Cereri și tokeni pe cheie și pe pool, în timp."
+        },
+        "metrics": {
+          "title": "Metrici",
+          "body": "Grafice live pentru organizație, un pool sau un singur dispozitiv, inclusiv tokeni pe secundă măsurați și rata de eșec. Se păstrează 7 zile."
+        },
+        "benchmarks": {
+          "title": "Benchmark-uri",
+          "body": "Rulează un prompt fix pe fiecare dispozitiv online al unui pool, ca să compari latența și tokenii pe secundă pe hardware-ul tău real."
+        },
+        "audit": {
+          "title": "Jurnal de audit",
+          "body": "Cine ce a schimbat, păstrat 90 de zile. Vizibil proprietarilor și administratorilor și exportabil ca CSV sau JSON."
+        }
+      }
+    },
+    "troubleshoot": {
+      "eyebrow": "Depanare",
+      "title": "Când ceva nu merge",
+      "subtitle": "Cele mai frecvente probleme și ce poți face.",
+      "items": [
+        {
+          "title": "Dispozitivul nu apare după ce introduc codul",
+          "body": "Codul poate fi expirat (10 minute), deja folosit sau anulat după trei încercări greșite. Creează unul nou. Dacă pool-ul cere aprobare, aprobă dispozitivul în aplicație."
+        },
+        {
+          "title": "Un dispozitiv apare offline",
+          "body": "Aplicația sau fila de browser a fost închisă, sistemul a oprit aplicația din fundal sau dispozitivul și-a pierdut conexiunea. Deschide-l din nou; se reconectează singur. Un nod web servește doar cât timp fila e deschisă."
+        },
+        {
+          "title": "401: cheie API invalidă",
+          "body": "Cheia lipsește, e scrisă greșit, e revocată sau expirată. Creează o cheie nouă dacă nu ai salvat secretul."
+        },
+        {
+          "title": "404: model negăsit",
+          "body": "Numele modelului trebuie să corespundă unui model pregătit dintr-un pool la care ajunge cheia ta. Apelează GET /v1/models ca să vezi numele."
+        },
+        {
+          "title": "400 sau 413 despre imagini, audio sau lungimea contextului",
+          "body": "Niciun dispozitiv din pool nu acceptă acel tip de media (400), media e prea mare (413) sau promptul nu încape în fereastra de context (400). Folosește un model care îl acceptă, trimite mai puțin sau mărește contextul pe pagina dispozitivului."
+        },
+        {
+          "title": "429: prea multe cereri",
+          "body": "S-a atins o limită. Așteaptă numărul de secunde din antetul Retry-After sau mărește limitele în organizație sau pe cheie."
+        },
+        {
+          "title": "503: niciun dispozitiv disponibil",
+          "body": "Niciun dispozitiv sănătos din pool nu e gata acum. Verifică dacă măcar unul e online și a descărcat modelul, apoi reîncearcă după Retry-After."
+        },
+        {
+          "title": "Răspunsurile sunt lente",
+          "body": "Viteza depinde de dispozitiv și de model. Fiecare dispozitiv răspunde la o cerere pe rând, deci adaugă dispozitive ca să servești mai multe deodată și folosește Benchmark-urile ca să le compari."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Încă te chinui?",
+      "body": "Spune-ne ce făceai și ce ai văzut, și te ajutăm.",
+      "button": "Contactează-ne"
+    },
+    "quickstart": {
+      "title": "Ești nou aici?",
+      "body": "Urmează Startul rapid: șase pași de la un cont gol la primul răspuns.",
+      "button": "Deschide Startul rapid"
+    }
+  },
+  "quickstart": {
+    "eyebrow": "Start rapid",
+    "title": "De la zero la primul răspuns",
+    "subtitle": "Șase pași: creezi o organizație, adaugi un model, creezi un pool, înrolezi dispozitive, creezi o cheie și apelezi API-ul compatibil OpenAI. Apoi îl folosești din software-ul pe care îl ai deja.",
+    "needTitle": "De ce ai nevoie",
+    "need": [
+      "Un cont SplitCortex: autentifică-te din bara de sus.",
+      "Cel puțin un dispozitiv: un telefon Android, un calculator sau server, sau doar o filă de browser.",
+      "Un model în format LiteRT-LM (.litertlm), ca link Hugging Face sau ca fișier de încărcat."
+    ],
+    "stepsTitle": "Cei șase pași",
+    "stepWord": "Pasul",
+    "steps": [
+      {
+        "title": "Creează o organizație",
+        "body": "Deschide Organizații și creează una. Tot ce construiești stă în ea: modele, pool-uri, dispozitive și chei. Tu devii proprietarul.",
+        "tips": [
+          "Adaugă colegi din Membri, cu emailul cu care se autentifică.",
+          "Proprietarii și administratorii gestionează configurarea; membrii pot privi."
+        ]
+      },
+      {
+        "title": "Adaugă un model",
+        "body": "Deschide Modele și adaugă unul cu un link Hugging Face sau încărcând fișierul .litertlm. Așteaptă până apare ca Gata.",
+        "tips": [
+          "Alege un model suficient de mic pentru cel mai slab dispozitiv: fiecare dispozitiv din pool are o copie completă.",
+          "Alege tipul Embeddings doar pentru modele de embeddings și dă-le propriul pool."
+        ]
+      },
+      {
+        "title": "Creează un pool",
+        "body": "Deschide Pool-uri și creează unul. Apoi alege Setează modelul și selectează modelul pe care îl servește. Un pool servește exact un model.",
+        "tips": [
+          "Activează aprobarea dacă vrei să confirmi fiecare dispozitiv înainte să servească.",
+          "Poți crea mai multe pool-uri, de exemplu câte unul pentru fiecare model."
+        ]
+      },
+      {
+        "title": "Înrolează dispozitivele",
+        "body": "Deschide pool-ul și alege Adaugă dispozitiv. Apar un cod scurt și un QR: tastează codul pe dispozitiv sau scanează QR-ul. Dispozitivul descarcă modelul și apare online.",
+        "tips": [
+          "Codurile durează 10 minute și merg o singură dată. Folosește Adaugă mai multe dispozitive pentru până la 50 de coduri odată.",
+          "Nu deschizi nimic în rețeaua ta: dispozitivele se conectează spre exterior, la gateway.",
+          "Folosește Adaugă nod web ca să încerci într-o filă de browser, fără instalare."
+        ]
+      },
+      {
+        "title": "Creează o cheie API",
+        "body": "Deschide Chei API și creează una pentru toată organizația sau pentru pool-uri alese. Copiază secretul imediat: se arată o singură dată.",
+        "tips": [
+          "Setează o expirare și limite de rată dacă vrei să plafonezi consumul.",
+          "Ține cheia privată. Dacă a scăpat, revoc-o din aceeași pagină."
+        ]
+      },
+      {
+        "title": "Apelează API-ul",
+        "body": "Folosește adresa gateway-ului ca URL de bază, cheia ca API key și numele modelului din pool. Atât îi trebuie unui client OpenAI.",
+        "tips": [
+          "GET /v1/models listează numele modelelor pe care le poate folosi cheia ta.",
+          "Streaming-ul merge ca de obicei."
+        ]
+      }
+    ],
+    "downloadsTitle": "Obține o aplicație nod",
+    "examplesTitle": "Încearcă din terminal",
+    "software": {
+      "eyebrow": "Folosește-l oriunde",
+      "title": "Merge cu software-ul pe care îl folosești deja",
+      "subtitle": "Orice unealtă care te lasă să setezi un furnizor propriu compatibil OpenAI poate folosi pool-urile tale. Introduci trei lucruri:",
+      "fields": {
+        "baseUrl": {
+          "title": "URL de bază",
+          "body": "Adresa gateway-ului de la pasul 6, terminată în /v1."
+        },
+        "key": {
+          "title": "Cheie API",
+          "body": "Secretul copiat la pasul 5. Începe cu sc_."
+        },
+        "model": {
+          "title": "Model",
+          "body": "Numele modelului din pool. Dacă unealta nu poate lista modelele, scrie-l de mână."
+        }
+      },
+      "groupsTitle": "Exemple",
+      "groups": {
+        "chat": {
+          "title": "Aplicații de chat",
+          "body": "Clienți de chat desktop sau găzduiți de tine. Adaugă un furnizor propriu sau compatibil OpenAI din setările lor.",
+          "apps": [
+            "Cherry Studio",
+            "Jan",
+            "Open WebUI",
+            "LibreChat",
+            "AnythingLLM"
+          ]
+        },
+        "coding": {
+          "title": "Asistenți de cod",
+          "body": "Extensii pentru editor și unelte de terminal care acceptă un endpoint OpenAI propriu pentru completări și chat.",
+          "apps": [
+            "Continue",
+            "Aider",
+            "Cline"
+          ]
+        },
+        "automation": {
+          "title": "Automatizare și low-code",
+          "body": "Constructori de fluxuri în care pui un nod de model compatibil OpenAI și îl îndrepți spre gateway.",
+          "apps": [
+            "n8n",
+            "Dify",
+            "Flowise"
+          ]
+        },
+        "sdk": {
+          "title": "Biblioteci și SDK-uri",
+          "body": "Setezi base_url și api_key pe client și restul codului rămâne neschimbat.",
+          "apps": [
+            "OpenAI Python SDK",
+            "OpenAI JavaScript SDK",
+            "LangChain",
+            "LlamaIndex"
+          ]
+        }
+      },
+      "trademark": "Numele aparțin proprietarilor lor. Sunt exemple de software care suportă endpoint-uri proprii compatibile OpenAI; SplitCortex nu este afiliat cu ele."
+    },
+    "agents": {
+      "eyebrow": "Agenți",
+      "title": "Da, poți construi agenți pe el",
+      "subtitle": "Un agent e un program care apelează un model într-o buclă. Pool-urile tale răspund la chat completions standard, deci poți construi agenți deasupra lor.",
+      "items": {
+        "build": {
+          "title": "Ce poți construi",
+          "body": "Asistenți, ajutoare pentru documente și cod, clasificatoare și fluxuri în mai mulți pași, în orice framework sau în cod simplu care apelează /v1/chat/completions, cu streaming."
+        },
+        "works": {
+          "title": "Ce să folosești",
+          "body": "Bucle de agent care citesc răspunsul text al modelului, de exemplu un prompt care cere JSON sau un format fix, pe care codul tău îl parsează și după care acționează. Imaginile și audio pot fi trimise ca intrare către modelele care le acceptă."
+        },
+        "limits": {
+          "title": "La ce să nu te aștepți",
+          "body": "API-ul nativ de tool calling (function calling) nu e disponibil, deci framework-urile care depind de el nu vor merge ca atare. Rezultatele depind și de modelul rulat: modelele mici de pe dispozitiv urmează mai puțin fiabil instrucțiuni complexe."
+        }
+      }
+    },
+    "notes": {
+      "title": "Bine de știut",
+      "items": [
+        {
+          "title": "Apelează-l dintr-un server sau o aplicație desktop",
+          "body": "Gateway-ul nu permite apeluri directe din pagini web într-un browser (fără CORS). Aplicațiile desktop, serverele și scripturile merg; pentru o aplicație web, apelează gateway-ul din propriul backend."
+        },
+        {
+          "title": "Dispozitivele tale dau viteza",
+          "body": "Fiecare dispozitiv răspunde la o cerere pe rând, deci adaugă dispozitive ca să servești mai mulți oameni deodată."
+        },
+        {
+          "title": "Datele rămân în flota ta",
+          "body": "Prompturile și răspunsurile nu sunt înregistrate niciodată de SplitCortex. Se păstrează doar numărători și durate."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Ai nevoie de detalii?",
+      "body": "Pagina de ajutor acoperă dispozitivele, modelele, limitele, rolurile și ce faci când ceva nu merge.",
+      "help": "Deschide ajutorul",
+      "playground": "Deschide Playground-ul"
     }
   },
   "settings": {
@@ -980,6 +1343,14 @@
     "contact": {
       "title": "Contact – SplitCortex",
       "description": "Ia legătura cu echipa SplitCortex despre platformă, dispozitivele tale sau contul tău."
+    },
+    "help": {
+      "title": "Ajutor și documentație – SplitCortex",
+      "description": "Ajutor pas cu pas: creezi o organizație, înrolezi telefoane, laptopuri și browsere, adaugi un model, folosești API-ul compatibil OpenAI și rezolvi probleme."
+    },
+    "quickstart": {
+      "title": "Start rapid – SplitCortex",
+      "description": "De la zero la primul răspuns în șase pași: organizație, model, pool, dispozitive, cheie API, apoi folosește-l din Cherry Studio, Jan și altele."
     }
   },
   "footer": {

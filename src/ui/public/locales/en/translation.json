@@ -13,7 +13,9 @@
     "expand": "Expand sidebar",
     "collapse": "Collapse sidebar",
     "main": "Main",
-    "breadcrumb": "Breadcrumb"
+    "breadcrumb": "Breadcrumb",
+    "help": "Help",
+    "quickstart": "Quick start"
   },
   "auth": {
     "signIn": "Sign in",
@@ -310,6 +312,367 @@
       "title": "See it for yourself",
       "body": "Create an organisation and enroll your first device.",
       "button": "Open the app"
+    }
+  },
+  "help": {
+    "eyebrow": "Help",
+    "title": "Help and documentation",
+    "subtitle": "Everything you need to put your devices to work: set up an organisation, enroll devices, add a model and call the API.",
+    "toc": "On this page",
+    "sections": {
+      "devices": "Devices",
+      "models": "Models and pools",
+      "api": "Using the API",
+      "access": "Keys, limits and roles",
+      "monitor": "Testing and monitoring",
+      "troubleshoot": "Troubleshooting"
+    },
+    "devices": {
+      "eyebrow": "Devices",
+      "title": "Any device can be a node",
+      "subtitle": "Pick the kind that suits the device. Each one joins a pool with a code from Add device.",
+      "items": {
+        "mobile": {
+          "title": "Android phone",
+          "body": "Install the app, tap Enroll and type the code or scan the QR. The app keeps serving with the screen off."
+        },
+        "cli": {
+          "title": "Command line",
+          "body": "For servers, Raspberry Pis and computers without a screen. Install it with one command on Linux, macOS or Windows, then join with a code."
+        },
+        "web": {
+          "title": "Web node",
+          "body": "Nothing to install: open the web node in a browser that supports WebGPU and enter the code. It serves only while the tab stays open."
+        }
+      },
+      "enrollTitle": "Enrolling a device",
+      "enroll": [
+        {
+          "title": "The code is short-lived",
+          "body": "A code looks like XXXX-XXXXXX, works once and expires after 10 minutes. After three wrong attempts it is cancelled: create a new one."
+        },
+        {
+          "title": "Many devices at once",
+          "body": "Use Add many devices to create up to 50 codes in one go and download them as a CSV."
+        },
+        {
+          "title": "Optional approval",
+          "body": "A pool can require approval. The device then waits and shows a short fingerprint; compare it with the one in the app and approve it."
+        },
+        {
+          "title": "Nothing to open on your network",
+          "body": "Devices connect out to the gateway, so phones on mobile data and computers behind a router work without any setup."
+        },
+        {
+          "title": "Manage a device later",
+          "body": "Open a device to see its status and telemetry, restart it remotely while it is online, or revoke it. A revoked device is disconnected at once."
+        }
+      ],
+      "downloadsTitle": "Get a node"
+    },
+    "models": {
+      "eyebrow": "Models and pools",
+      "title": "One pool, one model",
+      "subtitle": "How models and pools fit together.",
+      "items": {
+        "pool": {
+          "title": "Every device holds a full copy",
+          "body": "A pool serves exactly one model, replicated on each of its devices. More devices means more requests served at the same time, since each device answers one at a time."
+        },
+        "kind": {
+          "title": "Chat or embeddings",
+          "body": "Chat models answer messages. Embedding models turn text into vectors for search. Give embeddings their own pool: a pool serves one model."
+        },
+        "media": {
+          "title": "Images and audio",
+          "body": "Send images or audio only to models that accept them. If no device in the pool can handle the type, the request is refused with a clear error."
+        },
+        "context": {
+          "title": "Context length",
+          "body": "A request that is too long for every device in the pool is refused. Shorten it, or raise the context on the device page (512 to 131072)."
+        }
+      }
+    },
+    "api": {
+      "eyebrow": "Using the API",
+      "title": "Change the base URL and the key",
+      "subtitle": "The gateway speaks the OpenAI format, so existing clients and libraries work as they are.",
+      "curlTitle": "Example request",
+      "modelHint": "Replace <model> with the model name of a pool your key can reach. GET /v1/models lists them.",
+      "supportedTitle": "What is supported",
+      "supported": [
+        "POST /v1/chat/completions: JSON or streaming (SSE).",
+        "POST /v1/embeddings: for embedding models.",
+        "GET /v1/models: the models your key can use.",
+        "Images (JPEG, PNG, GIF, BMP as base64 data URLs) and audio (WAV, MP3, FLAC) as input.",
+        "Not available: tool calling, image or audio output, video."
+      ],
+      "balancing": "Requests are balanced across the healthy devices of the pool. If a device fails before the first token, the gateway tries another one."
+    },
+    "access": {
+      "eyebrow": "Access",
+      "title": "Keys, limits and roles",
+      "subtitle": "Decide who can call what, and how much.",
+      "items": {
+        "keys": {
+          "title": "API keys",
+          "body": "A key covers the whole organisation or only chosen pools, and can expire. Only a hash is stored, so a lost secret cannot be recovered: create a new key and revoke the old one."
+        },
+        "limits": {
+          "title": "Rate limits",
+          "body": "Cap requests per minute, tokens per minute and tokens per day (UTC), for the organisation and for each key. Over a limit, the API answers 429 with a Retry-After header."
+        },
+        "roles": {
+          "title": "Roles",
+          "body": "Owners and admins manage pools, devices, models, keys, limits, members and the audit log. Members can look around but not change these."
+        }
+      }
+    },
+    "monitor": {
+      "eyebrow": "Testing and monitoring",
+      "title": "See what your devices are doing",
+      "subtitle": "Prompts and answers are never logged. Only counts and timings are kept.",
+      "items": {
+        "playground": {
+          "title": "Playground",
+          "body": "Chat with a pool in the browser using an API key. The key stays in the tab and the conversation is not stored. You can attach images, audio and text files."
+        },
+        "usage": {
+          "title": "Usage",
+          "body": "Requests and tokens per key and per pool, over time."
+        },
+        "metrics": {
+          "title": "Metrics",
+          "body": "Live charts for the organisation, a pool or a single device, including measured tokens per second and failure rate. Kept for 7 days."
+        },
+        "benchmarks": {
+          "title": "Benchmarks",
+          "body": "Run a fixed prompt on every online device of a pool to compare latency and tokens per second on your real hardware."
+        },
+        "audit": {
+          "title": "Audit log",
+          "body": "Who changed what, kept for 90 days. Visible to owners and admins, and exportable as CSV or JSON."
+        }
+      }
+    },
+    "troubleshoot": {
+      "eyebrow": "Troubleshooting",
+      "title": "When something does not work",
+      "subtitle": "The most common problems and what to do about them.",
+      "items": [
+        {
+          "title": "The device does not appear after I enter the code",
+          "body": "The code may have expired (10 minutes), been used already or been cancelled after three wrong attempts. Create a new one. If the pool requires approval, approve the device in the app."
+        },
+        {
+          "title": "A device shows as offline",
+          "body": "The app or the browser tab was closed, the system stopped the app in the background, or the device lost its connection. Open it again; it reconnects by itself. A web node only serves while its tab is open."
+        },
+        {
+          "title": "401: invalid API key",
+          "body": "The key is missing, mistyped, revoked or expired. Create a new key if you did not save the secret."
+        },
+        {
+          "title": "404: model not found",
+          "body": "The model name must match a ready model in a pool your key can reach. Call GET /v1/models to see the names."
+        },
+        {
+          "title": "400 or 413 about images, audio or context length",
+          "body": "No device in the pool accepts that kind of media (400), the media is too large (413), or the prompt does not fit the context window (400). Use a model that accepts it, send less, or raise the context on the device page."
+        },
+        {
+          "title": "429: too many requests",
+          "body": "A limit was reached. Wait for the number of seconds in the Retry-After header, or raise the limits in the organisation or on the key."
+        },
+        {
+          "title": "503: no device available",
+          "body": "No healthy device in the pool is ready right now. Check that at least one device is online and has downloaded the model, then retry after Retry-After."
+        },
+        {
+          "title": "Answers are slow",
+          "body": "Speed depends on the device and the model. Each device answers one request at a time, so add devices to serve more at once, and use Benchmarks to compare them."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Still stuck?",
+      "body": "Tell us what you were doing and what you saw, and we will help.",
+      "button": "Contact us"
+    },
+    "quickstart": {
+      "title": "New here?",
+      "body": "Follow the Quick start: six steps from an empty account to your first answer.",
+      "button": "Open the Quick start"
+    }
+  },
+  "quickstart": {
+    "eyebrow": "Quick start",
+    "title": "From zero to your first answer",
+    "subtitle": "Six steps: make an organisation, add a model, create a pool, enroll devices, create a key and call the OpenAI-compatible API. Then use it from the software you already have.",
+    "needTitle": "What you need",
+    "need": [
+      "A SplitCortex account: sign in from the top bar.",
+      "At least one device: an Android phone, a computer or server, or just a browser tab.",
+      "A model in LiteRT-LM format (.litertlm), as a Hugging Face link or a file you can upload."
+    ],
+    "stepsTitle": "The six steps",
+    "stepWord": "Step",
+    "steps": [
+      {
+        "title": "Create an organisation",
+        "body": "Open Organisations and create one. Everything you build lives inside it: models, pools, devices and keys. You become its owner.",
+        "tips": [
+          "Add colleagues from Members, by the email they sign in with.",
+          "Owners and admins manage the setup; members can look around."
+        ]
+      },
+      {
+        "title": "Add a model",
+        "body": "Open Models and add one with a Hugging Face link, or upload the .litertlm file. Wait until it shows as Ready.",
+        "tips": [
+          "Pick a model small enough for your weakest device: every device in the pool holds a full copy.",
+          "Choose the Embeddings type only for embedding models, and give them their own pool."
+        ]
+      },
+      {
+        "title": "Create a pool",
+        "body": "Open Pools and create one. Then choose Set model and pick the model it should serve. A pool serves exactly one model.",
+        "tips": [
+          "Turn on approval if you want to confirm each device before it serves.",
+          "You can create several pools, for example one per model."
+        ]
+      },
+      {
+        "title": "Enroll your devices",
+        "body": "Open the pool and choose Add device. A short code and a QR appear: type the code on the device or scan the QR. The device downloads the model and shows as online.",
+        "tips": [
+          "Codes last 10 minutes and work once. Use Add many devices for up to 50 codes at a time.",
+          "Nothing to open on your network: devices connect out to the gateway.",
+          "Use Add web node to try it in a browser tab without installing anything."
+        ]
+      },
+      {
+        "title": "Create an API key",
+        "body": "Open API keys and create one for the whole organisation or for chosen pools. Copy the secret right away: it is shown only once.",
+        "tips": [
+          "Set an expiry, and rate limits if you want to cap usage.",
+          "Keep the key private. Revoke it from the same page if it leaks."
+        ]
+      },
+      {
+        "title": "Call the API",
+        "body": "Use the gateway address as the base URL, your key as the API key, and the model name from the pool. That is all an OpenAI client needs.",
+        "tips": [
+          "GET /v1/models lists the model names your key can use.",
+          "Streaming works as usual."
+        ]
+      }
+    ],
+    "downloadsTitle": "Get a node app",
+    "examplesTitle": "Try it from a terminal",
+    "software": {
+      "eyebrow": "Use it everywhere",
+      "title": "Works with the software you already use",
+      "subtitle": "Any tool that lets you set a custom OpenAI-compatible provider can use your pools. Enter three things:",
+      "fields": {
+        "baseUrl": {
+          "title": "Base URL",
+          "body": "The gateway address from step 6, ending in /v1."
+        },
+        "key": {
+          "title": "API key",
+          "body": "The secret you copied in step 5. It starts with sc_."
+        },
+        "model": {
+          "title": "Model",
+          "body": "The model name of the pool. If the tool cannot list models, type it in."
+        }
+      },
+      "groupsTitle": "Examples",
+      "groups": {
+        "chat": {
+          "title": "Chat apps",
+          "body": "Desktop and self-hosted chat clients. Add a custom or OpenAI-compatible provider in their settings.",
+          "apps": [
+            "Cherry Studio",
+            "Jan",
+            "Open WebUI",
+            "LibreChat",
+            "AnythingLLM"
+          ]
+        },
+        "coding": {
+          "title": "Coding assistants",
+          "body": "Editor extensions and terminal tools that accept a custom OpenAI endpoint for completions and chat.",
+          "apps": [
+            "Continue",
+            "Aider",
+            "Cline"
+          ]
+        },
+        "automation": {
+          "title": "Automation and low-code",
+          "body": "Workflow builders where you drop in an OpenAI-compatible model node and point it at the gateway.",
+          "apps": [
+            "n8n",
+            "Dify",
+            "Flowise"
+          ]
+        },
+        "sdk": {
+          "title": "Libraries and SDKs",
+          "body": "Set base_url and api_key on the client and keep the rest of your code unchanged.",
+          "apps": [
+            "OpenAI Python SDK",
+            "OpenAI JavaScript SDK",
+            "LangChain",
+            "LlamaIndex"
+          ]
+        }
+      },
+      "trademark": "Names belong to their owners. They are examples of software that supports custom OpenAI-compatible endpoints; SplitCortex is not affiliated with them."
+    },
+    "agents": {
+      "eyebrow": "Agents",
+      "title": "Yes, you can build agents on it",
+      "subtitle": "An agent is a program that calls a model in a loop. Your pools answer standard chat completions, so you can build them on top.",
+      "items": {
+        "build": {
+          "title": "What you can build",
+          "body": "Assistants, document and code helpers, classifiers and multi-step workflows, in any framework or in plain code that calls /v1/chat/completions, with streaming."
+        },
+        "works": {
+          "title": "What to use",
+          "body": "Agent loops that read the model's text answer, for example a prompt that asks for JSON or a fixed format, which your code then parses and acts on. Images and audio can be sent as input to models that accept them."
+        },
+        "limits": {
+          "title": "What not to expect",
+          "body": "The native tool-calling (function-calling) API is not available, so frameworks that depend on it will not work as they are. Results also depend on the model you run: small on-device models follow complex instructions less reliably."
+        }
+      }
+    },
+    "notes": {
+      "title": "Good to know",
+      "items": [
+        {
+          "title": "Call it from a server or a desktop app",
+          "body": "The gateway does not allow direct calls from web pages in a browser (no CORS). Desktop apps, servers and scripts are fine; for a web app, call the gateway from your own backend."
+        },
+        {
+          "title": "Your devices set the speed",
+          "body": "Each device answers one request at a time, so add devices to serve more people at once."
+        },
+        {
+          "title": "Your data stays in your fleet",
+          "body": "Prompts and answers are never logged by SplitCortex. Only counts and timings are kept."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Need the details?",
+      "body": "The help page covers devices, models, limits, roles and what to do when something fails.",
+      "help": "Open the help",
+      "playground": "Open the Playground"
     }
   },
   "settings": {
@@ -980,6 +1343,14 @@
     "contact": {
       "title": "Contact – SplitCortex",
       "description": "Get in touch with the SplitCortex team about the platform, your devices or your account."
+    },
+    "help": {
+      "title": "Help and documentation – SplitCortex",
+      "description": "Step-by-step help for SplitCortex: create an organisation, enroll phones, laptops and browsers, add a model, use the OpenAI-compatible API and fix common problems."
+    },
+    "quickstart": {
+      "title": "Quick start – SplitCortex",
+      "description": "Go from zero to your first answer in six steps: organisation, model, pool, devices and API key. Then use it from Cherry Studio, Jan and more."
     }
   },
   "footer": {

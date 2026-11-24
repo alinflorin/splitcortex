@@ -3,6 +3,8 @@ import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from './i18n/languages';
 import { PrivateRoute } from './auth/PrivateRoute';
 import { AppShell } from './components/layout/AppShell';
 import { About } from './pages/About';
+import { Help } from './pages/Help';
+import { QuickStart } from './pages/QuickStart';
 import { Contact } from './pages/Contact';
 import { Home } from './pages/Home';
 import { Privacy, Terms } from './pages/Legal';
@@ -26,6 +28,8 @@ import { UserSettings } from './pages/UserSettings';
 const publicRoutes = () => (
   <>
     <Route index element={<Home />} />
+    <Route path="quick-start" element={<QuickStart />} />
+    <Route path="help" element={<Help />} />
     <Route path="about" element={<About />} />
     <Route path="terms" element={<Terms />} />
     <Route path="privacy" element={<Privacy />} />

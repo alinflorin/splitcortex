@@ -57,7 +57,10 @@ export function SiteFooter() {
               {t(
                 p.key === 'home'
                   ? 'nav.home'
-                  : p.key === 'about' || p.key === 'contact'
+                  : p.key === 'about' ||
+                      p.key === 'help' ||
+                      p.key === 'quickstart' ||
+                      p.key === 'contact'
                     ? `nav.${p.key}`
                     : `legal.${p.key}.title`,
               )}

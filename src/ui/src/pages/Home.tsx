@@ -150,7 +150,7 @@ export function Home() {
     { key: 'insights', icon: <DataTrending24Regular /> },
   ] as const;
 
-  const example = buildKeyExamples(getGatewayBaseUrl(), 'sk-…').curl;
+  const example = buildKeyExamples(getGatewayBaseUrl(), 'sc_…').curl;
 
   return (
     <>

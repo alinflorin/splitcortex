@@ -17,11 +17,15 @@ test('public pages are real HTML, in English and in Romanian, with their own hea
   const host = new URL(baseUrl()).host;
   const pages: [path: string, lang: string, h1: RegExp, canonical: string][] = [
     ['/', 'en', /Your devices\./, `https://${host}/`],
+    ['/quick-start', 'en', /From zero to your first answer/, `https://${host}/quick-start`],
+    ['/help', 'en', /Help and documentation/, `https://${host}/help`],
     ['/about', 'en', /About SplitCortex/, `https://${host}/about`],
     ['/terms', 'en', /Terms of Service/, `https://${host}/terms`],
     ['/privacy', 'en', /Privacy Policy/, `https://${host}/privacy`],
     ['/contact', 'en', /Get in touch/, `https://${host}/contact`],
     ['/ro', 'ro', /Dispozitivele tale\./, `https://${host}/ro`],
+    ['/ro/quick-start', 'ro', /De la zero la primul răspuns/, `https://${host}/ro/quick-start`],
+    ['/ro/help', 'ro', /Ajutor și documentație/, `https://${host}/ro/help`],
     ['/ro/about', 'ro', /Despre SplitCortex/, `https://${host}/ro/about`],
     ['/ro/terms', 'ro', /Termeni/, `https://${host}/ro/terms`],
     ['/ro/privacy', 'ro', /Politica de confiden/, `https://${host}/ro/privacy`],
@@ -60,7 +64,7 @@ test('robots.txt and the sitemap follow the environment', async ({ request }) =>
     expect(header).toBeUndefined();
     expect(sitemap.status()).toBe(200);
     const xml = await sitemap.text();
-    for (const path of ['/', '/about', '/terms', '/privacy', '/contact', '/ro', '/ro/about']) {
+    for (const path of ['/', '/quick-start', '/help', '/about', '/terms', '/privacy', '/contact', '/ro', '/ro/quick-start', '/ro/help', '/ro/about']) {
       expect(xml).toContain(`<loc>${baseUrl()}${path}</loc>`);
     }
     expect(xml).toContain('hreflang="ro"');

@@ -12,6 +12,7 @@ describe('Sidebar', () => {
       en.nav.home,
       en.nav.organisations,
       en.nav.playground,
+      en.nav.help,
       en.nav.about,
       en.nav.contact,
     ]);
@@ -24,6 +25,7 @@ describe('Sidebar', () => {
       '/playground',
     );
     expect(screen.getByRole('link', { name: en.nav.home })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: en.nav.help })).toHaveAttribute('href', '/help');
     expect(screen.getByRole('link', { name: en.nav.about })).toHaveAttribute('href', '/about');
     expect(screen.getByRole('link', { name: en.nav.contact })).toHaveAttribute('href', '/contact');
     expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();

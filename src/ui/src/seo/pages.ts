@@ -7,6 +7,8 @@ import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type Language } from '../i18n/la
  */
 export const PUBLIC_PAGES = [
   { key: 'home', path: '/' },
+  { key: 'quickstart', path: '/quick-start' },
+  { key: 'help', path: '/help' },
   { key: 'about', path: '/about' },
   { key: 'terms', path: '/terms' },
   { key: 'privacy', path: '/privacy' },
