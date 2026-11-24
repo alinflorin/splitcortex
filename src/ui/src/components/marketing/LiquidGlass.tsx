@@ -14,7 +14,10 @@ const useStyles = makeStyles({
       'inset 0 1px 0 rgba(255, 255, 255, 0.45)',
       'inset 0 -1px 0 rgba(255, 255, 255, 0.08)',
       'inset 0 0 0 1px rgba(255, 255, 255, 0.14)',
-      '0 14px 36px rgba(0, 0, 0, 0.16)',
+      // An edge in the text colour, inside the box, so the glass stays visible on a light page.
+      `inset 0 0 0 1px color-mix(in srgb, ${tokens.colorNeutralForeground1} 10%, transparent)`,
+      // Negative spread keeps the drop shadow under the box: a wider one is cut square by a clipping parent.
+      '0 22px 28px -22px rgba(0, 0, 0, 0.3)',
     ].join(', '),
     '::before': {
       content: '""',

@@ -77,11 +77,12 @@ const useStyles = makeStyles({
   // Bento: a stage of soft colour blobs with a few glass tiles over it.
   // Clipped sideways so the blobs never make a phone-width page scroll sideways.
   stage: { position: 'relative', isolation: 'isolate', overflowX: 'clip' },
+  // A radial gradient that reaches transparent inside its own box, not a blurred disc: a blur spills past
+  // the stage and the sideways clip above then shows as a hard, squared edge.
   blob: {
     position: 'absolute',
     zIndex: -1,
     borderRadius: '50%',
-    filter: 'blur(70px)',
     pointerEvents: 'none',
   },
   blobA: {
@@ -89,7 +90,7 @@ const useStyles = makeStyles({
     height: '420px',
     top: '-60px',
     left: '8%',
-    backgroundColor: BRAND.violet,
+    backgroundImage: `radial-gradient(closest-side, ${BRAND.violet}, transparent)`,
     opacity: 0.38,
   },
   blobB: {
@@ -97,7 +98,7 @@ const useStyles = makeStyles({
     height: '360px',
     bottom: '-40px',
     right: '10%',
-    backgroundColor: BRAND.mint,
+    backgroundImage: `radial-gradient(closest-side, ${BRAND.mint}, transparent)`,
     opacity: 0.3,
   },
   blobC: {
@@ -105,7 +106,7 @@ const useStyles = makeStyles({
     height: '300px',
     top: '35%',
     right: '40%',
-    backgroundColor: BRAND.cyan,
+    backgroundImage: `radial-gradient(closest-side, ${BRAND.cyan}, transparent)`,
     opacity: 0.26,
   },
   bento: {

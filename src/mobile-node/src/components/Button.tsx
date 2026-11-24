@@ -18,7 +18,7 @@ export function Button({
   disabled,
   loading,
 }: ButtonProps) {
-  const { theme: t } = useTheme();
+  const { theme: t, mode } = useTheme();
   const off = disabled || loading;
   const palette = {
     primary: {
@@ -31,7 +31,7 @@ export function Button({
       bg: `${t.colorNeutralBackground1}8f`,
       pressed: `${t.colorNeutralBackground1}d0`,
       fg: t.colorNeutralForeground1,
-      border: 'rgba(255, 255, 255, 0.18)',
+      border: `${t.colorNeutralForeground1}2e`,
     },
     subtle: {
       bg: 'transparent',
@@ -52,7 +52,12 @@ export function Button({
         borderRadius: 12,
         borderWidth: parseFloat(t.strokeWidthThin),
         borderColor: palette.border,
-        borderTopColor: appearance === 'subtle' ? 'transparent' : 'rgba(255, 255, 255, 0.42)',
+        borderTopColor:
+          appearance === 'subtle'
+            ? 'transparent'
+            : appearance === 'secondary' && mode === 'light'
+              ? '#ffffffd9'
+              : 'rgba(255, 255, 255, 0.42)',
         backgroundColor: pressed ? palette.pressed : palette.bg,
         opacity: off ? 0.5 : 1,
         alignItems: 'center',

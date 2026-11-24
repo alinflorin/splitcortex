@@ -44,7 +44,7 @@ const useStyles = makeStyles({
     letterSpacing: '0.12em',
     fontSize: '12px',
   },
-  eyebrowLight: { color: BRAND.cyan },
+  eyebrowLight: { color: '#0b7f94' },
   num: { fontSize: '14px', color: BRAND.violetLight, fontWeight: 600 },
   numLight: { color: BRAND.violet },
   title: {

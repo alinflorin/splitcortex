@@ -310,7 +310,11 @@ export function Home() {
             </Button>
           )}
           <Link to={localePath('/about')}>
-            <Button size="large" appearance="transparent" style={{ color: '#fff' }}>
+            <Button
+              size="large"
+              appearance="transparent"
+              style={{ color: 'var(--colorNeutralForeground1)' }}
+            >
               {t('home.cta.about')}
             </Button>
           </Link>

@@ -6,7 +6,7 @@ import {
   Phone24Regular,
   Server24Regular,
 } from '@fluentui/react-icons';
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BRAND } from '../../theme/brand';
 import { GLASS } from '../../theme/glass';
@@ -57,7 +57,6 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: tokens.spacingVerticalXS,
   },
   logo: {
     position: 'relative',
@@ -91,13 +90,29 @@ const useStyles = makeStyles({
     top: '8px',
     right: '8px',
   },
-  hubLabel: { color: tokens.colorNeutralForeground2 },
+  // Out of the flow, so the logo (not logo + label) is what sits on the vertical centre the lines aim at.
+  hubLabel: {
+    position: 'absolute',
+    top: '100%',
+    marginTop: tokens.spacingVerticalXS,
+    color: tokens.colorNeutralForeground2,
+  },
 });
 
-function Tile({ icon, label, live }: { icon: ReactNode; label: string; live?: boolean }) {
+function Tile({
+  icon,
+  label,
+  live,
+  node,
+}: {
+  icon: ReactNode;
+  label: string;
+  live?: boolean;
+  node: 'device' | 'app';
+}) {
   const styles = useStyles();
   return (
-    <div className={styles.tile}>
+    <div className={styles.tile} data-node={node}>
       {live && <span className={styles.dot} />}
       {icon}
       <span className={styles.tileLabel}>{label}</span>
@@ -105,50 +120,84 @@ function Tile({ icon, label, live }: { icon: ReactNode; label: string; live?: bo
   );
 }
 
+interface Line {
+  d: string;
+}
+
+/** Lines are measured from the real elements: they start at a card's edge and end at the hub's edge. */
+function useLines(rootRef: React.RefObject<HTMLDivElement | null>): {
+  lines: Line[];
+  w: number;
+  h: number;
+} {
+  const [state, setState] = useState<{ lines: Line[]; w: number; h: number }>({
+    lines: [],
+    w: 0,
+    h: 0,
+  });
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const measure = () => {
+      const box = root.getBoundingClientRect();
+      const rel = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return { l: r.left - box.left, r: r.right - box.left, y: r.top - box.top + r.height / 2 };
+      };
+      const hub = root.querySelector('[data-node="hub"]');
+      const app = root.querySelector('[data-node="app"]');
+      if (!hub || !app) return;
+      const h = rel(hub);
+      const lines: Line[] = [...root.querySelectorAll('[data-node="device"]')].map((el) => {
+        const t = rel(el);
+        const mid = (t.r + h.l) / 2;
+        return { d: `M ${t.r} ${t.y} C ${mid} ${t.y}, ${mid} ${h.y}, ${h.l} ${h.y}` };
+      });
+      const a = rel(app);
+      lines.push({ d: `M ${h.r} ${h.y} L ${a.l} ${a.y}` });
+      setState({ lines, w: box.width, h: box.height });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, [rootRef]);
+  return state;
+}
+
 /** Hero illustration: devices connect out to the gateway, which serves your application. */
 export function NetworkDiagram() {
   const styles = useStyles();
   const { t } = useTranslation();
-  const rows = [12.5, 37.5, 62.5, 87.5];
+  const rootRef = useRef<HTMLDivElement>(null);
+  const { lines, w, h } = useLines(rootRef);
 
   return (
-    <div className={styles.root} aria-hidden="true">
-      <svg className={styles.lines} viewBox="0 0 100 100" preserveAspectRatio="none">
-        {rows.map((y) => (
+    <div className={styles.root} ref={rootRef} aria-hidden="true">
+      <svg className={styles.lines} viewBox={`0 0 ${w || 100} ${h || 100}`}>
+        {lines.map((l) => (
           <path
-            key={y}
+            key={l.d}
             className="sc-motion"
-            d={`M 19 ${y} C 36 ${y}, 36 50, 50 50`}
+            d={l.d}
             fill="none"
             stroke={LINE}
             strokeWidth="2.2"
             strokeDasharray="4 4"
             strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
             style={{ animation: 'sc-flow 1.2s linear infinite' }}
           />
         ))}
-        <path
-          className="sc-motion"
-          d="M 50 50 L 81 50"
-          fill="none"
-          stroke={LINE}
-          strokeWidth="2.2"
-          strokeDasharray="4 4"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-          style={{ animation: 'sc-flow 1.2s linear infinite' }}
-        />
       </svg>
       <div className={styles.col}>
-        <Tile icon={<Phone24Regular />} label={t('home.hero.phone')} live />
-        <Tile icon={<Desktop24Regular />} label={t('home.hero.laptop')} live />
-        <Tile icon={<Server24Regular />} label={t('home.hero.pi')} live />
-        <Tile icon={<Globe24Regular />} label={t('home.hero.browser')} live />
+        <Tile node="device" icon={<Phone24Regular />} label={t('home.hero.phone')} live />
+        <Tile node="device" icon={<Desktop24Regular />} label={t('home.hero.laptop')} live />
+        <Tile node="device" icon={<Server24Regular />} label={t('home.hero.pi')} live />
+        <Tile node="device" icon={<Globe24Regular />} label={t('home.hero.browser')} live />
       </div>
       <div className={styles.center}>
         <div className={styles.hub}>
-          <div className={styles.logo}>
+          <div className={styles.logo} data-node="hub">
             <span className={`${styles.ring} sc-motion`} />
             <img src="/logo.svg" alt="" width={48} height={48} />
           </div>
@@ -158,7 +207,7 @@ export function NetworkDiagram() {
         </div>
       </div>
       <div className={styles.col}>
-        <Tile icon={<Code24Regular />} label={t('home.hero.yourApp')} />
+        <Tile node="app" icon={<Code24Regular />} label={t('home.hero.yourApp')} />
       </div>
     </div>
   );
