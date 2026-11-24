@@ -149,13 +149,7 @@ The control plane is served at `/api` on the web app host. Staging and productio
 
 Bring-your-own-devices SaaS: customers enroll devices they own, we run the control plane and the gateway. Pricing is per device or pool with a free tier (not set yet).
 
-Considered and not chosen: selling inference from our own devices (phone-class devices earn cents per day at market prices) and a public contributor/consumer marketplace (cold start, payouts and KYC, fraud, and customer prompts running on strangers' devices). Do not build marketplace, payout or commission features. If demand appears, the next step would be an invite-only mode where trusted members contribute devices to one organisation's pool.
-
-## Roadmap
-
-- **Larger models via local cluster mode**: an opt-in group of devices on the same LAN serving one model as a pipeline, shown to the gateway as one logical node. Sharding over the internet is not viable. An offline spike on a tiny model reproduced an unsplit model's logits exactly; nothing is built. Research notes: [docs/sharding-research.md](docs/sharding-research.md).
-- More inference engines beyond LiteRT-LM (the only one for now).
-- Measure tokens/sec per watt and failure rates on real devices.
+Considered and not chosen: selling inference from our own devices (phone-class devices earn cents per day at market prices) and a public contributor/consumer marketplace (cold start, payouts and KYC, fraud, and customer prompts running on strangers' devices). Do not build marketplace, payout or commission features.
 
 ## License
 
