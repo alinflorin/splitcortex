@@ -157,7 +157,7 @@ pub fn key_from(r: &sqlx::postgres::PgRow) -> KeyRec {
 
 /// Looks one key up by hash (cache miss path, so a new key works before its change event arrives).
 pub async fn fetch_key(db: &PgPool, hash: &str) -> Result<Option<KeyRec>> {
-    let row = sqlx::query(&format!("{KEY_SQL} where k.hash = $1"))
+    let row = sqlx::query(sqlx::AssertSqlSafe(format!("{KEY_SQL} where k.hash = $1")))
         .bind(hash)
         .fetch_optional(db)
         .await?;
@@ -193,7 +193,7 @@ async fn full_load(db: &PgPool) -> Result<(Cache, i64)> {
 async fn apply(db: &PgPool, cache: &SharedCache, kind: &str, id: Uuid) -> Result<()> {
     match kind {
         "node" => {
-            let row = sqlx::query(&format!("{NODE_SQL} where id = $1"))
+            let row = sqlx::query(sqlx::AssertSqlSafe(format!("{NODE_SQL} where id = $1")))
                 .bind(id)
                 .fetch_optional(db)
                 .await?;
@@ -208,7 +208,7 @@ async fn apply(db: &PgPool, cache: &SharedCache, kind: &str, id: Uuid) -> Result
         // A model change affects every pool that serves (or served) it.
         "model" => reload_pools(db, cache, "pm.model_id = $1", id).await?,
         "api_key" => {
-            let row = sqlx::query(&format!("{KEY_SQL} where k.id = $1"))
+            let row = sqlx::query(sqlx::AssertSqlSafe(format!("{KEY_SQL} where k.id = $1")))
                 .bind(id)
                 .fetch_optional(db)
                 .await?;
@@ -222,7 +222,7 @@ async fn apply(db: &PgPool, cache: &SharedCache, kind: &str, id: Uuid) -> Result
         // An organisation is only recorded when it changes or is deleted; its children record their own changes,
         // but dropping everything of a deleted org here keeps the cache honest.
         "organisation" => {
-            let row = sqlx::query(&format!("{ORG_SQL} where id = $1"))
+            let row = sqlx::query(sqlx::AssertSqlSafe(format!("{ORG_SQL} where id = $1")))
                 .bind(id)
                 .fetch_optional(db)
                 .await?;
@@ -251,11 +251,13 @@ async fn reload_pools(db: &PgPool, cache: &SharedCache, filter: &str, id: Uuid) 
             .map(|p| p.id)
             .collect()
     };
-    let rows = sqlx::query(&format!("{POOL_SQL} where {filter} or p.id = any($2)"))
-        .bind(id)
-        .bind(&held)
-        .fetch_all(db)
-        .await?;
+    let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
+        "{POOL_SQL} where {filter} or p.id = any($2)"
+    )))
+    .bind(id)
+    .bind(&held)
+    .fetch_all(db)
+    .await?;
     let mut c = cache.write().unwrap();
     let mut seen = HashSet::new();
     for r in &rows {
