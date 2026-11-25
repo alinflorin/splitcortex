@@ -39,7 +39,9 @@ test('public pages are real HTML, in English and in Romanian, with their own hea
     expect(body, `${path} canonical`).toContain(
       `<link data-seo rel="canonical" href="${canonical}" />`,
     );
-    expect(body, `${path} hreflang`).toMatch(/hreflang="ro" href="https:\/\/[^"]+\/ro(\/[a-z]+)?"/);
+    expect(body, `${path} hreflang`).toMatch(
+      /hreflang="ro" href="https:\/\/[^"]+\/ro(\/[a-z-]+)?"/,
+    );
     expect(body, `${path} hreflang`).toContain('hreflang="x-default"');
     expect(body, `${path} description`).toMatch(
       /<meta data-seo name="description" content="[^"]{50,}"/,

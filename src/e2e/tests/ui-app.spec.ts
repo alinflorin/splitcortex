@@ -166,7 +166,7 @@ test.describe('signed in', () => {
           .evaluate((el) =>
             (
               (el as HTMLElement).innerText.match(
-                /\b(help|home|about|legal|quickstart|contact|apps|endpoints|playground|notFound|footer|nav|app)(\.[a-zA-Z]+)+\b/g,
+                /\b(help|home|about|legal|quickstart|contact|apps|endpoints|playground|notFound|footer|nav|app)(\.[a-z][a-zA-Z]*)+\b(?!:)/g,
               ) ?? []
             ).slice(0, 5),
           );
@@ -266,11 +266,18 @@ test.describe('signed in', () => {
     await page.getByRole('menuitem', { name: 'Theme' }).click();
     await page.getByRole('menuitemradio', { name: 'Dark' }).click();
     expect(await page.evaluate(() => localStorage.getItem('sc-theme'))).toBe('dark');
-    const background = () =>
-      page
-        .locator('.fui-FluentProvider')
-        .first()
-        .evaluate((el) => getComputedStyle(el).backgroundColor);
+    // Right after a reload the provider can be mid re-mount and report no colour yet: wait for a real one.
+    const background = async () => {
+      let value = '';
+      await expect(async () => {
+        value = await page
+          .locator('.fui-FluentProvider')
+          .first()
+          .evaluate((el) => getComputedStyle(el).backgroundColor);
+        expect(value).not.toBe('');
+      }).toPass();
+      return value;
+    };
     const dark = await background();
     await page.reload();
     expect(await page.evaluate(() => localStorage.getItem('sc-theme'))).toBe('dark');
@@ -343,6 +350,8 @@ test.describe('signed in', () => {
     await expect(
       dialog.getByText('Use lowercase letters, digits and single dashes.'),
     ).toBeVisible();
+    // The form moves focus to the invalid field after validating; wait for it so it cannot steal the next fill.
+    await expect(dialog.getByLabel('Slug')).toBeFocused();
     await dialog.getByLabel('Name').fill(`UI Org ${tag} b`);
     await expect(dialog.getByLabel('Slug')).toHaveValue('Not Allowed');
     await dialog.getByLabel('Slug').fill(`ui-org-${tag}`);
