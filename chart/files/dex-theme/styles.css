@@ -8,6 +8,8 @@
   --sc-bg: #f6f7fb;
   --sc-panel: #fff;
   --sc-panel-hover: var(--sc-bg);
+  --sc-edge: rgba(26, 29, 46, 0.1);
+  --sc-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.08) 55%);
   color-scheme: light;
 }
 body,
@@ -15,6 +17,8 @@ body,
   background:
     radial-gradient(1000px 600px at 90% -140px, rgba(74, 91, 230, 0.3), transparent 70%),
     radial-gradient(800px 520px at 2% 20%, rgba(44, 230, 197, 0.16), transparent 70%),
+    radial-gradient(420px 300px at 38% 24%, rgba(44, 230, 197, 0.34), transparent 70%),
+    radial-gradient(460px 320px at 64% 34%, rgba(74, 91, 230, 0.32), transparent 70%),
     radial-gradient(circle at 1px 1px, rgba(127, 135, 170, 0.28) 1.2px, transparent 1.6px) 0 0 / 28px
       28px,
     var(--sc-bg);
@@ -45,12 +49,13 @@ body,
   width: auto;
 }
 .theme-panel {
-  background: color-mix(in srgb, var(--sc-panel) 55%, transparent);
+  background: var(--sc-sheen), color-mix(in srgb, var(--sc-panel) 40%, transparent);
   -webkit-backdrop-filter: blur(22px) saturate(170%);
   backdrop-filter: blur(22px) saturate(170%);
   border: 0;
   border-radius: 24px;
   box-shadow:
+    0 0 0 1px var(--sc-edge),
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     inset 0 0 0 1px rgba(255, 255, 255, 0.16),
     0 24px 64px rgba(30, 40, 120, 0.18);
@@ -123,25 +128,30 @@ body,
   min-height: 40px;
   padding: 0 12px;
   margin: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02)),
-    color-mix(in srgb, var(--sc-panel) 55%, transparent);
-  backdrop-filter: blur(10px) saturate(160%);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  /* Nested in the blurred panel, a backdrop-filter here would see nothing; the glass look comes from tint, sheen, rim and shadow. */
+  background: var(--sc-sheen), color-mix(in srgb, var(--sc-panel) 22%, transparent);
   color: var(--sc-text);
   border: 0;
   border-radius: 12px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    inset 0 0 0 1px rgba(127, 135, 170, 0.28),
-    0 6px 16px -8px rgba(26, 29, 46, 0.35);
+    0 0 0 1px var(--sc-edge),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -8px 14px -8px rgba(74, 91, 230, 0.16),
+    0 8px 18px -8px rgba(30, 40, 120, 0.4);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  transition: box-shadow 0.15s, background-color 0.15s;
 }
 .dex-btn:hover,
 .theme-btn-provider:hover {
-  background: color-mix(in srgb, var(--sc-panel) 80%, transparent);
+  background: var(--sc-sheen), color-mix(in srgb, var(--sc-panel) 45%, transparent);
+  box-shadow:
+    0 0 0 1px var(--sc-brand),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -8px 14px -8px rgba(74, 91, 230, 0.22),
+    0 10px 22px -8px rgba(30, 40, 120, 0.5);
 }
 .dex-btn-icon {
   float: none;
@@ -198,6 +208,8 @@ a {
   --sc-bg: #0e1120;
   --sc-panel: #151932;
   --sc-panel-hover: #1c2140;
+  --sc-edge: rgba(255, 255, 255, 0.12);
+  --sc-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02) 55%);
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -208,6 +220,8 @@ a {
     --sc-bg: #0e1120;
     --sc-panel: #151932;
     --sc-panel-hover: #1c2140;
+    --sc-edge: rgba(255, 255, 255, 0.12);
+    --sc-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02) 55%);
     color-scheme: dark;
   }
 }
