@@ -13,6 +13,6 @@ dependencies:
   version: 0.26.0
 - name: garage
   repository: https://charts.derwitt.dev
-  version: 2.5.0
-digest: sha256:05b2b9b5b2d49dde26268cbd00383f74d5ea05456871304c7b44831efd44ad1a
-generated: "2026-11-19T12:13:39.102467589+02:00"
+  version: 2.6.0
+digest: sha256:134ceec78b95628abbf9928f7e4a058c05745261462dbc0c37ae668edcad3790
+generated: "2026-11-26T04:09:15.228358628Z"
