@@ -7,12 +7,12 @@ dependencies:
   version: v1.21.3
 - name: postgres
   repository: https://groundhog2k.github.io/helm-charts/
-  version: 1.6.9
+  version: 1.6.10
 - name: dex
   repository: https://charts.dexidp.io
   version: 0.26.0
 - name: garage
   repository: https://charts.derwitt.dev
   version: 2.5.0
-digest: sha256:05b2b9b5b2d49dde26268cbd00383f74d5ea05456871304c7b44831efd44ad1a
-generated: "2026-11-19T12:13:39.102467589+02:00"
+digest: sha256:6dfe83a96a7b451aff951fa39ad8090434189d50ecbac6d5269f9aad1c4b7a43
+generated: "2026-11-26T04:09:25.463875001Z"
